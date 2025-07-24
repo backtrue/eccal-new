@@ -1609,7 +1609,18 @@ echo "Bulk import completed!"`;
         return res.status(401).json({ message: 'Unauthorized - no user' });
       }
       
-      // Check if user is admin (you can customize this logic)
+      // Check if user is admin from database first
+      try {
+        const dbUser = await storage.getUser(user.id);
+        if (dbUser && dbUser.isAdmin) {
+          console.log('[ADMIN-CHECK] Admin access granted from database for:', user.email);
+          return next();
+        }
+      } catch (dbError) {
+        console.error('[ADMIN-CHECK] Database check error:', dbError);
+      }
+      
+      // Fallback to email list
       const adminEmails = ['backtrue@gmail.com', 'backtrue@seo-tw.org'];
       console.log('[ADMIN-CHECK] Checking if', user.email, 'is in admin list:', adminEmails);
       
@@ -1677,8 +1688,8 @@ echo "Bulk import completed!"`;
       const offset = parseInt(req.query.offset) || 0;
       
       const result = await storage.getAllUsers(limit, offset);
-      // Return users array directly to match frontend expectations
-      res.json(result.users);
+      // Return complete result object to match frontend expectations
+      res.json(result);
     } catch (error) {
       console.error('Error fetching users:', error);
       res.status(500).json({ message: 'Failed to fetch users' });

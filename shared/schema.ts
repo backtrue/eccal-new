@@ -49,6 +49,8 @@ export const users = pgTable("users", {
   service: varchar("service"), // Track which service the user signed up from
   credits: integer("credits").default(30).notNull(), // User credits for services
   lastLoginAt: timestamp("last_login_at"), // Track last login time
+  // Admin access control
+  isAdmin: boolean("is_admin").default(false).notNull(), // Admin privileges
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
