@@ -19,6 +19,7 @@ import SaveProjectDialog from "@/components/SaveProjectDialog";
 import Footer from "@/components/Footer";
 import { transformBackendToFrontendResult } from "@/utils/transformResult";
 import { CampaignPlannerFormData, PlanningResult } from "@/types/campaign-planner";
+import { usePageViewTracking, useCampaignPlannerTracking } from "@/hooks/useBehaviorTracking";
 
 // Form validation schema
 const campaignPlannerSchema = z.object({
@@ -40,6 +41,10 @@ export default function CampaignPlanner({ locale = "zh-TW" }: { locale?: string 
   const { data: usageData, refetch: refetchUsage } = useCampaignPlannerUsage();
   const { data: analyticsData } = useAnalyticsData();
   const [results, setResults] = useState<PlanningResult | null>(null);
+  
+  // 追蹤頁面瀏覽和活動規劃師使用
+  usePageViewTracking('/campaign-planner', 'campaign_planner', { locale });
+  const { trackPlanCreation, trackPlanSave } = useCampaignPlannerTracking('/campaign-planner');
 
   const form = useForm<CampaignPlannerFormDataLocal>({
     resolver: zodResolver(campaignPlannerSchema),

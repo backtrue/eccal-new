@@ -29,6 +29,7 @@ import FacebookAccountSelector from "@/components/FacebookAccountSelector";
 import type { Locale } from "@/lib/i18n";
 import { getTranslations } from "@/lib/i18n";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePageViewTracking, useFbAuditTracking } from "@/hooks/useBehaviorTracking";
 
 interface FbAuditProps {
   locale: Locale;
@@ -43,6 +44,10 @@ export default function FbAudit({ locale }: FbAuditProps) {
   const [selectedIndustry, setSelectedIndustry] = useState<string>("");
   const [showResults, setShowResults] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+
+  // 追蹤頁面瀏覽和功能使用
+  usePageViewTracking('/fbaudit', 'fbaudit', { locale, step: currentStep });
+  const { trackAccountSelection, trackPlanSelection, trackHealthCheck, trackNPSRating } = useFbAuditTracking('/fbaudit');
 
   // 只有在用戶已認證且有 Facebook access token 時才載入帳戶
   const shouldLoadAccounts = Boolean(isAuthenticated && user?.metaAccessToken);
@@ -94,6 +99,9 @@ export default function FbAudit({ locale }: FbAuditProps) {
         selectedPlan,
         selectedIndustry
       });
+      
+      // 追蹤健檢執行
+      trackHealthCheck(selectedAccount, selectedPlan, selectedIndustry);
       
       const result = await checkMutation.mutateAsync({
         adAccountId: selectedAccount,
@@ -343,8 +351,9 @@ export default function FbAudit({ locale }: FbAuditProps) {
             <NPSRating 
               healthCheckId={(checkMutation.data as any).healthCheckId}
               locale={locale}
-              onRatingSubmitted={() => {
+              onRatingSubmitted={(rating, comment) => {
                 console.log('NPS 評分已提交');
+                trackNPSRating((checkMutation.data as any).healthCheckId, rating, comment);
               }}
             />
           )}
@@ -504,7 +513,11 @@ export default function FbAudit({ locale }: FbAuditProps) {
               ) : accounts && accounts.length > 0 ? (
                 <div className="space-y-4">
                   <FacebookAccountSelector 
-                    onAccountSelected={(accountId) => setSelectedAccount(accountId)}
+                    onAccountSelected={(accountId) => {
+                      setSelectedAccount(accountId);
+                      const account = accounts.find(a => a.id === accountId);
+                      trackAccountSelection(accountId, account?.name || 'Unknown');
+                    }}
                     accounts={accounts}
                     isLoading={accountsLoading}
                     useExternalData={true}
@@ -553,6 +566,8 @@ export default function FbAudit({ locale }: FbAuditProps) {
                       window.location.href = `/calculator?returnTo=${encodeURIComponent(returnUrl)}`;
                     } else {
                       setSelectedPlan(value);
+                      const plan = plans.find((p: any) => p.id === value);
+                      trackPlanSelection(value, plan?.planName || 'Unknown');
                     }
                   }}>
                     <SelectTrigger>

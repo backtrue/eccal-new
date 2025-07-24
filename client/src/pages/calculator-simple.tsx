@@ -18,6 +18,7 @@ import { useAnalyticsProperties, useAnalyticsData } from "@/hooks/useAnalyticsDa
 import { getTranslations, type Locale } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
 import { trackCalculatorUsage, trackMetaEvent } from "@/lib/meta-pixel";
+import { usePageViewTracking, useCalculatorTracking } from "@/hooks/useBehaviorTracking";
 
 const createCalculatorSchema = (t: any) => z.object({
   targetRevenue: z.preprocess(
@@ -58,6 +59,10 @@ export default function Calculator({ locale }: CalculatorProps) {
   const [formData, setFormData] = useState<any>(null); // 儲存表單數據
   const [returnTo, setReturnTo] = useState<string>(''); // 儲存返回 URL
   const { isAuthenticated, user } = useAuth();
+
+  // 追蹤頁面瀏覽和計算器使用
+  usePageViewTracking('/calculator', 'calculator', { locale, returnTo });
+  const { trackCalculation } = useCalculatorTracking('/calculator');
 
   // 檢查是否有 returnTo 參數
   useEffect(() => {
@@ -141,6 +146,9 @@ export default function Calculator({ locale }: CalculatorProps) {
     trackEvent('calculator_calculation', 'Calculator');
     // trackCalculatorUsage();
     trackMetaEvent('Purchase');
+    
+    // 追蹤用戶行為 - 計算器使用
+    trackCalculation(data, calculationResults);
   };
 
   return (
