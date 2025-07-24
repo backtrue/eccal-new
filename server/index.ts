@@ -1269,7 +1269,7 @@ app.get('/api/generate-test-token', async (req, res) => {
       decoded: jwt.decode(testToken)
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
@@ -1570,9 +1570,11 @@ app.get('/api/auth/google-sso/callback', async (req, res) => {
   } catch (error) {
     console.error('=== Google OAuth 回調錯誤 ===');
     console.error('錯誤詳情:', error);
-    console.error('錯誤堆疊:', error.stack);
-    console.error('錯誤類型:', error.name);
-    console.error('錯誤信息:', error.message);
+    if (error instanceof Error) {
+      console.error('錯誤堆疊:', error.stack);
+      console.error('錯誤類型:', error.name);
+      console.error('錯誤信息:', error.message);
+    }
     
     // 嘗試重定向到錯誤頁面
     try {
@@ -1582,7 +1584,7 @@ app.get('/api/auth/google-sso/callback', async (req, res) => {
         try {
           stateData = JSON.parse(Buffer.from(state as string, 'base64').toString());
         } catch (e) {
-          console.error('解析 state 失敗:', e);
+          console.error('解析 state 失敗:', e instanceof Error ? e.message : 'Unknown error');
         }
       }
       
@@ -1599,7 +1601,7 @@ app.get('/api/auth/google-sso/callback', async (req, res) => {
         success: false,
         error: 'Google OAuth 認證失敗',
         code: 'GOOGLE_OAUTH_CALLBACK_ERROR',
-        details: error.message
+        details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
@@ -2019,7 +2021,7 @@ app.use('/api/facebook/data-deletion', express.json(), (req, res) => {
           userId = data.user_id || 'unknown';
         }
       } catch (e) {
-        console.log('Could not parse signed_request:', e.message);
+        console.log('Could not parse signed_request:', e instanceof Error ? e.message : 'Unknown error');
       }
     }
 

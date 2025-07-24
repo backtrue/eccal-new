@@ -99,19 +99,23 @@ export async function jwtMiddleware(req: Request, res: Response, next: NextFunct
         const { storage } = await import('./storage');
         const fullUser = await storage.getUser(jwtUser.id);
         if (fullUser) {
-          console.log('JWT middleware: User loaded from database:', fullUser.email);
+          // 靜默載入用戶，只在調試時記錄
+          if (process.env.NODE_ENV === 'development') {
+            console.log('JWT middleware: User loaded from database:', fullUser.email);
+          }
           (req as any).user = fullUser;
           (req as any).isAuthenticated = () => true;
         } else {
-          // 如果資料庫中找不到用戶，使用 JWT 中的基本資料
-          console.log('JWT middleware: User not found in database, using JWT data:', jwtUser.email);
+          // 如果資料庫中找不到用戶，使用 JWT 中的基本資料（靜默處理）
           (req as any).user = jwtUser;
           (req as any).isAuthenticated = () => true;
         }
       } catch (error) {
-        console.error('Error loading user from database:', error);
+        // 靜默處理錯誤，只在調試時記錄
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error loading user from database:', error);
+        }
         // 發生錯誤時，使用 JWT 中的基本資料
-        console.log('JWT middleware: Database error, falling back to JWT data:', jwtUser.email);
         (req as any).user = jwtUser;
         (req as any).isAuthenticated = () => true;
       }

@@ -36,7 +36,14 @@ sudo rm -f .git/packed-refs.lock
 git remote update origin
 git fetch origin main
 
-# 步驟 4: 確認狀態
+# 步驟 4: 重新配置 Git 認證
+git config credential.helper store
+git remote set-url origin https://$GITHUB_TOKEN@github.com/backtrue/eccal.git
+
+# 步驟 5: 推送剩餘提交
+git push origin main
+
+# 步驟 6: 確認狀態
 git status
 git log --oneline -3
 ```
@@ -119,14 +126,14 @@ ssh-keygen -t ed25519 -C "65640984+backtrue@users.noreply.github.com"
 git remote set-url origin git@github.com:backtrue/eccal.git
 ```
 
-## 當前狀態（最終更新）
+## 當前狀態（2025/7/25 更新）
 - 本地分支：main
 - 遠程分支：origin/main  
 - ✅ 推送完成：75個提交已成功推送 (bae3984..4dc6430)
-- ✅ Git 配置：Token 已正確設定
-- ✅ GitHub 同步：代碼已備份到 GitHub
+- ⚠️  待推送：2個新提交 (c45f467, d03b772)
+- ❌ Git 認證問題：Token 配置需要重新設定
 - ❌ Replit Git 介面：仍顯示 "unrecognized fatal error"
-- 📝 問題：可能有殘留的鎖定文件或配置問題
+- 📝 問題：鎖定文件 + Git 認證配置
 
 ## 📊 檢查推送結果
 
