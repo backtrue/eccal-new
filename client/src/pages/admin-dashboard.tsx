@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Users, TrendingUp, CreditCard, Settings, Monitor, FileText, Download, Bell, Activity, BarChart3, AlertTriangle } from "lucide-react";
+import { AlertCircle, Users, TrendingUp, CreditCard, Settings, Monitor, FileText, Download, Bell, Activity, BarChart3, AlertTriangle, Star, MessageSquare, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 // Removed Footer import as we'll use a simple admin footer instead
 
@@ -73,6 +73,27 @@ interface SystemLog {
   message: string;
   endpoint: string;
   createdAt: Date;
+}
+
+interface NPSRating {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  npsScore: number;
+  npsComment: string | null;
+  npsSubmittedAt: string;
+  adAccountName: string;
+  industryType: string;
+}
+
+interface NPSStats {
+  totalRatings: number;
+  averageScore: number;
+  promoters: number;
+  passives: number;  
+  detractors: number;
+  npsScore: number;
 }
 
 export default function AdminDashboard() {
@@ -168,6 +189,12 @@ export default function AdminDashboard() {
     queryKey: ['/api/bdmin/analysis-items', selectedPlan],
     enabled: !!selectedPlan,
     staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+
+  // Fetch NPS ratings and stats
+  const { data: npsData, isLoading: npsLoading } = useQuery<{ ratings: NPSRating[], stats: NPSStats }>({
+    queryKey: ['/api/bdmin/nps-ratings'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Marketing Plans mutations
@@ -344,7 +371,7 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               BI 分析
@@ -380,6 +407,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="marketing" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               行銷資料庫
+            </TabsTrigger>
+            <TabsTrigger value="nps" className="flex items-center gap-2">
+              <Star className="w-4 h-4" />
+              NPS 分析
             </TabsTrigger>
           </TabsList>
 
@@ -1388,6 +1419,166 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* NPS Analysis */}
+          <TabsContent value="nps" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* NPS 統計卡片 */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">總評分數</CardTitle>
+                  <Star className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {npsLoading ? "載入中..." : npsData?.stats?.totalRatings || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    平均分數: {npsData?.stats?.averageScore?.toFixed(1) || 0}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">NPS 分數</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {npsData?.stats?.npsScore?.toFixed(1) || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    推薦者 - 批評者
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">推薦者</CardTitle>
+                  <Users className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {npsData?.stats?.promoters || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    評分 9-10 分
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">批評者</CardTitle>
+                  <Users className="h-4 w-4 text-red-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {npsData?.stats?.detractors || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    評分 1-6 分
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* NPS 詳細評分列表 */}
+            <Card>
+              <CardHeader>
+                <CardTitle>詳細評分記錄</CardTitle>
+                <CardDescription>
+                  Facebook 廣告健檢 NPS 評分列表
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {npsLoading ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">載入中...</p>
+                  </div>
+                ) : !npsData?.ratings || npsData.ratings.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">尚無 NPS 評分記錄</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="p-3 text-left">用戶</th>
+                          <th className="p-3 text-left">評分</th>
+                          <th className="p-3 text-left">分類</th>
+                          <th className="p-3 text-left">廣告帳戶</th>
+                          <th className="p-3 text-left">產業類型</th>
+                          <th className="p-3 text-left">評價內容</th>
+                          <th className="p-3 text-left">提交時間</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {npsData.ratings.map((rating) => (
+                          <tr key={rating.id} className="border-t">
+                            <td className="p-3">
+                              <div>
+                                <div className="font-medium">{rating.userEmail}</div>
+                                <div className="text-sm text-gray-600">
+                                  {rating.userName}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <Badge 
+                                variant={rating.npsScore <= 6 ? 'destructive' : rating.npsScore <= 8 ? 'secondary' : 'default'}
+                                className="font-bold"
+                              >
+                                {rating.npsScore}/10
+                              </Badge>
+                            </td>
+                            <td className="p-3">
+                              <Badge variant="outline">
+                                {rating.npsScore <= 6 ? '批評者' : rating.npsScore <= 8 ? '中性者' : '推薦者'}
+                              </Badge>
+                            </td>
+                            <td className="p-3">
+                              <div className="text-sm">{rating.adAccountName}</div>
+                            </td>
+                            <td className="p-3">
+                              <div className="text-sm">{rating.industryType}</div>
+                            </td>
+                            <td className="p-3">
+                              <div className="text-sm max-w-xs">
+                                {rating.npsComment ? (
+                                  <div className="flex items-start gap-2">
+                                    <MessageSquare className="w-4 h-4 mt-0.5 text-gray-400" />
+                                    <span>{rating.npsComment}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400">無評論</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2 text-sm">
+                                <Calendar className="w-4 h-4 text-gray-400" />
+                                {new Date(rating.npsSubmittedAt).toLocaleDateString('zh-TW', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
