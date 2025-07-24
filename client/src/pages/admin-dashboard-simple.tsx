@@ -50,8 +50,9 @@ export default function AdminDashboard() {
   // Fetch marketing plans
   const { data: marketingPlans, refetch: refetchPlans } = useQuery<MarketingPlan[]>({
     queryKey: ['/api/bdmin/marketing-plans'],
-    staleTime: 5 * 1000,
-    refetchInterval: 5000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+    refetchInterval: false, // 停用自動刷新，避免背景持續觸發
   });
 
   // Fetch analysis items for selected plan

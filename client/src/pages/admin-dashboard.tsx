@@ -155,11 +155,12 @@ export default function AdminDashboard() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
 
-  // Fetch marketing plans with polling for processing status
+  // Fetch marketing plans
   const { data: marketingPlans, refetch: refetchPlans } = useQuery<MarketingPlan[]>({
     queryKey: ['/api/bdmin/marketing-plans'],
-    staleTime: 5 * 1000, // 5 seconds for real-time updates
-    refetchInterval: 5000, // Poll every 5 seconds for processing updates
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+    refetchInterval: false, // 停用自動刷新，避免背景持續觸發
   });
 
   // Fetch analysis items for selected plan
