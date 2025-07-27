@@ -13,6 +13,7 @@ const ALLOWED_ORIGINS = [
   'https://eccal.thinkwithblack.com',
   'https://audai.thinkwithblack.com',
   'https://quote.thinkwithblack.com',
+  'https://fabe.thinkwithblack.com',
   'https://sub3.thinkwithblack.com',
   'https://sub4.thinkwithblack.com',
   'https://sub5.thinkwithblack.com',

@@ -1291,6 +1291,7 @@ app.get('/api/auth/google-sso', async (req, res) => {
       'https://eccal.thinkwithblack.com',
       'https://audai.thinkwithblack.com',
       'https://quote.thinkwithblack.com',
+      'https://fabe.thinkwithblack.com',
       'https://sub3.thinkwithblack.com',
       'https://sub4.thinkwithblack.com',
       'https://sub5.thinkwithblack.com',
@@ -1636,6 +1637,8 @@ app.get('/api/account-center/user/:userId', async (req, res) => {
     const allowedOrigins = [
       'https://eccal.thinkwithblack.com',
       'https://audai.thinkwithblack.com',
+      'https://quote.thinkwithblack.com',
+      'https://fabe.thinkwithblack.com',
       'https://sub3.thinkwithblack.com',
       'https://sub4.thinkwithblack.com',
       'https://sub5.thinkwithblack.com',
@@ -1722,6 +1725,8 @@ app.get('/api/account-center/user/:userId/credits', async (req, res) => {
     const allowedOrigins = [
       'https://eccal.thinkwithblack.com',
       'https://audai.thinkwithblack.com',
+      'https://quote.thinkwithblack.com',
+      'https://fabe.thinkwithblack.com',
       'https://sub3.thinkwithblack.com',
       'https://sub4.thinkwithblack.com',
       'https://sub5.thinkwithblack.com',
@@ -1778,6 +1783,8 @@ app.get('/api/account-center/user/:userId/membership', async (req, res) => {
     const allowedOrigins = [
       'https://eccal.thinkwithblack.com',
       'https://audai.thinkwithblack.com',
+      'https://quote.thinkwithblack.com',
+      'https://fabe.thinkwithblack.com',
       'https://sub3.thinkwithblack.com',
       'https://sub4.thinkwithblack.com',
       'https://sub5.thinkwithblack.com',
@@ -1846,6 +1853,8 @@ app.post('/api/sso/verify-token', express.json(), async (req, res) => {
     const allowedOrigins = [
       'https://eccal.thinkwithblack.com',
       'https://audai.thinkwithblack.com',
+      'https://quote.thinkwithblack.com',
+      'https://fabe.thinkwithblack.com',
       'https://quote.thinkwithblack.com',
       'https://sub3.thinkwithblack.com',
       'https://sub4.thinkwithblack.com',
@@ -1942,6 +1951,8 @@ app.post('/api/sso/login', express.json(), async (req, res) => {
     const allowedOrigins = [
       'https://eccal.thinkwithblack.com',
       'https://audai.thinkwithblack.com',
+      'https://quote.thinkwithblack.com',
+      'https://fabe.thinkwithblack.com',
       'https://sub3.thinkwithblack.com',
       'https://sub4.thinkwithblack.com',
       'https://sub5.thinkwithblack.com',
