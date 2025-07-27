@@ -6,6 +6,7 @@
 本指南提供完整的子域名服務 Google SSO 登入整合方案，適用於所有 `thinkwithblack.com` 子域名服務：
 - `audai.thinkwithblack.com`
 - `quote.thinkwithblack.com`
+- `fabe.thinkwithblack.com`
 - `sub3.thinkwithblack.com`
 - `sub4.thinkwithblack.com`
 - `sub5.thinkwithblack.com`
@@ -387,6 +388,7 @@ Content-Type: application/json
 - `https://eccal.thinkwithblack.com`
 - `https://audai.thinkwithblack.com`
 - `https://quote.thinkwithblack.com`
+- `https://fabe.thinkwithblack.com`
 - `https://sub3.thinkwithblack.com`
 - `https://sub4.thinkwithblack.com`
 - `https://sub5.thinkwithblack.com`
