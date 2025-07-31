@@ -200,9 +200,19 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
               </div>
             </div>
             
-            <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
+            <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
               我深知廣告主的痛點。所以這次，我不做空泛的理論教學。我將透過一場 <strong>2.5 小時的直播實戰</strong>，直接帶你上手我千錘百鍊，十餘年的經驗化成的產品、專為電商廣告主打造的 SaaS 平台——「報數據」。
             </p>
+            
+            <div className="bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-800 rounded-lg p-4 mb-6 inline-block">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="w-5 h-5 text-yellow-700" />
+                <span className="font-bold text-yellow-800 dark:text-yellow-200">直播時間已確定</span>
+              </div>
+              <p className="text-xl font-bold text-yellow-900 dark:text-yellow-100">
+                8/12 (二) 晚上 19:00 - 21:30 台灣時間
+              </p>
+            </div>
             
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 inline-block">
               <p className="text-2xl font-bold text-blue-600 mb-2">
@@ -258,6 +268,18 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-5 h-5 text-red-600" />
+                    <span className="font-bold text-red-600">首堂直播時間</span>
+                  </div>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    8/12 (二) 晚上 19:00 - 21:30
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    台灣時間 | 線上直播
+                  </p>
+                </div>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
                   我將在線上親自帶你完成所有設定，從 Google/Facebook 帳號串接到平台核心功能操作。你有任何問題，當場提問，我當場回答。
                 </p>
