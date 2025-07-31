@@ -210,7 +210,7 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                 <span className="font-bold text-yellow-800 dark:text-yellow-200">直播時間已確定</span>
               </div>
               <p className="text-xl font-bold text-yellow-900 dark:text-yellow-100">
-                8/12 (二) 晚上 19:00 - 21:30 台灣時間
+                8/13 (三) 晚上 19:00 - 21:30 台灣時間
               </p>
             </div>
             
@@ -353,7 +353,7 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                     <span className="font-bold text-red-600">首堂直播時間</span>
                   </div>
                   <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    8/12 (二) 晚上 19:00 - 21:30
+                    8/13 (三) 晚上 19:00 - 21:30
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     台灣時間 | 線上直播
