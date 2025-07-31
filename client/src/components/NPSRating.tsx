@@ -9,7 +9,7 @@ import { getTranslations, type Locale } from '@/lib/i18n';
 interface NPSRatingProps {
   healthCheckId: string;
   locale: Locale;
-  onRatingSubmitted?: () => void;
+  onRatingSubmitted?: (rating: number, comment: string) => void;
 }
 
 export function NPSRating({ healthCheckId, locale, onRatingSubmitted }: NPSRatingProps) {
@@ -42,7 +42,7 @@ export function NPSRating({ healthCheckId, locale, onRatingSubmitted }: NPSRatin
       });
 
       setIsSubmitted(true);
-      onRatingSubmitted?.();
+      onRatingSubmitted?.(rating, comment.trim() || '');
       
       toast({
         title: t.thankYouMessage.split('！')[0] + '！',

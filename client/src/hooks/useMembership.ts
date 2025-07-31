@@ -47,15 +47,16 @@ export function checkMembershipAccess(
 export function useProtectedFeature(requiredLevel: "free" | "pro" = "pro") {
   const { data: membership, isLoading } = useMembershipStatus();
   
-  const hasAccess = membership ? 
-    checkMembershipAccess(membership.level, requiredLevel) && membership.isActive : 
+  const membershipData = membership as MembershipStatus | undefined;
+  const hasAccess = membershipData ? 
+    checkMembershipAccess(membershipData.level, requiredLevel) && membershipData.isActive : 
     false;
   
   return {
     hasAccess,
-    membershipLevel: membership?.level,
-    isActive: membership?.isActive,
-    expiresAt: membership?.expiresAt,
+    membershipLevel: membershipData?.level,
+    isActive: membershipData?.isActive,
+    expiresAt: membershipData?.expiresAt,
     isLoading,
     requiresUpgrade: !hasAccess && !isLoading,
   };

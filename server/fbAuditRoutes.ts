@@ -512,7 +512,7 @@ export function setupFbAuditRoutes(app: Express) {
     try {
       const { id } = req.params;
       const { npsScore, npsComment } = req.body;
-      const userId = req.user.id;
+      const userId = req.user?.id;
 
       console.log('=== 提交 NPS 評分 ===');
       console.log('健檢 ID:', id);
@@ -599,7 +599,7 @@ export function setupFbAuditRoutes(app: Express) {
       res.status(500).json({ 
         success: false, 
         error: 'Internal server error', 
-        details: error.message 
+        details: error instanceof Error ? error.message : 'Unknown error' 
       });
     }
   });
