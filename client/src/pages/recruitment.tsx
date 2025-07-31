@@ -230,17 +230,11 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                     <strong>為什麼投放廣告前要先規劃好預算？</strong>
                   </p>
                   <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <strong>特色 (Feature):</strong> 科學化預算規劃系統
+                    <p className="text-gray-700 dark:text-gray-300">
+                      透過科學化預算規劃系統，避免盲目燒錢，讓每一分預算都有明確目標。不再憑感覺投廣告，而是用數據說話，有效降低廣告成本、提升投資報酬率。
                     </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <strong>優勢 (Advantage):</strong> 避免盲目燒錢，每一分預算都有明確目標
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <strong>利益 (Benefit):</strong> 降低廣告成本，提升投資報酬率
-                    </p>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-                      <strong>證據 (Evidence):</strong> 學員平均節省 30% 無效廣告支出
+                    <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mt-2">
+                      💡 學員平均節省 30% 無效廣告支出
                     </p>
                   </div>
                 </div>
@@ -254,17 +248,11 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                     <strong>AI 驅動的智能廣告策略制定</strong>
                   </p>
                   <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <strong>特色 (Feature):</strong> 三套專業 GPT 模型整合
+                    <p className="text-gray-700 dark:text-gray-300">
+                      整合三套專業 GPT 模型，自動化分析競爭對手與市場趨勢，為你量身打造最適合的廣告策略。告別漫無目的的廣告投放，讓 AI 幫你節省 80% 策略規劃時間，精準命中目標受眾。
                     </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <strong>優勢 (Advantage):</strong> 自動化分析競爭對手與市場趨勢
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <strong>利益 (Benefit):</strong> 節省 80% 策略規劃時間，精準命中目標受眾
-                    </p>
-                    <p className="text-sm text-green-700 dark:text-green-300 font-medium">
-                      <strong>證據 (Evidence):</strong> AI 建議的廣告組合平均提升 45% 點擊率
+                    <p className="text-sm text-green-700 dark:text-green-300 font-medium mt-2">
+                      🚀 AI 建議的廣告組合平均提升 45% 點擊率
                     </p>
                   </div>
                 </div>
@@ -278,17 +266,11 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                     <strong>數據驅動的成效優化系統</strong>
                   </p>
                   <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <strong>特色 (Feature):</strong> 即時成效監控與AI健檢系統
+                    <p className="text-gray-700 dark:text-gray-300">
+                      透過即時成效監控與AI健檢系統，24小時自動監控你的廣告表現，異常狀況即時預警。再也不用擔心廣告默默燒錢卻沒效果，快速找出低效廣告，即時調整優化策略，讓每一分錢都花在刀口上。
                     </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <strong>優勢 (Advantage):</strong> 24小時自動監控，異常狀況即時預警
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <strong>利益 (Benefit):</strong> 快速找出低效廣告，即時調整優化策略
-                    </p>
-                    <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">
-                      <strong>證據 (Evidence):</strong> 用戶平均在 48 小時內提升 ROAS 25%
+                    <p className="text-sm text-purple-700 dark:text-purple-300 font-medium mt-2">
+                      ⚡ 用戶平均在 48 小時內提升 ROAS 25%
                     </p>
                   </div>
                 </div>
