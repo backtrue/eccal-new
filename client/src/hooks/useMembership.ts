@@ -48,16 +48,39 @@ export function useProtectedFeature(requiredLevel: "free" | "pro" = "pro") {
   const { data: membership, isLoading } = useMembershipStatus();
   
   const membershipData = membership as MembershipStatus | undefined;
-  const hasAccess = membershipData ? 
-    checkMembershipAccess(membershipData.level, requiredLevel) && membershipData.isActive : 
-    false;
+  
+  // 如果還在載入中，則沒有權限
+  if (isLoading) {
+    return {
+      hasAccess: false,
+      membershipLevel: undefined,
+      isActive: false,
+      expiresAt: undefined,
+      isLoading: true,
+      requiresUpgrade: false,
+    };
+  }
+
+  // 如果沒有會員資料（未登入或查詢失敗），視為需要升級
+  if (!membershipData) {
+    return {
+      hasAccess: false,
+      membershipLevel: 'free' as const,
+      isActive: false,
+      expiresAt: undefined,
+      isLoading: false,
+      requiresUpgrade: true,
+    };
+  }
+
+  const hasAccess = checkMembershipAccess(membershipData.level, requiredLevel) && membershipData.isActive;
   
   return {
     hasAccess,
-    membershipLevel: membershipData?.level,
-    isActive: membershipData?.isActive,
-    expiresAt: membershipData?.expiresAt,
-    isLoading,
-    requiresUpgrade: !hasAccess && !isLoading,
+    membershipLevel: membershipData.level,
+    isActive: membershipData.isActive,
+    expiresAt: membershipData.expiresAt,
+    isLoading: false,
+    requiresUpgrade: !hasAccess,
   };
 }

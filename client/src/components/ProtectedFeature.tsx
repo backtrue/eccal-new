@@ -65,5 +65,34 @@ export default function ProtectedFeature({
     );
   }
 
-  return null;
+  // 兜底情況：顯示升級提示（適用於任何未處理的權限問題）
+  return (
+    <Card className="border-red-200 bg-red-50">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Lock className="w-5 h-5 text-red-600" />
+          需要登入並升級至 Pro 會員
+        </CardTitle>
+        <CardDescription>
+          請先登入您的帳號，然後升級至 Pro 會員以使用此功能
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white">
+              <Crown className="w-4 h-4" />
+              立即升級
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>選擇會員方案</DialogTitle>
+            </DialogHeader>
+            <MembershipUpgrade />
+          </DialogContent>
+        </Dialog>
+        </CardContent>
+      </Card>
+    );
 }
