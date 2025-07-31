@@ -214,6 +214,103 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
               </p>
             </div>
             
+            {/* 課程內容大綱 */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-lg max-w-3xl mx-auto">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
+                🎯 2.5 小時直播實戰課程大綱
+              </h3>
+              
+              <div className="space-y-6">
+                {/* 第一部分 */}
+                <div className="border-l-4 border-blue-500 pl-6">
+                  <h4 className="text-lg font-bold text-blue-600 mb-2">
+                    Part 1: 報數據系統邏輯講解
+                  </h4>
+                  <p className="text-gray-700 dark:text-gray-300 mb-2">
+                    <strong>為什麼投放廣告前要先規劃好預算？</strong>
+                  </p>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <strong>特色 (Feature):</strong> 科學化預算規劃系統
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <strong>優勢 (Advantage):</strong> 避免盲目燒錢，每一分預算都有明確目標
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <strong>利益 (Benefit):</strong> 降低廣告成本，提升投資報酬率
+                    </p>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                      <strong>證據 (Evidence):</strong> 學員平均節省 30% 無效廣告支出
+                    </p>
+                  </div>
+                </div>
+
+                {/* 第二部分 */}
+                <div className="border-l-4 border-green-500 pl-6">
+                  <h4 className="text-lg font-bold text-green-600 mb-2">
+                    Part 2: 利用 AI 規劃廣告設定的三個 GPT
+                  </h4>
+                  <p className="text-gray-700 dark:text-gray-300 mb-2">
+                    <strong>AI 驅動的智能廣告策略制定</strong>
+                  </p>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <strong>特色 (Feature):</strong> 三套專業 GPT 模型整合
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <strong>優勢 (Advantage):</strong> 自動化分析競爭對手與市場趨勢
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <strong>利益 (Benefit):</strong> 節省 80% 策略規劃時間，精準命中目標受眾
+                    </p>
+                    <p className="text-sm text-green-700 dark:text-green-300 font-medium">
+                      <strong>證據 (Evidence):</strong> AI 建議的廣告組合平均提升 45% 點擊率
+                    </p>
+                  </div>
+                </div>
+
+                {/* 第三部分 */}
+                <div className="border-l-4 border-purple-500 pl-6">
+                  <h4 className="text-lg font-bold text-purple-600 mb-2">
+                    Part 3: 利用報數據檢核廣告成效的秘訣
+                  </h4>
+                  <p className="text-gray-700 dark:text-gray-300 mb-2">
+                    <strong>數據驅動的成效優化系統</strong>
+                  </p>
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <strong>特色 (Feature):</strong> 即時成效監控與AI健檢系統
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <strong>優勢 (Advantage):</strong> 24小時自動監控，異常狀況即時預警
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <strong>利益 (Benefit):</strong> 快速找出低效廣告，即時調整優化策略
+                    </p>
+                    <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">
+                      <strong>證據 (Evidence):</strong> 用戶平均在 48 小時內提升 ROAS 25%
+                    </p>
+                  </div>
+                </div>
+
+                {/* 總結 */}
+                <div className="bg-gradient-to-r from-orange-100 to-red-100 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-6 text-center border-2 border-orange-300 dark:border-orange-700">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <Zap className="w-6 h-6 text-orange-600" />
+                    <span className="text-xl font-bold text-orange-800 dark:text-orange-200">
+                      你的最強 AI 廣告投放戰隊
+                    </span>
+                  </div>
+                  <p className="text-lg text-gray-700 dark:text-gray-300">
+                    <strong>2個AI工具 + 3個GPT = 完整廣告投放解決方案</strong>
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    從規劃到執行，從監控到優化，一站式解決你所有廣告投放難題
+                  </p>
+                </div>
+              </div>
+            </div>
+            
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 inline-block">
               <p className="text-2xl font-bold text-blue-600 mb-2">
                 這套系統，將成為你的 AI 廣告軍師
