@@ -540,9 +540,9 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set({
-        membershipLevel: "pro",
-        membershipExpires: expiresAt,
-        updatedAt: new Date()
+        membership_level: "pro",      // 修正欄位名稱
+        membership_expires: expiresAt, // 修正欄位名稱
+        updated_at: new Date()        // 修正欄位名稱
       })
       .where(eq(users.id, userId))
       .returning();
@@ -558,23 +558,24 @@ export class DatabaseStorage implements IStorage {
     }
 
     const now = new Date();
-    const level = user.membershipLevel as "free" | "pro";
+    const level = user.membership_level as "free" | "pro";  // 修正欄位名稱
 
     if (level === "free") {
       return { level: "free", isActive: true };
     }
 
     // Check if Pro membership is still active
-    const isActive = user.membershipExpires ? user.membershipExpires > now : false;
+    // 如果是 pro 會員但沒有到期日，視為永久有效
+    const isActive = user.membership_expires ? user.membership_expires > now : true;
 
     // If Pro membership expired, downgrade to free
-    if (!isActive && user.membershipLevel === "pro") {
+    if (!isActive && user.membership_level === "pro") {
       await db
         .update(users)
         .set({
-          membershipLevel: "free",
-          membershipExpires: null,
-          updatedAt: new Date()
+          membership_level: "free",  // 修正欄位名稱
+          membership_expires: null,  // 修正欄位名稱
+          updated_at: new Date()     // 修正欄位名稱
         })
         .where(eq(users.id, userId));
 
@@ -584,7 +585,7 @@ export class DatabaseStorage implements IStorage {
     return { 
       level, 
       isActive, 
-      expiresAt: user.membershipExpires || undefined 
+      expiresAt: user.membership_expires || undefined 
     };
   }
 
@@ -837,9 +838,9 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set({
-        membershipLevel,
-        membershipExpires: expiresAt,
-        updatedAt: new Date()
+        membership_level: membershipLevel,  // 修正欄位名稱
+        membership_expires: expiresAt,      // 修正欄位名稱
+        updated_at: new Date()              // 修正欄位名稱
       })
       .where(eq(users.id, userId))
       .returning();
@@ -850,9 +851,9 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .update(users)
       .set({
-        membershipLevel,
-        membershipExpires: expiresAt,
-        updatedAt: new Date()
+        membership_level: membershipLevel,  // 修正欄位名稱
+        membership_expires: expiresAt,      // 修正欄位名稱
+        updated_at: new Date()              // 修正欄位名稱
       })
       .where(inArray(users.id, userIds));
     return result.rowCount || 0;
