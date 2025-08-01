@@ -19,7 +19,16 @@ export default function ProtectedFeature({
   featureName = "此功能",
   description = "需要 Pro 會員才能使用此功能"
 }: ProtectedFeatureProps) {
-  const { hasAccess, isLoading, requiresUpgrade } = useProtectedFeature(requiredLevel);
+  const { hasAccess, isLoading, requiresUpgrade, membershipLevel } = useProtectedFeature(requiredLevel);
+  
+  // 調試信息
+  console.log('ProtectedFeature 狀態:', {
+    hasAccess,
+    isLoading,
+    requiresUpgrade,
+    membershipLevel,
+    requiredLevel
+  });
 
   if (isLoading) {
     return (

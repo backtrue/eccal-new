@@ -14,6 +14,39 @@ export function useMembershipStatus() {
     gcTime: 1 * 60 * 1000, // 1分鐘快取
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    retry: false, // 不重試，認證失敗時立即返回
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/membership/status', {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.status === 401) {
+          // 未認證，返回 free 會員狀態
+          return {
+            level: "free" as const,
+            isActive: true,
+            expiresAt: undefined
+          };
+        }
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch membership status');
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.log('Membership status check failed, defaulting to free:', error);
+        return {
+          level: "free" as const,
+          isActive: true,
+          expiresAt: undefined
+        };
+      }
+    },
   });
 }
 
