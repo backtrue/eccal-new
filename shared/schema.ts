@@ -551,10 +551,33 @@ export const fabePurchases = pgTable("fabe_purchases", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Eccal purchases tracking (for founders plan and cross-platform benefits)
+export const eccalPurchases = pgTable("eccal_purchases", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  planType: varchar("plan_type", { enum: ["monthly", "annual", "founders"] }).notNull(),
+  purchaseAmount: integer("purchase_amount").notNull(),
+  paymentMethod: varchar("payment_method", { enum: ["stripe", "manual", "other"] }).default("stripe"),
+  paymentStatus: varchar("payment_status", { enum: ["pending", "completed", "failed", "refunded"] }).default("pending"),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  subscriptionStatus: varchar("subscription_status", { enum: ["active", "canceled", "incomplete", "past_due"] }),
+  accessStartDate: timestamp("access_start_date").defaultNow(),
+  accessEndDate: timestamp("access_end_date"), // null for lifetime/founders
+  // Cross-platform benefits
+  fabeAccess: boolean("fabe_access").default(false), // whether this purchase grants fabe access
+  fabeAccessSynced: boolean("fabe_access_synced").default(false), // sync status to fabe
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export type FabeProduct = typeof fabeProducts.$inferSelect;
 export type InsertFabeProduct = typeof fabeProducts.$inferInsert;
 export type FabePurchase = typeof fabePurchases.$inferSelect;
 export type InsertFabePurchase = typeof fabePurchases.$inferInsert;
+export type EccalPurchase = typeof eccalPurchases.$inferSelect;
+export type InsertEccalPurchase = typeof eccalPurchases.$inferInsert;
 export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
 export type InsertKnowledgeDocument = typeof knowledgeDocuments.$inferInsert;
 export type KnowledgeSearchIndex = typeof knowledgeSearchIndex.$inferSelect;

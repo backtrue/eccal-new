@@ -12,6 +12,7 @@ import { setupDiagnosisRoutes } from "./diagnosisRoutes";
 import { setupFbAuditRoutes } from "./fbAuditRoutes";
 import { setupStripeRoutes } from "./stripeRoutes";
 import { setupAccountCenterRoutes } from "./accountCenterRoutes";
+import eccalPurchaseRoutes from "./eccalPurchaseRoutes";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
@@ -31,6 +32,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup Stripe Payment routes
   setupStripeRoutes(app);
+  
+  // Setup Eccal Purchase tracking routes
+  app.use("/api/eccal-purchase", eccalPurchaseRoutes);
 
   // Critical: Handle root path for Replit port monitoring
   app.get('/api/ping', (req, res) => {

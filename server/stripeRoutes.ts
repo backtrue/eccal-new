@@ -434,6 +434,9 @@ async function handlePaymentSuccess(paymentIntent: any) {
       description: `${paymentType} payment`,
     });
 
+    // Record in eccal_purchases for cross-platform tracking
+    await recordEccalPurchase(userId, paymentType, paymentIntent);
+
     // Upgrade user to Pro based on payment type
     if (paymentType === 'monthly') {
       // Monthly subscription: 30 days
@@ -450,6 +453,71 @@ async function handlePaymentSuccess(paymentIntent: any) {
     console.log(`Successfully processed ${paymentType} payment for user ${userId}`);
   } catch (error) {
     console.error('Error handling payment success:', error);
+  }
+}
+
+// Record purchase in eccal_purchases table for cross-platform benefits
+async function recordEccalPurchase(userId: string, paymentType: string, paymentIntent: any) {
+  try {
+    const { db } = await import("./db.js");
+    const { eccalPurchases } = await import("../shared/schema.js");
+
+    // Map payment types to plan types
+    let planType: string;
+    let purchaseAmount: number;
+    let isFounders = false;
+
+    switch (paymentType) {
+      case 'monthly':
+        planType = 'monthly';
+        purchaseAmount = 1280;
+        break;
+      case 'annual':
+        planType = 'annual';
+        purchaseAmount = 12800;
+        break;
+      case 'founders_membership':
+      case 'lifetime':
+        planType = 'founders';
+        purchaseAmount = 5990;
+        isFounders = true;
+        break;
+      default:
+        planType = 'monthly';
+        purchaseAmount = paymentIntent.amount / 100; // Convert from cents
+    }
+
+    // Insert purchase record
+    const [purchase] = await db.insert(eccalPurchases).values({
+      userId,
+      planType,
+      purchaseAmount,
+      paymentMethod: "stripe",
+      paymentStatus: "completed",
+      stripePaymentIntentId: paymentIntent.id,
+      accessStartDate: new Date(),
+      accessEndDate: isFounders ? null : undefined,
+      fabeAccess: isFounders, // Founders get fabe access
+      fabeAccessSynced: false,
+      metadata: {
+        originalPaymentType: paymentType,
+        stripeAmount: paymentIntent.amount,
+        currency: paymentIntent.currency
+      }
+    }).returning();
+
+    console.log(`Recorded eccal purchase: ${purchase.id} for user ${userId}, plan: ${planType}`);
+
+    // If founders plan, mark for fabe access sync (will be handled separately)
+    if (isFounders) {
+      console.log(`Founders plan detected for user ${userId}, fabe access will be synced`);
+      // Sync will be handled by the eccal-purchase API or manual trigger
+    }
+
+    return purchase;
+  } catch (error) {
+    console.error('Error recording eccal purchase:', error);
+    throw error;
   }
 }
 
