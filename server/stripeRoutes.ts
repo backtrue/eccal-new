@@ -427,6 +427,48 @@ export function setupStripeRoutes(app: Express) {
       res.status(500).json({ error: error.message });
     }
   });
+
+  // Verify payment and ensure user session
+  app.post("/api/stripe/verify-payment", async (req, res) => {
+    try {
+      const { paymentIntentId } = req.body;
+      
+      if (!paymentIntentId) {
+        return res.status(400).json({ error: 'Payment intent ID required' });
+      }
+
+      // Fetch payment intent from Stripe
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      if (paymentIntent.status === 'succeeded' && paymentIntent.metadata?.userId) {
+        // Ensure payment is processed
+        const existingPayment = await storage.getStripePaymentByIntentId(paymentIntentId);
+        
+        if (!existingPayment) {
+          console.log(`Processing missed payment: ${paymentIntentId}`);
+          await handlePaymentSuccess(paymentIntent);
+        }
+
+        // Set user session to maintain login state
+        const user = await storage.getUser(paymentIntent.metadata.userId);
+        if (user && req.session) {
+          req.session.userId = user.id;
+          req.session.user = user;
+        }
+
+        res.json({ 
+          success: true, 
+          message: 'Payment verified and user session restored',
+          user: user ? { email: user.email, membershipLevel: user.membershipLevel } : null
+        });
+      } else {
+        res.status(400).json({ success: false, error: 'Payment not successful' });
+      }
+    } catch (error: any) {
+      console.error('Error verifying payment:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 }
 
 // Handle successful one-time payment

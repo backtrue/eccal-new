@@ -13,15 +13,38 @@ interface PaymentSuccessProps {
 
 export default function PaymentSuccess({ locale }: PaymentSuccessProps) {
   const [isVerifying, setIsVerifying] = useState(true);
+  const [paymentVerified, setPaymentVerified] = useState(false);
   const t = getTranslations(locale);
 
   useEffect(() => {
-    // Simulate verification process
-    const timer = setTimeout(() => {
-      setIsVerifying(false);
-    }, 2000);
+    // Get payment intent from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentIntentId = urlParams.get('payment_intent');
+    const redirectStatus = urlParams.get('redirect_status');
 
-    return () => clearTimeout(timer);
+    if (paymentIntentId && redirectStatus === 'succeeded') {
+      // Verify payment with backend
+      fetch('/api/stripe/verify-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // 重要：包含 cookies 以維持登入狀態
+        body: JSON.stringify({ paymentIntentId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        setPaymentVerified(data.success);
+        setIsVerifying(false);
+      })
+      .catch(error => {
+        console.error('Payment verification failed:', error);
+        setIsVerifying(false);
+      });
+    } else {
+      // No payment intent, just show success
+      setTimeout(() => setIsVerifying(false), 2000);
+    }
   }, []);
 
   return (
