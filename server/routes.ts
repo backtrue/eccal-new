@@ -20,7 +20,9 @@ import path from "path";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Fabe Integration routes (high priority API)
   const fabeIntegrationRoutes = await import('./fabeIntegrationRoutes');
+  const fabeReverseIntegrationRoutes = await import('./fabeReverseIntegrationRoutes');
   app.use("/api/fabe", fabeIntegrationRoutes.default);
+  app.use("/api/fabe-reverse", fabeReverseIntegrationRoutes.default);
   
   // Setup Account Center SSO routes
   setupAccountCenterRoutes(app);
