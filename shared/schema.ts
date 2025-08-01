@@ -523,6 +523,38 @@ export const knowledgeSearchIndex = pgTable("knowledge_search_index", {
 
 export type KnowledgeCategory = typeof knowledgeCategories.$inferSelect;
 export type InsertKnowledgeCategory = typeof knowledgeCategories.$inferInsert;
+
+// FABE 產品購買記錄表（新增，不影響現有系統）
+export const fabeProducts = pgTable("fabe_products", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name").notNull(), // "FABE × SPIN 話術練習系統"
+  price: integer("price").notNull(), // 999 (TWD)
+  originalPrice: integer("original_price"), // 2800 (TWD)
+  type: varchar("type", { enum: ["annual_course", "lifetime_access", "monthly_subscription"] }).notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const fabePurchases = pgTable("fabe_purchases", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  productId: text("product_id").notNull().references(() => fabeProducts.id),
+  purchaseAmount: integer("purchase_amount").notNull(), // 實際付款金額
+  paymentMethod: varchar("payment_method", { enum: ["stripe", "manual", "other"] }).default("stripe"),
+  paymentStatus: varchar("payment_status", { enum: ["pending", "completed", "failed", "refunded"] }).default("pending"),
+  accessStartDate: timestamp("access_start_date").defaultNow(),
+  accessEndDate: timestamp("access_end_date"), // null 表示永久存取
+  stripePaymentIntentId: varchar("stripe_payment_intent_id"), // 對應 Stripe 記錄
+  metadata: jsonb("metadata"), // 額外資訊如優惠碼等
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type FabeProduct = typeof fabeProducts.$inferSelect;
+export type InsertFabeProduct = typeof fabeProducts.$inferInsert;
+export type FabePurchase = typeof fabePurchases.$inferSelect;
+export type InsertFabePurchase = typeof fabePurchases.$inferInsert;
 export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
 export type InsertKnowledgeDocument = typeof knowledgeDocuments.$inferInsert;
 export type KnowledgeSearchIndex = typeof knowledgeSearchIndex.$inferSelect;
