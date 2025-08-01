@@ -341,8 +341,11 @@ export function setupStripeRoutes(app: Express) {
       // You'll need to set STRIPE_WEBHOOK_SECRET in your environment
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
       if (webhookSecret) {
+        console.log('Webhook: Verifying signature with secret');
         event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+        console.log('Webhook: Signature verified successfully');
       } else {
+        console.log('Webhook: No webhook secret, using raw body');
         event = req.body;
       }
     } catch (err: any) {
@@ -352,8 +355,10 @@ export function setupStripeRoutes(app: Express) {
 
     try {
       // Handle the event
+      console.log(`Webhook: Processing event type: ${event.type}`);
       switch (event.type) {
         case 'payment_intent.succeeded':
+          console.log('Webhook: Processing payment_intent.succeeded');
           await handlePaymentSuccess(event.data.object);
           break;
         case 'invoice.payment_succeeded':
@@ -409,6 +414,19 @@ export function setupStripeRoutes(app: Express) {
       res.status(500).json({ error: "Failed to fetch subscription status" });
     }
   });
+
+  // Internal endpoint to process payment (for manual testing)
+  app.post("/api/stripe/process-payment-internal", async (req, res) => {
+    try {
+      const paymentIntent = req.body;
+      console.log('Internal payment processing:', paymentIntent.id);
+      await handlePaymentSuccess(paymentIntent);
+      res.json({ success: true, message: 'Payment processed successfully' });
+    } catch (error: any) {
+      console.error('Error processing payment internally:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 }
 
 // Handle successful one-time payment
@@ -416,8 +434,11 @@ async function handlePaymentSuccess(paymentIntent: any) {
   const userId = paymentIntent.metadata?.userId;
   const paymentType = paymentIntent.metadata?.paymentType;
   
+  console.log(`Webhook: handlePaymentSuccess called for payment ${paymentIntent.id}`);
+  console.log(`Webhook: User ID: ${userId}, Payment Type: ${paymentType}`);
+  
   if (!userId) {
-    console.error('No userId in payment intent metadata');
+    console.error('Webhook: No userId in payment intent metadata');
     return;
   }
 
