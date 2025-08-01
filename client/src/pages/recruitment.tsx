@@ -766,12 +766,18 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                   
                   <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
                     <h4 className="font-bold text-purple-800 dark:text-purple-200 mb-2">📺 課程介紹影片</h4>
-                    <p className="text-gray-700 dark:text-gray-300 text-sm mb-2">
+                    <p className="text-gray-700 dark:text-gray-300 text-sm mb-3">
                       完整課程內容與學習目標介紹
                     </p>
-                    <div className="flex items-center gap-2 text-blue-600 text-sm">
-                      <span>🔗</span>
-                      <span>https://www.youtube.com/watch?v=eKNM0F2Nizw</span>
+                    <div className="relative aspect-video rounded-lg overflow-hidden">
+                      <iframe 
+                        src="https://www.youtube.com/embed/eKNM0F2Nizw"
+                        title="FB 廣告成效攻略｜從投手到操盤手的加薪術 - 課程介紹"
+                        className="absolute inset-0 w-full h-full"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
                     </div>
                   </div>
                   
