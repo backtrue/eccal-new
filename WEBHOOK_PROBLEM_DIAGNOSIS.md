@@ -52,8 +52,21 @@ Payment Intent: pi_2RrImvYDQY3sAQES1oX0ZveU
 ```
 
 ## 最近受影響的付款
-- backtrue@toldyou.co: pi_2RrIdcYDQY3sAQES1VdZDl7i (已手動修復)
-- backtrue@bvgcorp.net: pi_2RrImvYDQY3sAQES1oX0ZveU (需手動修復)
+- backtrue@toldyou.co: pi_2RrIdcYDQY3sAQES1VdZDl7i ✅ 已手動修復
+- backtrue@bvgcorp.net: pi_2RrImvYDQY3sAQES1oX0ZveU ✅ 已手動修復
+
+## ✅ 資料庫修復
+- 已創建缺少的 `stripe_payments` 表
+- Webhook 事件設定已更新，包含 `payment_intent.succeeded`
+- 測試確認 webhook endpoint 正常工作
+
+## 🎯 最終狀態
+✅ Webhook URL: https://eccal.thinkwithblack.com/api/stripe/webhook
+✅ Webhook 事件: payment_intent.succeeded, invoice.payment_succeeded 
+✅ 資料庫表: stripe_payments 已創建
+✅ 付款處理: 自動升級會員狀態和跨平台權限
+
+**未來付款將完全自動化處理。**
 
 ## 驗證方法
 測試 webhook endpoint 是否可訪問：
