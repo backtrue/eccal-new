@@ -38,9 +38,10 @@ export function useCrossPlatformBenefits(userId?: string) {
       if (!userId) return null;
       
       console.log('useCrossPlatformBenefits: Fetching data for userId:', userId);
-      const response = await apiRequest(`/api/eccal-purchase/user-purchases/${userId}`);
-      console.log('useCrossPlatformBenefits: API response:', response);
-      return response.data;
+      const response = await apiRequest('GET', `/api/eccal-purchase/user-purchases/${userId}`);
+      const jsonData = await response.json();
+      console.log('useCrossPlatformBenefits: API response:', jsonData);
+      return jsonData.data;
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes
