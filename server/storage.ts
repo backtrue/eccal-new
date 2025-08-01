@@ -540,9 +540,9 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set({
-        membership_level: "pro",      // 修正欄位名稱
-        membership_expires: expiresAt, // 修正欄位名稱
-        updated_at: new Date()        // 修正欄位名稱
+        membershipLevel: "pro",      // 使用正確的欄位名稱
+        membershipExpires: expiresAt, // 使用正確的欄位名稱
+        updatedAt: new Date()        // 使用正確的欄位名稱
       })
       .where(eq(users.id, userId))
       .returning();

@@ -58,7 +58,8 @@ Payment Intent: pi_2RrImvYDQY3sAQES1oX0ZveU
 ## ✅ 資料庫修復
 - 已創建缺少的 `stripe_payments` 表
 - Webhook 事件設定已更新，包含 `payment_intent.succeeded`
-- 測試確認 webhook endpoint 正常工作
+- 修復了 `upgradeToPro` 方法中的欄位命名錯誤
+- 測試確認 webhook endpoint 和會員升級功能正常工作
 
 ## 🎯 最終狀態
 ✅ Webhook URL: https://eccal.thinkwithblack.com/api/stripe/webhook
