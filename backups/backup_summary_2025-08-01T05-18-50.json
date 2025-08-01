@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-08-01T05:19:03.717Z",
+  "backupFiles": [
+    "credit_transactions_2025-08-01T05-18-50.csv",
+    "eccal_full_backup_2025-08-01T05-18-50.sql",
+    "fabe_products_2025-08-01T05-18-50.csv",
+    "fabe_purchases_2025-08-01T05-18-50.csv",
+    "user_credits_2025-08-01T05-18-50.csv",
+    "user_referrals_2025-08-01T05-18-50.csv",
+    "users_2025-08-01T05-18-50.csv"
+  ],
+  "databaseUrl": "postgresql://neondb_...",
+  "note": "此備份包含完整資料庫結構和重要表格的 CSV 格式"
+}
