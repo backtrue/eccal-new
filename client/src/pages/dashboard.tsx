@@ -38,7 +38,7 @@ export default function Dashboard({ locale }: DashboardProps) {
   const { data: referralStats, isLoading: referralLoading } = useReferralStats();
   const { data: creditsData, isLoading: creditsLoading } = useCredits();
 
-  if (isLoading || membershipLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <NavigationBar locale={locale} />
@@ -67,9 +67,27 @@ export default function Dashboard({ locale }: DashboardProps) {
     );
   }
 
-  const membershipData = membershipStatus as any;
-  const isPro = membershipData?.level === "pro" && membershipData?.isActive;
+  // 優先使用 AuthContext 中的用戶資料來判斷會員狀態
+  const userMembership = (user as any)?.membership || (user as any)?.membershipLevel || (user as any)?.membership_level || "free";
+  const membershipExpires = (user as any)?.membershipExpires || (user as any)?.membership_expires;
+  
+  // 計算會員狀態
+  const isPro = userMembership === "pro" && (membershipExpires ? new Date(membershipExpires) > new Date() : true);
+  
+  const membershipData = {
+    level: userMembership as "free" | "pro",
+    isActive: isPro,
+    expiresAt: membershipExpires
+  };
+  
   const referralLink = `${window.location.origin}?ref=${(user as any)?.id || 'user'}`;
+  
+  console.log('Dashboard membership debug:', {
+    userMembership,
+    membershipExpires,
+    isPro,
+    userObject: user
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">

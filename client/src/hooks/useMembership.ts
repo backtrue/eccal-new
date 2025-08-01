@@ -17,6 +17,28 @@ export function useMembershipStatus() {
     retry: false, // 不重試，認證失敗時立即返回
     queryFn: async () => {
       try {
+        // 先嘗試從 Auth Context 獲取用戶資料
+        const authResponse = await fetch('/api/auth/user', {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (authResponse.ok) {
+          const userData = await authResponse.json();
+          // 如果有用戶資料，根據會員等級返回狀態
+          const level = userData.membershipLevel || userData.membership_level || "free";
+          const expires = userData.membershipExpires || userData.membership_expires;
+          
+          return {
+            level: level as "free" | "pro",
+            isActive: level === "pro" ? (expires ? new Date(expires) > new Date() : true) : true,
+            expiresAt: expires ? new Date(expires) : undefined
+          };
+        }
+        
+        // 如果 auth/user 失敗，嘗試舊的 membership/status 端點
         const response = await fetch('/api/membership/status', {
           credentials: 'include',
           headers: {
