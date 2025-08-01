@@ -35,6 +35,7 @@ Preferred communication style: Simple, everyday language.
 - **Multilingual AI Persona**: AI recommendations are localized for Chinese (小黑老師), English (Mr.Kuro), and Japanese (小黒先生) with accurate business terminology.
 - **Account Center Architecture (SSO)**: Centralized system for multi-site JWT authentication, supporting various subdomains with shared user data, membership, and credits management.
 - **Membership & Credits System**: Tiered membership (Free/Pro) with credit-based usage and referral rewards.
+- **Cross-Platform Integration**: Fully functional Fabe platform integration API enabling automatic course access for eccal founders (5990 NT$ lifetime → 999 NT$/year value).
 - **Responsive UI/UX**: Mobile-first design using shadcn/ui and custom theming.
 
 ### Technical Implementations
@@ -63,3 +64,13 @@ Preferred communication style: Simple, everyday language.
 - **Stripe**: Recurring billing system for subscriptions.
 - **Google OAuth**: User authentication and integration.
 - **Facebook OAuth**: User authentication and ad account access.
+
+## Recent Architectural Changes (2025-08-01)
+
+### Cross-Platform Integration System
+- **Fabe Platform Integration**: Complete API implementation for cross-platform user synchronization
+  - **API Endpoints**: `/api/fabe/sync-permissions`, `/api/fabe/founders-list`, `/api/fabe/trigger-sync`
+  - **Business Logic**: Eccal founders (5990 NT$ lifetime payment) automatically receive fabe course access (999 NT$/year value)
+  - **Database Integration**: Leverages existing `stripe_payments` table with `payment_type='founders_membership'` identification
+  - **Testing Status**: Fully tested with 5 production founders members, all endpoints operational
+  - **Documentation**: Comprehensive integration guide created for fabe development team

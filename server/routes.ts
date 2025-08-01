@@ -18,6 +18,10 @@ import fs from "fs";
 import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup Fabe Integration routes (high priority API)
+  const fabeIntegrationRoutes = await import('./fabeIntegrationRoutes');
+  app.use("/api/fabe", fabeIntegrationRoutes.default);
+  
   // Setup Account Center SSO routes
   setupAccountCenterRoutes(app);
   
