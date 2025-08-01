@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小黑老師「報數據」創始會員招生 - 數據驅動廣告優化實戰課程 NT$5,990</title>
+    <meta name="description" content="小黑老師親授 2.5 小時直播實戰教學，教你用數據優化 Facebook 廣告 ROAS。創始會員僅限 300 席，含終身軟體使用權、專屬社群、完整線上課程。立即加入 NT$5,990">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --background: hsl(0, 0%, 100%);
+            --foreground: hsl(20, 14.3%, 4.1%);
+            --muted: hsl(60, 4.8%, 95.9%);
+            --muted-foreground: hsl(25, 5.3%, 44.7%);
+            --popover: hsl(0, 0%, 100%);
+            --popover-foreground: hsl(20, 14.3%, 4.1%);
+            --card: hsl(0, 0%, 100%);
+            --card-foreground: hsl(20, 14.3%, 4.1%);
+            --border: hsl(20, 5.9%, 90%);
+            --input: hsl(20, 5.9%, 90%);
+            --primary: hsl(207, 90%, 54%);
+            --primary-foreground: hsl(211, 100%, 99%);
+            --secondary: hsl(60, 4.8%, 95.9%);
+            --secondary-foreground: hsl(24, 9.8%, 10%);
+            --accent: hsl(60, 4.8%, 95.9%);
+            --accent-foreground: hsl(24, 9.8%, 10%);
+            --destructive: hsl(0, 84.2%, 60.2%);
+            --destructive-foreground: hsl(60, 9.1%, 97.8%);
+            --ring: hsl(20, 14.3%, 4.1%);
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: hsl(240, 10%, 3.9%);
+            --foreground: hsl(0, 0%, 98%);
+            --muted: hsl(240, 3.7%, 15.9%);
+            --muted-foreground: hsl(240, 5%, 64.9%);
+            --popover: hsl(240, 10%, 3.9%);
+            --popover-foreground: hsl(0, 0%, 98%);
+            --card: hsl(240, 10%, 3.9%);
+            --card-foreground: hsl(0, 0%, 98%);
+            --border: hsl(240, 3.7%, 15.9%);
+            --input: hsl(240, 3.7%, 15.9%);
+            --primary: hsl(207, 90%, 54%);
+            --primary-foreground: hsl(211, 100%, 99%);
+            --secondary: hsl(240, 3.7%, 15.9%);
+            --secondary-foreground: hsl(0, 0%, 98%);
+            --accent: hsl(240, 3.7%, 15.9%);
+            --accent-foreground: hsl(0, 0%, 98%);
+            --destructive: hsl(0, 62.8%, 30.6%);
+            --destructive-foreground: hsl(0, 0%, 98%);
+            --ring: hsl(240, 4.9%, 83.9%);
+        }
+
+        * {
+            border-color: hsl(var(--border));
+        }
+
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+        }
+
+        .btn-primary {
+            background: linear-gradient(to right, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(to right, #2563eb, #1e40af);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-cta {
+            background: linear-gradient(to right, #ef4444, #f97316);
+            color: white;
+            padding: 1rem 3rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.25rem;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cta:hover {
+            background: linear-gradient(to right, #dc2626, #ea580c);
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
+        }
+
+        .card {
+            background-color: hsl(var(--card));
+            color: hsl(var(--card-foreground));
+            border: 1px solid hsl(var(--border));
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .badge {
+            background-color: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .aspect-video {
+            aspect-ratio: 16 / 9;
+        }
+
+        .gradient-bg-1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gradient-bg-2 {
+            background: linear-gradient(to right, #1f2937, #000000);
+        }
+
+        .gradient-bg-3 {
+            background: linear-gradient(to bottom right, #faf5ff, #e0e7ff);
+        }
+
+        .text-gradient {
+            background: linear-gradient(to right, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .icon-lg {
+            width: 2rem;
+            height: 2rem;
+        }
+
+        .icon-xl {
+            width: 2.5rem;
+            height: 2.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen bg-white">
+        <!-- 頂部橫幅 -->
+        <div class="bg-red-600 text-white text-center py-3 px-4">
+            <div class="flex items-center justify-center gap-2">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <span class="font-bold">限時優惠</span>
+                <span>創始會員僅限 300 席，錯過不再！</span>
+            </div>
+        </div>
+
+        <!-- Hero Section -->
+        <section class="gradient-bg-1 text-white py-20 px-4">
+            <div class="container mx-auto max-w-4xl text-center">
+                <div class="mb-6">
+                    <span class="badge bg-yellow-500 text-black">小黑老師親授</span>
+                </div>
+                
+                <h1 class="text-4xl md:text-6xl font-bold mb-6">
+                    終於有人把<br>
+                    <span class="text-yellow-300">「廣告數據分析」</span><br>
+                    講清楚了！
+                </h1>
+                
+                <p class="text-xl md:text-2xl mb-8 text-blue-100">
+                    不再憑感覺投廣告，用數據科學優化每一分預算<br>
+                    2.5 小時直播實戰教學 + 終身軟體使用權
+                </p>
+                
+                <div class="bg-white/10 rounded-lg p-6 mb-8 max-w-2xl mx-auto">
+                    <div class="flex items-center justify-center gap-2 mb-2">
+                        <svg class="icon text-yellow-300" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m12 6 0 6 4 2"/></svg>
+                        <span class="font-bold text-yellow-300">直播時間已確定</span>
+                    </div>
+                    <p class="text-2xl font-bold">
+                        8/13 (三) 晚上 19:00 - 21:30 台灣時間
+                    </p>
+                </div>
+                
+                <a href="https://eccal.thinkwithblack.com/subscription-checkout?plan=founders&priceId=price_0Rnx9tYDQY3sAQESumeM9k1g" 
+                   class="btn-cta">
+                    限時優惠 NT$5,990 - 立即搶購
+                    <svg class="icon inline ml-2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                </a>
+                
+                <p class="text-sm text-blue-200 mt-4">
+                    原價 NT$13,180 | 節省 NT$7,190 | 30 天無條件退款保證
+                </p>
+            </div>
+        </section>
+
+        <!-- 痛點分析 -->
+        <section class="py-16 px-4 bg-gray-50">
+            <div class="container mx-auto max-w-4xl">
+                <h2 class="text-4xl font-bold text-center text-gray-900 mb-4">
+                    你是否也有這些困擾？
+                </h2>
+                <p class="text-xl text-center text-gray-600 mb-12">
+                    別擔心，這些問題我們都能解決
+                </p>
+                
+                <div class="space-y-6">
+                    <div class="card p-6">
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <svg class="icon text-red-600" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                            </div>
+                            <p class="text-gray-700">
+                                營收目標很明確，但完全不知道該配多少「廣告預算」才合理？
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="card p-6">
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <svg class="icon text-red-600" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                            </div>
+                            <p class="text-gray-700">
+                                廣告投了一段時間，錢花出去了，卻不知道成效是好是壞？
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="card p-6">
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <svg class="icon text-red-600" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                            </div>
+                            <p class="text-gray-700">
+                                聽說要看數據，但 GA4 和 FB 後台的數字這麼多，到底哪些才是關鍵？
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="card p-6">
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <svg class="icon text-red-600" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                            </div>
+                            <p class="text-gray-700">
+                                想學 AI，但市面上的課都只教「通用技巧」，無法直接解決我「廣告投放」的具體問題。
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="card p-6">
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <svg class="icon text-red-600" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                            </div>
+                            <p class="text-gray-700">
+                                買了線上課程，但總是懶得看、遇到問題也沒人問，最後不了了之…
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 解決方案介紹 -->
+        <section class="py-16 px-4 bg-white">
+            <div class="container mx-auto max-w-6xl">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold text-gray-900 mb-6">
+                        小黑老師的<span class="text-gradient">「報數據」</span>解決方案
+                    </h2>
+                    <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                        結合十餘年實戰經驗，打造專為台灣電商設計的數據分析工具，讓你從廣告新手變成數據專家
+                    </p>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <div class="space-y-8">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <svg class="icon-lg text-white" viewBox="0 0 24 24"><path d="M9 11H7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z"/><path d="M17 7h-2a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/></svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-900 mb-2">智能預算計算機</h3>
+                                    <p class="text-gray-600">
+                                        輸入營收目標、客單價、轉換率，系統自動計算最適合的廣告預算配置，告別猜測時代。
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <svg class="icon-lg text-white" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-900 mb-2">FB 廣告健檢系統</h3>
+                                    <p class="text-gray-600">
+                                        AI 分析你的 Facebook 廣告帳戶，提供個人化的優化建議，找出浪費預算的黑洞。
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <svg class="icon-lg text-white" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/></svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-900 mb-2">數據驅動決策</h3>
+                                    <p class="text-gray-600">
+                                        整合 GA4、Facebook 數據，提供清晰易懂的報表和建議，讓你做出更明智的商業決策。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-2xl p-8">
+                        <img src="https://eccal.thinkwithblack.com/assets/dashboard-screenshot.jpg" 
+                             alt="報數據平台介面截圖" 
+                             class="w-full rounded-lg shadow-lg"
+                             style="background: linear-gradient(45deg, #f3f4f6, #e5e7eb); height: 300px; display: flex; align-items: center; justify-content: center; color: #6b7280;">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 創始會員價值 -->
+        <section class="py-20 px-4 bg-gradient-to-b from-blue-50 to-white">
+            <div class="container mx-auto max-w-6xl">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold text-gray-900 mb-6">
+                        創始會員專屬價值
+                    </h2>
+                    <p class="text-xl text-gray-600">
+                        一次投資，終身受益的學習與工具組合
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-8 mb-16">
+                    <!-- 價值一：軟體使用權 -->
+                    <div class="card relative overflow-hidden border-2 border-blue-200 hover:border-blue-400 transition-all">
+                        <div class="absolute top-0 right-0 bg-blue-600 text-white px-3 py-1 text-sm font-medium">
+                            核心價值
+                        </div>
+                        <div class="p-8 text-center pt-12">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="icon-xl text-blue-600" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-4">
+                                「報數據」平台終身使用權
+                            </h3>
+                            <ul class="text-sm text-gray-600 space-y-2 mb-6">
+                                <li>✓ 廣告預算智能計算機</li>
+                                <li>✓ Facebook 廣告健檢系統</li>
+                                <li>✓ 數據整合分析報表</li>
+                                <li>✓ AI 優化建議引擎</li>
+                                <li>✓ 未來所有新功能</li>
+                            </ul>
+                            <p class="text-sm text-gray-500 line-through">
+                                市場價值：NT$4,800+/年
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 價值二：直播課程 -->
+                    <div class="card relative overflow-hidden border-2 border-green-200 hover:border-green-400 transition-all">
+                        <div class="absolute top-0 right-0 bg-green-600 text-white px-3 py-1 text-sm font-medium">
+                            獨家直播
+                        </div>
+                        <div class="p-8 text-center pt-12">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="icon-xl text-green-600" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect width="15" height="14" x="1" y="5" rx="2" ry="2"/></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-4">
+                                2.5 小時直播實戰工作坊
+                            </h3>
+                            <div class="bg-yellow-100 rounded-lg p-4 mb-6 inline-block">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <svg class="icon text-yellow-700" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m12 6 0 6 4 2"/></svg>
+                                    <span class="font-bold text-yellow-800">直播時間已確定</span>
+                                </div>
+                                <p class="text-xl font-bold text-yellow-900">
+                                    8/13 (三) 晚上 19:00 - 21:30
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    台灣時間 | 線上直播
+                                </p>
+                            </div>
+                            <p class="text-gray-600 mb-4">
+                                我將在線上親自帶你完成所有設定，從 Google/Facebook 帳號串接到平台核心功能操作。你有任何問題，當場提問，我當場回答。
+                            </p>
+                            <p class="text-sm text-gray-500 line-through">
+                                價值：NT$4,800
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 價值三：課程 -->
+                    <div class="card relative overflow-hidden border-2 border-orange-200 hover:border-orange-400 transition-all">
+                        <div class="absolute top-0 right-0 bg-orange-600 text-white px-3 py-1 text-sm font-medium">
+                            完整體系
+                        </div>
+                        <div class="p-8 text-center pt-12">
+                            <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="icon-xl text-orange-600" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-4">
+                                【完整知識體系】FB 廣告成效攻略線上課程
+                            </h3>
+                            
+                            <h4 class="text-sm font-bold text-gray-800 mb-2">
+                                「FB 廣告成效攻略｜從投手到操盤手的加薪術」
+                            </h4>
+                            <p class="text-xs text-gray-500 mt-1">
+                                ★ PressPlay Academy 線上課程平台正式授課
+                            </p>
+                            
+                            <div class="bg-gray-50 rounded-lg p-4 my-4">
+                                <div class="space-y-2 text-xs text-gray-600">
+                                    <div>• 廣告投放基本概念與平台機制</div>
+                                    <div>• 受眾分析與競品研究策略</div>
+                                    <div>• 創意優化與預算分配技巧</div>
+                                    <div>• 數據分析與 ROI 優化方法</div>
+                                    <div>• 規模化成長與團隊管理</div>
+                                </div>
+                            </div>
+                            
+                            <p class="text-gray-600 mb-4 text-sm">
+                                這是小黑老師在 PressPlay Academy 開設的完整體系課程，創始會員將獲得課程兌換券，於 9/17 課程正式上線時一併發放。讓你在掌握「報數據」工具之外，更能深度理解廣告投放的策略思維與實戰技法。
+                            </p>
+                            <p class="text-sm text-gray-500 line-through">
+                                PressPlay Academy 平台定價：NT$3,980
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 價值錨定 -->
+                <div class="bg-gradient-to-r from-gray-900 to-black text-white rounded-xl p-8 max-w-2xl mx-auto">
+                    <h3 class="text-2xl font-bold mb-6 text-center">總價值計算</h3>
+                    <div class="space-y-3 text-lg">
+                        <div class="flex justify-between">
+                            <span>平台終身使用權：</span>
+                            <span class="line-through">NT$4,800+</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>直播實戰工作坊：</span>
+                            <span class="line-through">NT$4,800</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>PressPlay Academy 完整線上課程兌換券：</span>
+                            <span class="line-through">NT$3,980</span>
+                        </div>
+                        <hr class="border-white/30" />
+                        <div class="flex justify-between text-xl font-bold">
+                            <span>總價值：</span>
+                            <span>超過 NT$13,580</span>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-8">
+                        <div class="text-4xl font-bold text-yellow-400 mb-2">
+                            創始會員價 NT$5,990
+                        </div>
+                        <div class="text-green-400 font-bold">
+                            立即節省 NT$7,590 (56% OFF)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PPA 課程深度介紹 -->
+        <section class="py-20 px-4 gradient-bg-3">
+            <div class="container mx-auto max-w-6xl">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                        【完整知識體系】FB 廣告成效攻略線上課程
+                    </h2>
+                    <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-4">
+                        小黑老師在 PressPlay Academy 平台開設的完整體系課程
+                    </p>
+                    <p class="text-lg text-purple-700 font-semibold">
+                        「FB 廣告成效攻略｜從投手到操盤手的加薪術」
+                    </p>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-12 items-center mb-16">
+                    <!-- 左側：課程特色 -->
+                    <div class="space-y-8">
+                        <div class="bg-white rounded-2xl p-8 shadow-xl">
+                            <div class="flex items-center mb-6">
+                                <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mr-4">
+                                    <svg class="icon-xl text-white" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-2xl font-bold text-gray-900">PressPlay Academy 正式授課</h3>
+                                    <p class="text-purple-600 font-medium">PPA 線上課程平台</p>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div class="bg-purple-50 rounded-lg p-4">
+                                    <h4 class="font-bold text-purple-800 mb-2">🎯 課程定位</h4>
+                                    <p class="text-gray-700 text-sm">
+                                        專為想要從廣告投手晉升為策略操盤手的專業人士設計，系統性掌握 FB 廣告投放的完整方法論。
+                                    </p>
+                                </div>
+                                
+                                <div class="bg-blue-50 rounded-lg p-4">
+                                    <h4 class="font-bold text-blue-800 mb-2">💰 薪資成長目標</h4>
+                                    <p class="text-gray-700 text-sm">
+                                        透過系統化的廣告投放技能提升，實現職涯躍升與薪資翻倍成長。
+                                    </p>
+                                </div>
+                                
+                                <div class="bg-green-50 rounded-lg p-4">
+                                    <h4 class="font-bold text-green-800 mb-2">🚀 實戰導向</h4>
+                                    <p class="text-gray-700 text-sm">
+                                        小黑老師十餘年實戰經驗萃取，每個環節都能直接應用到實際工作中。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右側：課程價值與發放方式 -->
+                    <div class="space-y-8">
+                        <div class="bg-gradient-to-br from-orange-100 to-red-100 rounded-2xl p-8 border-2 border-orange-300">
+                            <div class="flex items-center mb-6">
+                                <svg class="icon-xl text-orange-600 mr-3" viewBox="0 0 24 24"><path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                                <h3 class="text-2xl font-bold text-gray-900">創始會員專屬福利</h3>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div class="bg-white rounded-lg p-4">
+                                    <h4 class="font-bold text-orange-800 mb-2">🎫 課程兌換券</h4>
+                                    <p class="text-gray-700 text-sm mb-2">
+                                        創始會員資格包內含完整課程兌換券，價值 NT$3,980
+                                    </p>
+                                    <p class="text-orange-700 text-sm font-medium">
+                                        ※ 預計於 9/17 課程正式上線時統一發放
+                                    </p>
+                                </div>
+                                
+                                <div class="bg-white rounded-lg p-4">
+                                    <h4 class="font-bold text-purple-800 mb-2">📺 課程介紹影片</h4>
+                                    <p class="text-gray-700 text-sm mb-3">
+                                        完整課程內容與學習目標介紹
+                                    </p>
+                                    <div class="relative aspect-video rounded-lg overflow-hidden">
+                                        <iframe 
+                                            src="https://www.youtube.com/embed/eKNM0F2Nizw"
+                                            title="FB 廣告成效攻略｜從投手到操盤手的加薪術 - 課程介紹"
+                                            class="absolute inset-0 w-full h-full"
+                                            frameborder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                            allowfullscreen>
+                                        </iframe>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-yellow-50 rounded-lg p-4 border border-yellow-300">
+                                    <p class="text-sm text-yellow-800 text-center font-medium">
+                                        ⚡ 雙重學習保障：直播實戰 + 完整體系課程
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 課程核心架構 -->
+                <div class="bg-white rounded-2xl p-8 shadow-xl">
+                    <h3 class="text-2xl font-bold text-center text-gray-900 mb-8">
+                        完整知識體系架構
+                    </h3>
+                    
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-white font-bold text-xl">基</span>
+                            </div>
+                            <h4 class="font-bold text-gray-900 mb-2">基礎建構</h4>
+                            <p class="text-sm text-gray-600">
+                                廣告投放基本概念、平台機制理解、帳戶架構設計
+                            </p>
+                        </div>
+                        
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-white font-bold text-xl">進</span>
+                            </div>
+                            <h4 class="font-bold text-gray-900 mb-2">進階策略</h4>
+                            <p class="text-sm text-gray-600">
+                                受眾分析、競品研究、創意優化、預算分配策略
+                            </p>
+                        </div>
+                        
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-white font-bold text-xl">精</span>
+                            </div>
+                            <h4 class="font-bold text-gray-900 mb-2">精通操盤</h4>
+                            <p class="text-sm text-gray-600">
+                                數據分析、ROI 優化、規模化成長、團隊管理
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 適合對象 -->
+        <section class="py-16 px-4 bg-white">
+            <div class="container mx-auto max-w-4xl">
+                <h2 class="text-4xl font-bold text-center text-gray-900 mb-12">
+                    這堂課適合誰？
+                </h2>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- 適合的人 -->
+                    <div>
+                        <h3 class="text-2xl font-bold text-green-700 mb-6 flex items-center">
+                            <svg class="icon-lg mr-3" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+                            適合這堂課的人
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="card border-green-200 hover:border-green-400 transition-all p-4">
+                                <h4 class="font-bold text-gray-900 mb-2">電商品牌主/行銷人員</h4>
+                                <p class="text-gray-600 text-sm">
+                                    希望能精準掌握廣告預算，提升每一分錢的效益。
+                                </p>
+                            </div>
+                            
+                            <div class="card border-green-200 hover:border-green-400 transition-all p-4">
+                                <h4 class="font-bold text-gray-900 mb-2">廣告投手/代理商</h4>
+                                <p class="text-gray-600 text-sm">
+                                    希望能用數據說服客戶，並提供更專業的優化建議。
+                                </p>
+                            </div>
+                            
+                            <div class="card border-green-200 hover:border-green-400 transition-all p-4">
+                                <h4 class="font-bold text-gray-900 mb-2">內容創作者/KOL</h4>
+                                <p class="text-gray-600 text-sm">
+                                    希望能看懂自己的流量與廣告成效，做出更明智的商業決策。
+                                </p>
+                            </div>
+                            
+                            <div class="card border-green-200 hover:border-green-400 transition-all p-4">
+                                <h4 class="font-bold text-gray-900 mb-2">數據驅動行銷愛好者</h4>
+                                <p class="text-gray-600 text-sm">
+                                    想擺脫猜測、用科學方法做決策的人。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 不適合的人 -->
+                    <div>
+                        <h3 class="text-2xl font-bold text-red-700 mb-6 flex items-center">
+                            <svg class="icon-lg mr-3" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                            不適合這堂課的人
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="card border-red-200 hover:border-red-400 transition-all p-4">
+                                <p class="text-gray-600 text-sm">
+                                    還未開始投放任何廣告，對基本概念一無所知的人。
+                                </p>
+                            </div>
+                            
+                            <div class="card border-red-200 hover:border-red-400 transition-all p-4">
+                                <p class="text-gray-600 text-sm">
+                                    只想尋找「一鍵致富」神奇按鈕，不願意動手操作、學習看數據的人。
+                                </p>
+                            </div>
+                            
+                            <div class="card border-red-200 hover:border-red-400 transition-all p-4">
+                                <p class="text-gray-600 text-sm">
+                                    對投資自己的專業能力與事業猶豫不決的人。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="py-16 px-4 bg-gray-50">
+            <div class="container mx-auto max-w-4xl">
+                <h2 class="text-4xl font-bold text-center text-gray-900 mb-12">
+                    常見問題
+                </h2>
+                
+                <div class="space-y-6">
+                    <div class="card hover:shadow-lg transition-all p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                            Q: 如果錯過直播怎麼辦？
+                        </h3>
+                        <p class="text-gray-600">
+                            A: 直播會錄影保存，創始會員可以無限次重複觀看。但建議參加直播，因為可以即時提問互動。
+                        </p>
+                    </div>
+                    
+                    <div class="card hover:shadow-lg transition-all p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                            Q: 平台是否有使用期限？
+                        </h3>
+                        <p class="text-gray-600">
+                            A: 創始會員享有終身使用權，包括未來所有功能更新，無需額外付費。
+                        </p>
+                    </div>
+                    
+                    <div class="card hover:shadow-lg transition-all p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                            Q: 我沒有技術背景，會不會太難？
+                        </h3>
+                        <p class="text-gray-600">
+                            A: 完全不會！平台設計就是為了讓非技術人員也能輕鬆使用，我會在直播中手把手教學。
+                        </p>
+                    </div>
+                    
+                    <div class="card hover:shadow-lg transition-all p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                            Q: 有退款保證嗎？
+                        </h3>
+                        <p class="text-gray-600">
+                            A: 有！30 天無條件退款保證。如果不滿意，可以申請全額退款。
+                        </p>
+                    </div>
+                    
+                    <div class="card hover:shadow-lg transition-all p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                            Q: PressPlay Academy 課程何時可以上課？
+                        </h3>
+                        <p class="text-gray-600">
+                            A: 課程兌換券將於 9/17 課程正式上線時統一發放給所有創始會員，屆時就可以開始學習完整的體系課程。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 最終行動呼籲 -->
+        <section class="py-16 px-4 gradient-bg-2 text-white">
+            <div class="container mx-auto max-w-4xl text-center">
+                <h2 class="text-4xl font-bold mb-6">
+                    不要讓機會溜走
+                </h2>
+                <p class="text-xl mb-8 text-gray-300">
+                    300 個創始會員席次，一旦額滿，這個價格就永遠不會再出現
+                </p>
+                
+                <a href="https://eccal.thinkwithblack.com/subscription-checkout?plan=founders&priceId=price_0Rnx9tYDQY3sAQESumeM9k1g" 
+                   class="btn-cta">
+                    最後機會 - 立即加入創始會員
+                    <svg class="icon inline ml-2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                </a>
+                
+                <p class="text-sm text-gray-400 mt-6">
+                    點擊按鈕後，您將被導向安全的付款頁面
+                </p>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white py-8 px-4">
+            <div class="container mx-auto text-center">
+                <div class="mb-4">
+                    <div class="text-2xl font-bold text-blue-400 mb-2">報數據</div>
+                    <p class="text-gray-400">專業電商廣告分析平台</p>
+                </div>
+                <div class="text-sm text-gray-500">
+                    <p>&copy; 2025 煜言顧問有限公司(TW) | 燈言顧問株式会社(JP). All rights reserved.</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- JavaScript for interactive elements -->
+    <script>
+        // Add smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Add loading state for CTA buttons
+        document.querySelectorAll('.btn-cta, .btn-primary').forEach(button => {
+            button.addEventListener('click', function() {
+                this.innerHTML += ' <span style="margin-left: 8px;">載入中...</span>';
+                this.style.pointerEvents = 'none';
+            });
+        });
+
+        // Add viewport animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        });
+
+        // Animate cards on scroll
+        document.querySelectorAll('.card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(card);
+        });
+    </script>
+</body>
+</html>
