@@ -401,7 +401,7 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                       「FB 廣告成效攻略｜從投手到操盤手的加薪術」
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      ★ PPA 線上課程平台正式授課
+                      ★ PressPlay Academy 線上課程平台正式授課
                     </p>
                   </div>
                   
@@ -419,10 +419,10 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                 </div>
                 
                 <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
-                  這是小黑老師在 PPA 開設的完整體系課程，創始會員將獲得課程兌換券，於 9/17 課程正式上線時一併發放。讓你在掌握「報數據」工具之外，更能深度理解廣告投放的策略思維與實戰技法。
+                  這是小黑老師在 PressPlay Academy 開設的完整體系課程，創始會員將獲得課程兌換券，於 9/17 課程正式上線時一併發放。讓你在掌握「報數據」工具之外，更能深度理解廣告投放的策略思維與實戰技法。
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                  PPA 平台定價：NT$3,980
+                  PressPlay Academy 平台定價：NT$3,980
                 </p>
               </CardContent>
             </Card>
@@ -450,7 +450,7 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                 <span className="line-through">NT$4,800</span>
               </div>
               <div className="flex justify-between">
-                <span>PPA 完整線上課程兌換券：</span>
+                <span>PressPlay Academy 完整線上課程兌換券：</span>
                 <span className="line-through">NT$3,980</span>
               </div>
               <hr className="border-white/30" />
@@ -699,7 +699,7 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
               【完整知識體系】FB 廣告成效攻略線上課程
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-4">
-              小黑老師在 PPA 平台開設的完整體系課程
+              小黑老師在 PressPlay Academy 平台開設的完整體系課程
             </p>
             <p className="text-lg text-purple-700 dark:text-purple-300 font-semibold">
               「FB 廣告成效攻略｜從投手到操盤手的加薪術」
@@ -715,8 +715,8 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                     <Award className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">PPA 正式授課</h3>
-                    <p className="text-purple-600 font-medium">Professional Platform Academy</p>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">PressPlay Academy 正式授課</h3>
+                    <p className="text-purple-600 font-medium">PPA 線上課程平台</p>
                   </div>
                 </div>
                 
