@@ -2,18 +2,31 @@
 
 ## 問題根本原因 ❌
 
-**Stripe Dashboard 中的 webhook endpoint 設定錯誤**
+**Stripe Webhook 事件類型設定不完整**
 
-### 當前設定（錯誤）
-```
-Webhook URL: https://thinkwithblack.com/api/stripe/webhook
-狀態: 404 Not Found
-```
+### 當前設定的事件：
+- invoice.paid ✅
+- invoice.payment_failed ✅ 
+- customer.subscription.deleted ✅
+- customer.subscription.updated ✅
 
-### 應該設定為（正確）
+### ❌ 缺少的關鍵事件：
+- **payment_intent.succeeded** (一次性付款，如創始會員方案)
+
+### 代碼需要的事件：
+您的 stripeRoutes.ts 監聽：
+- payment_intent.succeeded (處理一次性付款) ❌ 未設定
+- invoice.payment_succeeded (處理訂閱付款) ❌ 未設定
+
+### 測試結果
+- ❌ `https://thinkwithblack.com/api/stripe/webhook` → 404 Not Found
+- ✅ `https://eccal.thinkwithblack.com/api/stripe/webhook` → "Missing stripe signature" (正常)
+- ✅ `https://629e49c6-8dc3-42cd-b86c-d35b18e038dd-00-2e3bopfmdivrv.kirk.replit.dev/api/stripe/webhook` → "Missing stripe signature" (正常)
+
+### 正確的生產環境設定
 ```
-Webhook URL: https://629e49c6-8dc3-42cd-b86c-d35b18e038dd-00-2e3bopfmdivrv.kirk.replit.dev/api/stripe/webhook
-或部署後的正確域名
+Webhook URL: https://eccal.thinkwithblack.com/api/stripe/webhook
+狀態: 可正常訪問
 ```
 
 ## 問題影響
@@ -22,11 +35,21 @@ Webhook URL: https://629e49c6-8dc3-42cd-b86c-d35b18e038dd-00-2e3bopfmdivrv.kirk.
 3. eccal_purchases 表沒有自動建立記錄
 4. FABE 權限沒有自動同步
 
-## 修復步驟
+## ✅ 修復步驟
 1. 前往 Stripe Dashboard > Webhooks
-2. 找到現有的 webhook 設定
-3. 更新 Endpoint URL 為正確的 Replit 域名
-4. 或等待部署後使用正式域名
+2. 找到現有的 webhook 設定（ID: we_0RazLHYDQY3sAQESAxqkcqVh）
+3. 點擊該 webhook 編輯
+4. 在 "Events to send" 中新增：
+   - ✅ `payment_intent.succeeded` (處理一次性付款)
+   - ✅ `invoice.payment_succeeded` (處理訂閱付款)
+5. 保存設定
+
+## 🔍 驗證方法
+修復後可以重新發送 webhook 測試：
+```
+Event ID: evt_2RrImvYDQY3sAQES1MRJmIOj
+Payment Intent: pi_2RrImvYDQY3sAQES1oX0ZveU
+```
 
 ## 最近受影響的付款
 - backtrue@toldyou.co: pi_2RrIdcYDQY3sAQES1VdZDl7i (已手動修復)
