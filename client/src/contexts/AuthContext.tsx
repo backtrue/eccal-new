@@ -32,7 +32,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       console.log('AuthContext: Starting auth check...');
       
-      const response = await fetch('/api/auth/user', {
+      // 嘗試新的認證端點，fallback 到舊端點以兼容生產環境
+      let response = await fetch('/api/auth/check', {
         credentials: 'include',
         headers: {
           'Cache-Control': 'no-cache',
@@ -41,28 +42,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       console.log('AuthContext: Auth response status:', response.status);
 
+      // 如果 /api/auth/check 返回 HTML（生產環境問題），嘗試 /api/auth/user
+      if (response.status === 200 && response.headers.get('content-type')?.includes('text/html')) {
+        console.log('AuthContext: Fallback to /api/auth/user due to HTML response');
+        response = await fetch('/api/auth/user', {
+          credentials: 'include',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
+      }
+
       if (response.ok) {
-        const userData = await response.json();
-        console.log('AuthContext: User data received:', { email: userData.email, id: userData.id });
-        setUser(userData);
-        setIsAuthenticated(true);
+        const authData = await response.json();
+        console.log('AuthContext: Auth data received:', { authenticated: authData.isAuthenticated, user: authData.user?.email || authData.email });
         
-        // 判斷登入來源
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('facebook_auth_success')) {
-          setLoginSource('facebook');
-          console.log('Facebook login successful:', userData.email || userData.name || 'User logged in');
-        } else if (urlParams.has('auth_success')) {
-          setLoginSource('google');
-          console.log('Google login successful:', userData.email || userData.name || 'User logged in');
-        } else {
-          // 基於用戶資料判斷登入來源
-          if (userData.metaAccessToken) {
+        // 兼容新舊 API 格式
+        const userData = authData.user || authData; // 新格式有 .user，舊格式直接是用戶資料
+        const isAuth = authData.isAuthenticated !== undefined ? authData.isAuthenticated : !!userData.email;
+        
+        if (isAuth && userData) {
+          setUser(userData);
+          setIsAuthenticated(true);
+          
+          // 判斷登入來源
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.has('facebook_auth_success')) {
             setLoginSource('facebook');
-          } else {
+            console.log('Facebook login successful:', userData.email || userData.name || 'User logged in');
+          } else if (urlParams.has('auth_success')) {
             setLoginSource('google');
+            console.log('Google login successful:', userData.email || userData.name || 'User logged in');
+          } else {
+            // 基於用戶資料判斷登入來源
+            if (userData.metaAccessToken) {
+              setLoginSource('facebook');
+            } else {
+              setLoginSource('google');
+            }
+            console.log('Auth check successful:', userData.email || userData.name || 'User logged in');
           }
-          console.log('Auth check successful:', userData.email || userData.name || 'User logged in');
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+          setLoginSource(null);
         }
       } else {
         const errorText = await response.text();

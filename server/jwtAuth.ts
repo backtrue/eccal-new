@@ -436,14 +436,44 @@ export function setupJWTGoogleAuth(app: Express) {
     });
   }
 
-  // 用戶認證狀態 API - 使用 JWT
-  app.get('/api/auth/user', jwtMiddleware, (req, res) => {
+  // 認證狀態檢查端點 - 兼容前端的 /api/auth/check
+  app.get('/api/auth/check', jwtMiddleware, (req, res) => {
     try {
       const token = jwtUtils.extractTokenFromRequest(req);
       console.log('Auth check - token present:', !!token);
       
       if ((req as any).user) {
         console.log('JWT auth check successful:', (req as any).user.email);
+        res.set('Cache-Control', 'private, max-age=300');
+        res.json({
+          isAuthenticated: true,
+          user: (req as any).user
+        });
+      } else {
+        console.log('JWT auth check failed - no valid user in request');
+        res.status(401).json({
+          isAuthenticated: false,
+          user: null
+        });
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      res.status(500).json({
+        isAuthenticated: false,
+        user: null,
+        error: 'Authentication check failed'
+      });
+    }
+  });
+
+  // 用戶認證狀態 API - 使用 JWT (舊端點，保持向後兼容)
+  app.get('/api/auth/user', jwtMiddleware, (req, res) => {
+    try {
+      const token = jwtUtils.extractTokenFromRequest(req);
+      console.log('Auth user - token present:', !!token);
+      
+      if ((req as any).user) {
+        console.log('JWT auth user check successful:', (req as any).user.email);
         res.set('Cache-Control', 'private, max-age=300'); // 5分鐘 cache
         res.json((req as any).user);
       } else {

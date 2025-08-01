@@ -143,13 +143,21 @@ const CheckoutForm = ({ locale, planType, priceId }: CheckoutFormProps) => {
 };
 
 export default function SubscriptionCheckout({ locale }: SubscriptionCheckoutProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, checkAuth } = useAuth();
   const { toast } = useToast();
   const [clientSecret, setClientSecret] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [planType, setPlanType] = useState<'monthly' | 'annual' | 'founders'>('monthly');
   const [priceId, setPriceId] = useState<string>('');
+
+  // 進入結帳頁面時主動檢查認證狀態
+  useEffect(() => {
+    console.log('Subscription Checkout: Checking auth on page load');
+    if (!isAuthenticated) {
+      checkAuth();
+    }
+  }, [checkAuth, isAuthenticated]);
 
   // 安全的 toast 函數，防止生產環境錯誤
   const safeToast = (options: any) => {
