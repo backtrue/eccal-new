@@ -301,10 +301,12 @@ export function setupAccountCenterRoutes(app: Express) {
           id: user.id,
           email: user.email,
           name: user.name || user.email,
-          membership: user.membershipLevel || 'free',
+          membership: user.membership_level || 'free',  // 修正欄位名稱
+          membershipExpires: user.membership_expires,
           credits: user.credits || 0,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt
+          profileImageUrl: user.profile_image_url,
+          createdAt: user.created_at,
+          updatedAt: user.updated_at
         }
       });
     } catch (error) {
