@@ -37,7 +37,9 @@ export function useCrossPlatformBenefits(userId?: string) {
     queryFn: async (): Promise<CrossPlatformData | null> => {
       if (!userId) return null;
       
+      console.log('useCrossPlatformBenefits: Fetching data for userId:', userId);
       const response = await apiRequest(`/api/eccal-purchase/user-purchases/${userId}`);
+      console.log('useCrossPlatformBenefits: API response:', response);
       return response.data;
     },
     enabled: !!userId,
@@ -48,6 +50,14 @@ export function useCrossPlatformBenefits(userId?: string) {
 
 export function useFabeAccess(userId?: string) {
   const { data, isLoading, error } = useCrossPlatformBenefits(userId);
+  
+  console.log('useFabeAccess: Processing data:', {
+    userId,
+    data,
+    hasFabeAccess: data?.crossPlatformBenefits?.hasFabeAccess,
+    isLoading,
+    error
+  });
   
   return {
     hasFabeAccess: data?.crossPlatformBenefits?.hasFabeAccess || false,
