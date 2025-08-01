@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
 import MembershipUpgrade from "@/components/MembershipUpgrade";
+import { FabeBenefitsCard } from "@/components/FabeBenefitsCard";
 import SavedProjectsListSimple from "@/components/SavedProjectsListSimple";
 import PlanResultsList from "@/components/PlanResultsList";
 
@@ -245,6 +246,11 @@ export default function Dashboard({ locale }: DashboardProps) {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* FABE 跨平台權限區塊 */}
+        <div className="mt-8">
+          <FabeBenefitsCard locale={locale} />
         </div>
 
         {/* Saved Projects Section */}
