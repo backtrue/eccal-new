@@ -20,6 +20,17 @@ interface FabeBenefitsCardProps {
 export function FabeBenefitsCard({ locale = 'zh-TW' }: FabeBenefitsCardProps) {
   const { user } = useAuth();
   const { hasFabeAccess, foundersPlan, purchases, isLoading } = useFabeAccess((user as any)?.id);
+  
+  // 開發模式下顯示調試資訊
+  if (process.env.NODE_ENV === 'development') {
+    console.log('FabeBenefitsCard debug:', {
+      userId: (user as any)?.id,
+      hasFabeAccess,
+      foundersPlan,
+      purchases,
+      isLoading
+    });
+  }
 
   if (isLoading) {
     return (
