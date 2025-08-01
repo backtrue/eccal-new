@@ -382,11 +382,47 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  除了直播實戰，你還能獲得小黑老師完整的預錄線上課程。作為你的永久學習後盾，讓你隨時可以複習、深入研究廣告投放的每一個細節。
+                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gift className="w-5 h-5 text-orange-600" />
+                    <span className="font-bold text-orange-800 dark:text-orange-200">創始會員專屬兌換券</span>
+                  </div>
+                  <p className="text-sm text-orange-700 dark:text-orange-300 font-medium">
+                    課程預計 9/17 正式上線時發放兌換券
+                  </p>
+                </div>
+                
+                <div className="space-y-3 mb-4">
+                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-3">
+                    <h4 className="font-bold text-purple-800 dark:text-purple-200 text-sm mb-1">
+                      🎯 課程全名
+                    </h4>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      「FB 廣告成效攻略｜從投手到操盤手的加薪術」
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      ★ PPA 線上課程平台正式授課
+                    </p>
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg p-3">
+                    <h4 className="font-bold text-yellow-800 dark:text-yellow-200 text-sm mb-2">
+                      🚀 課程核心價值
+                    </h4>
+                    <ul className="text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                      <li>• 系統化廣告投放方法論，從基礎到進階完整涵蓋</li>
+                      <li>• 實戰案例分析，學會高手思維與操作技巧</li>
+                      <li>• 從廣告投手晉升為策略操盤手的職涯路徑</li>
+                      <li>• 提升廣告投放 ROI，實現薪資翻倍成長</li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
+                  這是小黑老師在 PPA 開設的完整體系課程，創始會員將獲得課程兌換券，於 9/17 課程正式上線時一併發放。讓你在掌握「報數據」工具之外，更能深度理解廣告投放的策略思維與實戰技法。
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                  定價：NT$3,980
+                  PPA 平台定價：NT$3,980
                 </p>
               </CardContent>
             </Card>
@@ -414,7 +450,7 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
                 <span className="line-through">NT$4,800</span>
               </div>
               <div className="flex justify-between">
-                <span>完整線上課程：</span>
+                <span>PPA 完整線上課程兌換券：</span>
                 <span className="line-through">NT$3,980</span>
               </div>
               <hr className="border-white/30" />
@@ -655,7 +691,142 @@ export default function Recruitment({ locale = 'zh-TW' }: RecruitmentProps) {
         </div>
       </section>
 
-      {/* 第七部分：FAQ */}
+      {/* 第七部分：PPA 課程深度介紹 - PPA Course Deep Dive */}
+      <section className="py-20 px-4 bg-gradient-to-br from-purple-50 to-indigo-100 dark:from-purple-900/20 dark:to-indigo-900/20">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+              【完整知識體系】FB 廣告成效攻略線上課程
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-4">
+              小黑老師在 PPA 平台開設的完整體系課程
+            </p>
+            <p className="text-lg text-purple-700 dark:text-purple-300 font-semibold">
+              「FB 廣告成效攻略｜從投手到操盤手的加薪術」
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+            {/* 左側：課程特色 */}
+            <div className="space-y-8">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl">
+                <div className="flex items-center mb-6">
+                  <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mr-4">
+                    <Award className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">PPA 正式授課</h3>
+                    <p className="text-purple-600 font-medium">Professional Platform Academy</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+                    <h4 className="font-bold text-purple-800 dark:text-purple-200 mb-2">🎯 課程定位</h4>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm">
+                      專為想要從廣告投手晉升為策略操盤手的專業人士設計，系統性掌握 FB 廣告投放的完整方法論。
+                    </p>
+                  </div>
+                  
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                    <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2">💰 薪資成長目標</h4>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm">
+                      透過系統化的廣告投放技能提升，實現職涯躍升與薪資翻倍成長。
+                    </p>
+                  </div>
+                  
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+                    <h4 className="font-bold text-green-800 dark:text-green-200 mb-2">🚀 實戰導向</h4>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm">
+                      小黑老師十餘年實戰經驗萃取，每個環節都能直接應用到實際工作中。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 右側：課程價值與發放方式 */}
+            <div className="space-y-8">
+              <div className="bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 rounded-2xl p-8 border-2 border-orange-300 dark:border-orange-700">
+                <div className="flex items-center mb-6">
+                  <Gift className="w-8 h-8 text-orange-600 mr-3" />
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">創始會員專屬福利</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
+                    <h4 className="font-bold text-orange-800 dark:text-orange-200 mb-2">🎫 課程兌換券</h4>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm mb-2">
+                      創始會員資格包內含完整課程兌換券，價值 NT$3,980
+                    </p>
+                    <p className="text-orange-700 dark:text-orange-300 text-sm font-medium">
+                      ※ 預計於 9/17 課程正式上線時統一發放
+                    </p>
+                  </div>
+                  
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
+                    <h4 className="font-bold text-purple-800 dark:text-purple-200 mb-2">📺 課程介紹影片</h4>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm mb-2">
+                      完整課程內容與學習目標介紹
+                    </p>
+                    <div className="flex items-center gap-2 text-blue-600 text-sm">
+                      <span>🔗</span>
+                      <span>https://www.youtube.com/watch?v=eKNM0F2Nizw</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-300 dark:border-yellow-700">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200 text-center font-medium">
+                      ⚡ 雙重學習保障：直播實戰 + 完整體系課程
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 課程核心架構 */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl">
+            <h3 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-8">
+              完整知識體系架構
+            </h3>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-white font-bold text-xl">基</span>
+                </div>
+                <h4 className="font-bold text-gray-900 dark:text-white mb-2">基礎建構</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  廣告投放基本概念、平台機制理解、帳戶架構設計
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-white font-bold text-xl">進</span>
+                </div>
+                <h4 className="font-bold text-gray-900 dark:text-white mb-2">進階策略</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  受眾分析、競品研究、創意優化、預算分配策略
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-white font-bold text-xl">精</span>
+                </div>
+                <h4 className="font-bold text-gray-900 dark:text-white mb-2">精通操盤</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  數據分析、ROI 優化、規模化成長、團隊管理
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 第八部分：FAQ */}
       <section className="py-16 px-4 bg-gray-50 dark:bg-gray-800/50">
         <div className="container mx-auto max-w-4xl">
           <h2 className="text-4xl font-bold text-center text-gray-900 dark:text-white mb-12">
