@@ -181,8 +181,8 @@ curl -X POST https://eccal.thinkwithblack.com/api/fabe/sync-purchase \
 
 ### 2. 資料一致性
 - 確保 purchase_amount 與 product_type 匹配
-- 999 → annual_course
-- 5990 → lifetime_course
+- 999 → annual_course（fabe 的唯一產品）
+- 注意：5990 是 eccal 自己的創始會員方案，不是 fabe 產品
 
 ### 3. 時區處理
 - 所有時間都使用 UTC 時區
