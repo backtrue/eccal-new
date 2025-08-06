@@ -65,12 +65,21 @@ Preferred communication style: Simple, everyday language.
 - **Google OAuth**: User authentication and integration.
 - **Facebook OAuth**: User authentication and ad account access.
 
-## Recent Architectural Changes (2025-08-01)
+## Recent Architectural Changes (2025-08-06)
 
-### Cross-Platform Integration System
+### Unified Discount Code System (NEW)
+- **Cross-Platform Discount Management**: Eccal serves as central discount hub for entire ecosystem
+  - **API Endpoints**: `/api/discount-codes/validate-cross-platform`, `/api/discount-codes/apply-cross-platform`, `/api/admin/discount-codes/*`
+  - **Database Schema**: `discount_codes`, `discount_usages`, `service_configs` tables with cross-service support
+  - **Features**: Percentage/fixed discounts, multi-currency (TWD/USD/JPY), usage limits, time restrictions, minimum amounts
+  - **Integration**: Works with Stripe payments, supports eccal and fabe services
+  - **Admin Interface**: Complete management dashboard for creating and monitoring discount codes
+  - **Security**: 30-minute tracking IDs, duplicate prevention, comprehensive usage logging
+
+### Cross-Platform Integration System (2025-08-01)
 - **Fabe Platform Integration**: Complete API implementation for cross-platform user synchronization
   - **API Endpoints**: `/api/fabe/sync-permissions`, `/api/fabe/founders-list`, `/api/fabe/trigger-sync`
   - **Business Logic**: Eccal founders (5990 NT$ lifetime payment) automatically receive fabe course access (999 NT$/year value)
   - **Database Integration**: Leverages existing `stripe_payments` table with `payment_type='founders_membership'` identification
-  - **Testing Status**: Fully tested with 5 production founders members, all endpoints operational
+  - **Testing Status**: Fully tested with 7 production founders members, all endpoints operational
   - **Documentation**: Comprehensive integration guide created for fabe development team

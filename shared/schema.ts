@@ -686,3 +686,104 @@ export const insertStripePaymentSchema = createInsertSchema(stripePayments).omit
   createdAt: true,
   updatedAt: true,
 });
+
+// Unified Discount System Tables
+
+// Service configuration for cross-platform discount system
+export const serviceConfigs = pgTable("service_configs", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  serviceName: varchar("service_name", { length: 50 }).unique().notNull(),
+  serviceDisplayName: varchar("service_display_name", { length: 100 }),
+  apiEndpoint: varchar("api_endpoint", { length: 255 }),
+  webhookSecret: varchar("webhook_secret", { length: 255 }),
+  isActive: boolean("is_active").default(true).notNull(),
+  supportedCurrencies: text("supported_currencies").array().default(["TWD", "USD", "JPY"]),
+  defaultCurrency: varchar("default_currency", { length: 10 }).default("TWD"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Discount codes table with cross-service support
+export const discountCodes = pgTable("discount_codes", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  code: varchar("code", { length: 50 }).unique().notNull(),
+  discountType: varchar("discount_type", { length: 20 }).notNull(), // 'percentage' or 'fixed'
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 10 }).default("ALL"),
+  
+  // Cross-service control
+  applicableServices: text("applicable_services").array().default(["eccal", "fabe"]),
+  serviceSpecificRules: jsonb("service_specific_rules").default({}),
+  
+  // Usage limits
+  usageLimit: integer("usage_limit"), // null = unlimited
+  usedCount: integer("used_count").default(0).notNull(),
+  perUserLimit: integer("per_user_limit").default(1).notNull(),
+  minimumAmount: integer("minimum_amount"), // minimum amount in cents
+  
+  // Time control
+  isActive: boolean("is_active").default(true).notNull(),
+  validFrom: timestamp("valid_from"),
+  validUntil: timestamp("valid_until"),
+  
+  // Management info
+  description: text("description"),
+  createdBy: varchar("created_by", { length: 255 }), // admin email
+  campaignName: varchar("campaign_name", { length: 100 }),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Cross-service discount usage tracking
+export const discountUsages = pgTable("discount_usages", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  discountCodeId: integer("discount_code_id").notNull().references(() => discountCodes.id),
+  userId: varchar("user_id"), // may be null for guest users
+  userEmail: varchar("user_email", { length: 255 }), // cross-service user identification
+  serviceName: varchar("service_name", { length: 50 }).notNull(),
+  
+  // Amount information
+  originalAmount: decimal("original_amount", { precision: 12, scale: 2 }).notNull(),
+  discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).notNull(),
+  finalAmount: decimal("final_amount", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 10 }).notNull(),
+  
+  // Transaction linking
+  externalTransactionId: varchar("external_transaction_id", { length: 255 }),
+  paymentStatus: varchar("payment_status", { length: 20 }).default("pending"), // pending, completed, failed
+  
+  // Metadata
+  metadata: jsonb("metadata"),
+  userAgent: text("user_agent"),
+  ipAddress: varchar("ip_address", { length: 45 }), // supports IPv6
+  
+  usedAt: timestamp("used_at").defaultNow(),
+});
+
+// Type definitions for discount system
+export type ServiceConfig = typeof serviceConfigs.$inferSelect;
+export type InsertServiceConfig = typeof serviceConfigs.$inferInsert;
+
+export type DiscountCode = typeof discountCodes.$inferSelect;
+export type InsertDiscountCode = typeof discountCodes.$inferInsert;
+
+export type DiscountUsage = typeof discountUsages.$inferSelect;
+export type InsertDiscountUsage = typeof discountUsages.$inferInsert;
+
+// Zod schemas for validation
+export const insertServiceConfigSchema = createInsertSchema(serviceConfigs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDiscountCodeSchema = createInsertSchema(discountCodes).omit({
+  id: true,
+  usedCount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDiscountUsageSchema = createInsertSchema(discountUsages).omit({
+  id: true,
+  usedAt: true,
+});
