@@ -513,9 +513,62 @@ async function handlePaymentSuccess(paymentIntent: any) {
       console.log(`Upgraded user ${userId} to founders membership (lifetime Pro access)`);
     }
 
+    // Trigger Meta Purchase event via API call to frontend tracking endpoint
+    try {
+      const eventData = await triggerMetaPurchaseEvent({
+        userId,
+        paymentType: paymentType || 'unknown',
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        transactionId: paymentIntent.id
+      });
+      
+      // Store for frontend polling
+      const { storePurchaseEventForUser } = await import('./metaEventRoutes');
+      storePurchaseEventForUser(userId, eventData);
+      
+    } catch (metaError) {
+      console.error('Error triggering Meta Purchase event:', metaError);
+      // Don't fail the payment processing if Meta tracking fails
+    }
+
     console.log(`Successfully processed ${paymentType} payment for user ${userId}`);
   } catch (error) {
     console.error('Error handling payment success:', error);
+  }
+}
+
+// Trigger Meta Purchase event 
+async function triggerMetaPurchaseEvent(data: {
+  userId: string;
+  paymentType: string;
+  amount: number;
+  currency: string;
+  transactionId: string;
+}) {
+  try {
+    console.log('Triggering Meta Purchase event for payment:', data.transactionId);
+    
+    // Store purchase event data for frontend to pick up
+    // This creates a notification that the frontend can poll for
+    const purchaseEventData = {
+      userId: data.userId,
+      paymentType: data.paymentType,
+      amount: data.amount,
+      currency: data.currency,
+      transactionId: data.transactionId,
+      timestamp: new Date().toISOString(),
+      eventType: 'purchase'
+    };
+
+    // For now, we'll log this for implementation
+    // In production, this could be sent via server-sent events, WebSocket, or stored for polling
+    console.log('Meta Purchase Event Data:', JSON.stringify(purchaseEventData, null, 2));
+    
+    return purchaseEventData;
+  } catch (error) {
+    console.error('Error triggering Meta Purchase event:', error);
+    throw error;
   }
 }
 

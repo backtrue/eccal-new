@@ -107,3 +107,55 @@ export const trackCalculatorUsage = (data: {
     currency: 'TWD'
   });
 };
+
+// Track purchase events (for actual payments)
+export const trackPurchaseEvent = (data: {
+  paymentType: string;
+  amount: number;
+  currency: string;
+  transactionId?: string;
+  userId?: string;
+}) => {
+  const purchaseData: any = {
+    content_name: `Eccal ${data.paymentType} Membership`,
+    content_category: 'Membership',
+    content_type: 'product',
+    value: data.amount / 100, // Convert from cents to main currency unit
+    currency: data.currency.toUpperCase(),
+  };
+
+  // Add transaction ID if available
+  if (data.transactionId) {
+    purchaseData.transaction_id = data.transactionId;
+  }
+
+  // Add content_ids for better tracking
+  if (data.paymentType === 'founders_membership') {
+    purchaseData.content_ids = ['founders_membership'];
+    purchaseData.content_name = 'Eccal Founders Membership';
+  } else if (data.paymentType === 'monthly') {
+    purchaseData.content_ids = ['monthly_membership'];
+    purchaseData.content_name = 'Eccal Monthly Membership';
+  } else if (data.paymentType === 'lifetime') {
+    purchaseData.content_ids = ['lifetime_membership'];
+    purchaseData.content_name = 'Eccal Lifetime Membership';
+  }
+
+  console.log('Tracking Meta Purchase event:', purchaseData);
+  trackMetaEvent('Purchase', purchaseData);
+};
+
+// Track initiate checkout events
+export const trackInitiateCheckout = (data: {
+  paymentType: string;
+  amount: number;
+  currency: string;
+}) => {
+  trackMetaEvent('InitiateCheckout', {
+    content_name: `Eccal ${data.paymentType} Membership`,
+    content_category: 'Membership',
+    value: data.amount / 100,
+    currency: data.currency.toUpperCase(),
+    content_ids: [data.paymentType + '_membership']
+  });
+};
