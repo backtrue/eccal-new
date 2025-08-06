@@ -144,8 +144,13 @@ export default function Calculator({ locale }: CalculatorProps) {
 
     // Track calculation events
     trackEvent('calculator_calculation', 'Calculator');
-    // trackCalculatorUsage();
-    trackMetaEvent('Purchase');
+    trackCalculatorUsage({
+      targetRevenue: data.targetRevenue!,
+      averageOrderValue: data.averageOrderValue!,
+      conversionRate: data.conversionRate!,
+      monthlyAdBudget: calculationResults.monthlyAdBudget,
+      dailyAdBudget: calculationResults.dailyAdBudget
+    });
     
     // 追蹤用戶行為 - 計算器使用
     trackCalculation(data, calculationResults);
