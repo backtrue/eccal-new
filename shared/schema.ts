@@ -38,7 +38,7 @@ export const users = pgTable("users", {
   // Meta/Facebook Ad Account Integration
   metaAccessToken: varchar("meta_access_token"),
   metaAdAccountId: varchar("meta_ad_account_id"),
-  membershipLevel: varchar("membership_level", { length: 10 }).default("free").notNull(), // "free" or "pro"
+  membershipLevel: varchar("membership_level", { length: 15 }).default("free").notNull(), // "free", "pro", or "founders"
   membershipExpires: timestamp("membership_expires"), // null for free, date for pro
   campaignPlannerUsage: integer("campaign_planner_usage").default(0).notNull(), // Track usage count
   // Stripe Integration

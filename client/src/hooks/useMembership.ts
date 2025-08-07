@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 export interface MembershipStatus {
-  level: "free" | "pro";
+  level: "free" | "pro" | "founders";
   isActive: boolean;
   expiresAt?: string;
 }
@@ -32,8 +32,8 @@ export function useMembershipStatus() {
           const expires = userData.membershipExpires || userData.membership_expires;
           
           return {
-            level: level as "free" | "pro",
-            isActive: level === "pro" ? (expires ? new Date(expires) > new Date() : true) : true,
+            level: level as "free" | "pro" | "founders",
+            isActive: level === "founders" ? true : (level === "pro" ? (expires ? new Date(expires) > new Date() : true) : true),
             expiresAt: expires ? new Date(expires) : undefined
           };
         }

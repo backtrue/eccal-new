@@ -508,9 +508,9 @@ async function handlePaymentSuccess(paymentIntent: any) {
       // Lifetime: 10 years (effectively permanent)
       await storage.upgradeToPro(userId, 365 * 10);
     } else if (paymentType === 'founders_membership') {
-      // Founders membership: lifetime access (10 years)
-      await storage.upgradeToPro(userId, 365 * 10);
-      console.log(`Upgraded user ${userId} to founders membership (lifetime Pro access)`);
+      // Founders membership: lifetime access (no expiry)
+      await storage.upgradeToFounders(userId);
+      console.log(`Upgraded user ${userId} to founders membership (lifetime access)`);
     }
 
     // Trigger Meta Purchase event via API call to frontend tracking endpoint

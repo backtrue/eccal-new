@@ -109,6 +109,7 @@ export interface IStorage {
 
   // Membership operations
   upgradeToPro(userId: string, durationDays: number): Promise<User>;
+  upgradeToFounders(userId: string): Promise<User>;
   checkMembershipStatus(userId: string): Promise<{ level: "free" | "pro"; isActive: boolean; expiresAt?: Date }>;
 
   // Stripe subscription operations
@@ -543,6 +544,20 @@ export class DatabaseStorage implements IStorage {
         membershipLevel: "pro",      // 使用正確的欄位名稱
         membershipExpires: expiresAt, // 使用正確的欄位名稱
         updatedAt: new Date()        // 使用正確的欄位名稱
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    return user;
+  }
+
+  async upgradeToFounders(userId: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        membershipLevel: "founders",  // 設定為創始會員
+        membershipExpires: null,      // 創始會員無到期日（終身）
+        updatedAt: new Date()
       })
       .where(eq(users.id, userId))
       .returning();

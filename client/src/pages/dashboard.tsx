@@ -72,11 +72,13 @@ export default function Dashboard({ locale }: DashboardProps) {
   const membershipExpires = (user as any)?.membershipExpires || (user as any)?.membership_expires;
   
   // 計算會員狀態
+  const isFounders = userMembership === "founders";
   const isPro = userMembership === "pro" && (membershipExpires ? new Date(membershipExpires) > new Date() : true);
+  const isPremium = isFounders || isPro; // 創始會員或Pro會員都視為進階會員
   
   const membershipData = {
-    level: userMembership as "free" | "pro",
-    isActive: isPro,
+    level: userMembership as "free" | "pro" | "founders",
+    isActive: isFounders ? true : isPro,
     expiresAt: membershipExpires
   };
   
@@ -106,11 +108,12 @@ export default function Dashboard({ locale }: DashboardProps) {
                     {(user as any)?.firstName || (user as any)?.email || "用戶"}
                   </CardTitle>
                   <div className="flex items-center space-x-2 mt-1">
-                    <Badge variant={isPro ? "default" : "secondary"} className="flex items-center gap-1">
-                      {isPro && <Crown className="w-3 h-3" />}
-                      {isPro ? "PRO 會員" : "免費會員"}
+                    <Badge variant={isPremium ? "default" : "secondary"} className="flex items-center gap-1">
+                      {isFounders && <Crown className="w-3 h-3 text-yellow-500" />}
+                      {isPro && !isFounders && <Crown className="w-3 h-3" />}
+                      {isFounders ? "創始會員" : (isPro ? "PRO 會員" : "免費會員")}
                     </Badge>
-                    {isPro && membershipData?.expiresAt && (
+                    {isPro && !isFounders && membershipData?.expiresAt && (
                       <span className="text-sm text-gray-500">
                         到期：{new Date(membershipData.expiresAt).toLocaleDateString('zh-TW')}
                       </span>
