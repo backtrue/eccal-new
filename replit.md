@@ -83,3 +83,10 @@ Preferred communication style: Simple, everyday language.
   - **Database Integration**: Leverages existing `stripe_payments` table with `payment_type='founders_membership'` identification
   - **Testing Status**: Fully tested with 7 production founders members, all endpoints operational
   - **Documentation**: Comprehensive integration guide created for fabe development team
+
+### Meta Purchase Event Tracking Fix (2025-08-07)
+- **Issue Resolution**: Fixed incorrect Purchase event triggering in calculator usage
+  - **Problem**: Purchase events were triggering when users completed budget calculations instead of actual payments
+  - **Solution**: Moved Purchase event to proper Stripe webhook success handler (`payment_intent.succeeded`)
+  - **Implementation**: Added `triggerMetaPurchaseEvent` function and frontend polling mechanism via `useMetaTracking` hook
+  - **Impact**: Accurate conversion tracking for Facebook ads optimization and ROI calculation
