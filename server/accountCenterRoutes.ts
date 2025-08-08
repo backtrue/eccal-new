@@ -14,6 +14,7 @@ const ALLOWED_ORIGINS = [
   'https://audai.thinkwithblack.com',
   'https://quote.thinkwithblack.com',
   'https://fabe.thinkwithblack.com',
+  'https://galine.thinkwithblack.com',
   'https://sub3.thinkwithblack.com',
   'https://sub4.thinkwithblack.com',
   'https://sub5.thinkwithblack.com',

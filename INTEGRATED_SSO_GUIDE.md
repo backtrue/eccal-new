@@ -7,6 +7,7 @@
 - `audai.thinkwithblack.com`
 - `quote.thinkwithblack.com`
 - `fabe.thinkwithblack.com`
+- `galine.thinkwithblack.com`
 - `sub3.thinkwithblack.com`
 - `sub4.thinkwithblack.com`
 - `sub5.thinkwithblack.com`
@@ -389,6 +390,7 @@ Content-Type: application/json
 - `https://audai.thinkwithblack.com`
 - `https://quote.thinkwithblack.com`
 - `https://fabe.thinkwithblack.com`
+- `https://galine.thinkwithblack.com`
 - `https://sub3.thinkwithblack.com`
 - `https://sub4.thinkwithblack.com`
 - `https://sub5.thinkwithblack.com`
