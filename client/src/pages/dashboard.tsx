@@ -135,10 +135,10 @@ export default function Dashboard({ locale }: DashboardProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {isPro ? "PRO" : "免費"}
+                {isFounders ? "創始會員" : (isPro ? "PRO" : "免費")}
               </div>
               <p className="text-xs text-muted-foreground">
-                {isPro ? "享有完整功能" : "升級解鎖更多功能"}
+                {isFounders ? "終身享有所有功能" : (isPro ? "享有完整功能" : "升級解鎖更多功能")}
               </p>
             </CardContent>
           </Card>
