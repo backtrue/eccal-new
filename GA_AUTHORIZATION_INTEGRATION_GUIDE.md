@@ -486,7 +486,183 @@ CREATE TABLE user_metrics (
 
 ## 7. 前端整合
 
-### 7.1 授權按鈕
+### 7.1 JWT Token 管理和 API 請求
+
+**重要：**後端需要從請求中獲取 JWT token，前端的 API 請求必須正確傳送認證資訊。
+
+#### 7.1.1 Cookie-based JWT (推薦方式)
+
+我們的系統使用基於 cookie 的 JWT 認證，這是最安全的方式：
+
+```typescript
+// client/src/lib/queryClient.ts
+export async function apiRequest(
+  method: string,
+  url: string,
+  data?: unknown | undefined,
+): Promise<Response> {
+  const res = await fetch(url, {
+    method,
+    headers: data ? { "Content-Type": "application/json" } : {},
+    body: data ? JSON.stringify(data) : undefined,
+    credentials: "include", // 重要：包含 JWT cookies
+  });
+
+  await throwIfResNotOk(res);
+  return res;
+}
+
+// Query function 設定
+export const getQueryFn: <T>(options: {
+  on401: UnauthorizedBehavior;
+}) => QueryFunction<T> =
+  ({ on401: unauthorizedBehavior }) =>
+  async ({ queryKey }) => {
+    const res = await fetch(queryKey[0] as string, {
+      credentials: "include", // 重要：包含 JWT cookies
+    });
+
+    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      return null;
+    }
+
+    await throwIfResNotOk(res);
+    return await res.json();
+  };
+```
+
+#### 7.1.2 Authorization Header 方式 (跨域/子服務使用)
+
+如果子服務需要使用 Authorization header：
+
+```typescript
+// 取得 JWT token 的工具函數
+async function getJWTToken(): Promise<string | null> {
+  try {
+    // 方法 1: 從主服務 API 取得 token
+    const response = await fetch('/api/auth/get-token', {
+      credentials: 'include'
+    });
+    if (response.ok) {
+      const { token } = await response.json();
+      return token;
+    }
+    
+    // 方法 2: 從 localStorage 取得 (如果有另外儲存)
+    return localStorage.getItem('jwt_token');
+  } catch (error) {
+    console.error('Failed to get JWT token:', error);
+    return null;
+  }
+}
+
+// 帶 Authorization header 的 API 請求
+export async function apiRequestWithAuth(
+  method: string,
+  url: string,
+  data?: unknown | undefined,
+): Promise<Response> {
+  const token = await getJWTToken();
+  
+  const headers: Record<string, string> = {
+    ...(data ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+  };
+
+  const res = await fetch(url, {
+    method,
+    headers,
+    body: data ? JSON.stringify(data) : undefined,
+    credentials: "include", // 同時支援 cookie 和 header
+  });
+
+  await throwIfResNotOk(res);
+  return res;
+}
+
+// React Hook for authenticated requests
+const useAuthenticatedFetch = () => {
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    getJWTToken().then(setToken);
+  }, []);
+
+  const authenticatedFetch = useCallback(async (url: string, options: RequestInit = {}) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...options.headers,
+    };
+
+    return fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+  }, [token]);
+
+  return { authenticatedFetch, hasToken: !!token };
+};
+```
+
+#### 7.1.3 後端支援 JWT Token 提取
+
+後端需要支援從多個來源提取 JWT token：
+
+```typescript
+// server/jwtAuth.ts
+export const jwtUtils = {
+  // 從 request 中提取 JWT token
+  extractTokenFromRequest(req: Request): string | null {
+    // 1. 從 Authorization header 中提取 (優先)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return authHeader.substring(7);
+    }
+
+    // 2. 從 cookie 中提取
+    const cookieToken = req.cookies?.auth_token;
+    if (cookieToken) {
+      return cookieToken;
+    }
+
+    // 3. 從 query parameter 中提取 (備用)
+    const queryToken = req.query.token as string;
+    if (queryToken) {
+      return queryToken;
+    }
+
+    return null;
+  }
+};
+
+// JWT 中間件
+export async function jwtMiddleware(req: Request, res: Response, next: NextFunction) {
+  const token = jwtUtils.extractTokenFromRequest(req);
+  
+  if (token) {
+    const jwtUser = jwtUtils.verifyToken(token);
+    if (jwtUser) {
+      try {
+        const fullUser = await storage.getUser(jwtUser.id);
+        if (fullUser) {
+          (req as any).user = fullUser;
+          (req as any).isAuthenticated = () => true;
+        }
+      } catch (error) {
+        console.error('Error loading user from database:', error);
+        (req as any).user = jwtUser;
+        (req as any).isAuthenticated = () => true;
+      }
+    }
+  }
+
+  next();
+}
+```
+
+### 7.2 授權按鈕
 
 ```tsx
 const GoogleAuthButton = () => {
@@ -503,14 +679,16 @@ const GoogleAuthButton = () => {
 };
 ```
 
-### 7.2 授權狀態檢查
+### 7.3 授權狀態檢查
 
 ```tsx
 const useAuth = () => {
   const { data: user, isLoading } = useQuery({
     queryKey: ['/api/auth/user'],
     queryFn: async () => {
-      const response = await fetch('/api/auth/user');
+      const response = await fetch('/api/auth/user', {
+        credentials: 'include', // 重要：包含 JWT cookies
+      });
       if (!response.ok) {
         if (response.status === 401) {
           return null; // 未授權
@@ -530,9 +708,181 @@ const useAuth = () => {
 };
 ```
 
+### 7.4 跨域子服務的 JWT 設定
+
+如果子服務在不同域名，需要特別處理：
+
+#### 7.4.1 主服務提供 Token API 端點
+
+```typescript
+// server/jwtAuth.ts - 添加 JWT token 提供端點
+app.get('/api/auth/get-token', jwtMiddleware, (req, res) => {
+  try {
+    if ((req as any).user) {
+      // 重新生成一個新的 token（確保最新狀態）
+      const token = jwtUtils.generateToken((req as any).user);
+      
+      res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+      res.json({ 
+        token,
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7天後過期
+      });
+    } else {
+      res.status(401).json({ error: 'Not authenticated' });
+    }
+  } catch (error) {
+    console.error('Get token error:', error);
+    res.status(500).json({ error: 'Failed to generate token' });
+  }
+});
+```
+
+#### 7.4.2 子服務中的 JWT 處理
+
+```typescript
+// 子服務中的 API 設定
+const MAIN_SERVICE_URL = 'https://eccal.thinkwithblack.com';
+
+// 從主服務取得 JWT token
+async function getTokenFromMainService(): Promise<string | null> {
+  try {
+    const response = await fetch(`${MAIN_SERVICE_URL}/api/auth/get-token`, {
+      credentials: 'include',
+      mode: 'cors',
+    });
+    
+    if (response.ok) {
+      const { token } = await response.json();
+      // 可選：儲存到 localStorage 作為快取
+      localStorage.setItem('jwt_token', token);
+      localStorage.setItem('jwt_expires', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString());
+      return token;
+    }
+  } catch (error) {
+    console.error('Failed to get token from main service:', error);
+  }
+  return null;
+}
+
+// 檢查本地 token 是否有效
+function getLocalToken(): string | null {
+  const token = localStorage.getItem('jwt_token');
+  const expires = localStorage.getItem('jwt_expires');
+  
+  if (!token || !expires) return null;
+  
+  // 檢查是否過期
+  if (new Date() > new Date(expires)) {
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('jwt_expires');
+    return null;
+  }
+  
+  return token;
+}
+
+// 智能 token 取得（優先使用本地，過期則重新取得）
+async function getValidToken(): Promise<string | null> {
+  // 先檢查本地 token
+  const localToken = getLocalToken();
+  if (localToken) {
+    return localToken;
+  }
+  
+  // 本地 token 無效，從主服務取得新的
+  return await getTokenFromMainService();
+}
+
+// 子服務的 authenticated fetch
+export async function subServiceApiRequest(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = await getValidToken();
+  
+  return fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+}
+
+// 清除認證狀態（登出時使用）
+export function clearAuthState() {
+  localStorage.removeItem('jwt_token');
+  localStorage.removeItem('jwt_expires');
+}
+```
+
+#### 7.4.3 子服務的 SSO 登入處理
+
+```typescript
+// 子服務中的 SSO 登入邏輯
+const handleSSOLogin = () => {
+  // 重定向到主服務的 OAuth
+  const returnTo = encodeURIComponent(window.location.href);
+  window.location.href = `${MAIN_SERVICE_URL}/api/auth/google?returnTo=${returnTo}`;
+};
+
+// 處理從主服務返回的認證結果
+useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('auth_success') === '1') {
+    // 認證成功，取得 token
+    getValidToken().then(token => {
+      if (token) {
+        // 認證成功，更新 UI 狀態
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    });
+  }
+}, []);
+```
+
 ## 8. 常見錯誤處理
 
-### 8.1 權限不足錯誤
+### 8.1 JWT Token 相關錯誤
+
+```typescript
+// 錯誤：JWT token 不存在或無效
+if (!token) {
+  throw new Error('Authentication required. Please login first.');
+}
+
+// 錯誤：前端沒有傳送 credentials
+// 確保所有 fetch 請求都包含 credentials: 'include'
+const response = await fetch('/api/data', {
+  credentials: 'include', // 必須包含這行
+});
+
+// 錯誤：Authorization header 格式錯誤
+// 正確格式：Bearer <token>
+headers: {
+  'Authorization': `Bearer ${token}`, // 注意 Bearer 後面有空格
+}
+```
+
+### 8.2 跨域 JWT 問題
+
+```typescript
+// 錯誤：CORS 問題導致無法取得 token
+// 確保主服務的 CORS 設定支援子服務域名
+app.use(cors({
+  origin: [
+    'https://eccal.thinkwithblack.com',
+    'https://fabe.thinkwithblack.com',
+    'https://galine.thinkwithblack.com',
+    // 添加你的子服務域名
+  ],
+  credentials: true, // 重要：允許跨域 cookie
+}));
+
+// 錯誤：子服務無法驗證 token
+// 確保子服務使用相同的 JWT_SECRET
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+```
+
+### 8.3 權限不足錯誤
 
 ```typescript
 // 錯誤：insufficient permissions
@@ -541,7 +891,7 @@ if (error.message.includes('insufficient permissions')) {
 }
 ```
 
-### 8.2 Token 過期錯誤
+### 8.4 Token 過期錯誤
 
 ```typescript
 // 錯誤：invalid_grant
@@ -550,15 +900,45 @@ if (error.message.includes('invalid_grant')) {
   // 重試一次
   return this.getEcommerceData(userId, propertyId);
 }
+
+// 錯誤：JWT token 過期
+if (error.message.includes('jwt expired')) {
+  // 清除本地 token，強制重新取得
+  localStorage.removeItem('jwt_token');
+  localStorage.removeItem('jwt_expires');
+  throw new Error('Session expired. Please login again.');
+}
 ```
 
-### 8.3 API 存取被拒
+### 8.5 API 存取被拒
 
 ```typescript
 // 錯誤：403 Forbidden
 if (error.message.includes('403')) {
   throw new Error('Google Analytics API 存取被拒。請檢查：1) 是否有 GA 存取權限，2) 屬性 ID 是否正確，3) Google 帳戶權限是否足夠。');
 }
+```
+
+### 8.6 前端常見錯誤
+
+```typescript
+// 錯誤：401 Unauthorized
+// 檢查點：
+// 1. 是否包含 credentials: 'include'
+// 2. JWT cookie 是否存在
+// 3. Authorization header 是否正確
+
+// 錯誤：CORS policy error
+// 檢查點：
+// 1. 後端 CORS 設定是否包含前端域名
+// 2. credentials: true 是否設定
+// 3. 前端請求是否包含 credentials: 'include'
+
+// 錯誤：Token 取得失敗
+// 檢查點：
+// 1. /api/auth/get-token 端點是否存在
+// 2. 使用者是否已登入
+// 3. 網路連線是否正常
 ```
 
 ## 9. 安全性考量

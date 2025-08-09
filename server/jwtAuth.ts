@@ -466,6 +466,28 @@ export function setupJWTGoogleAuth(app: Express) {
     }
   });
 
+  // JWT Token 提供端點 - 供子服務使用
+  app.get('/api/auth/get-token', jwtMiddleware, (req, res) => {
+    try {
+      if ((req as any).user) {
+        // 重新生成一個新的 token（確保最新狀態）
+        const token = jwtUtils.generateToken((req as any).user);
+        
+        res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+        res.json({ 
+          token,
+          expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7天後過期
+        });
+        console.log('JWT token provided for user:', (req as any).user.email);
+      } else {
+        res.status(401).json({ error: 'Not authenticated' });
+      }
+    } catch (error) {
+      console.error('Get token error:', error);
+      res.status(500).json({ error: 'Failed to generate token' });
+    }
+  });
+
   // 用戶認證狀態 API - 使用 JWT (舊端點，保持向後兼容)
   app.get('/api/auth/user', jwtMiddleware, (req, res) => {
     try {
