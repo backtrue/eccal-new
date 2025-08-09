@@ -8,6 +8,61 @@ import { setupJWTGoogleAuth, jwtMiddleware } from './jwtAuth';
 // -------------------- 1. 基礎設定 --------------------
 const app = express();
 
+// -------------------- 1.1 Health Check 端點 --------------------
+// 簡單的健康檢查端點 - 必須在所有其他中間件之前
+app.get('/health', async (req, res) => {
+  try {
+    // 快速健康檢查，不包含數據庫檢查以提升響應速度
+    res.status(200).json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      port: process.env.PORT || 5000,
+      uptime: process.uptime(),
+      memory: process.memoryUsage()
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: 'Health check failed'
+    });
+  }
+});
+
+// 更詳細的就緒檢查端點，包含數據庫連接檢查
+app.get('/ready', async (req, res) => {
+  try {
+    // 動態導入數據庫檢查函數以避免啟動時初始化
+    const { checkDatabaseHealth } = await import('./db.js');
+    const dbHealthy = await checkDatabaseHealth();
+    
+    if (dbHealthy) {
+      res.status(200).json({
+        status: 'ready',
+        database: 'connected',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(503).json({
+        status: 'not ready',
+        database: 'disconnected',
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error) {
+    res.status(503).json({
+      status: 'not ready',
+      database: 'error',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
+});
+
 // -------------------- 1.5. 高優先級 API 端點 --------------------
 // 這些端點必須在所有中間件之前註冊，避免被 Vite 攔截
 
@@ -2120,8 +2175,44 @@ setupJWTGoogleAuth(app);
   }
 
   // -------------------- 8. 伺服器啟動 --------------------
-  const PORT = process.env.PORT || 5000;
-  server.listen(PORT, () => {
+  const PORT = parseInt(process.env.PORT || '5000', 10);
+  const HOST = '0.0.0.0'; // 綁定到所有網路介面以支援 Replit 部署
+  
+  // 添加啟動前的連接檢查
+  server.listen(PORT, HOST, () => {
     console.log(`Server is running on port ${PORT} with JWT authentication`);
+    console.log(`Server bound to ${HOST}:${PORT} for deployment compatibility`);
+    console.log(`Health check available at: http://${HOST}:${PORT}/health`);
+  });
+  
+  // 伺服器錯誤處理
+  server.on('error', (error: any) => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use`);
+      process.exit(1);
+    } else if (error.code === 'EACCES') {
+      console.error(`Permission denied to bind to port ${PORT}`);
+      process.exit(1);
+    } else {
+      console.error('Server error:', error);
+      process.exit(1);
+    }
+  });
+  
+  // 優雅關閉處理
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    server.close(() => {
+      console.log('HTTP server closed');
+      process.exit(0);
+    });
+  });
+  
+  process.on('SIGINT', () => {
+    console.log('SIGINT signal received: closing HTTP server');
+    server.close(() => {
+      console.log('HTTP server closed');
+      process.exit(0);
+    });
   });
 })();

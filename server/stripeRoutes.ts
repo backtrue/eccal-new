@@ -7,21 +7,29 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { PRICING_CONFIG, getCurrencyForLocale, getPricingForLocale, formatAmountForStripe, type Locale } from "./pricingConfig";
 
-// Initialize Stripe with secret key
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+// 延遲初始化 Stripe 以提升啟動速度
+let stripeInstance: Stripe | null = null;
+
+function getStripeInstance(): Stripe {
+  if (!stripeInstance) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+    }
+    
+    console.log('Initializing Stripe with secret key starting with:', process.env.STRIPE_SECRET_KEY?.substring(0, 7));
+    
+    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2023-10-16",
+    });
+  }
+  return stripeInstance;
 }
-
-console.log('Initializing Stripe with secret key starting with:', process.env.STRIPE_SECRET_KEY?.substring(0, 7));
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
-});
 
 export function setupStripeRoutes(app: Express) {
   // Initialize Stripe products and prices for all currencies (admin only)
   app.post("/api/stripe/init-products", async (req, res) => {
     try {
+      const stripe = getStripeInstance();
       const results: any = {
         success: true,
         products: {}
@@ -140,6 +148,7 @@ export function setupStripeRoutes(app: Express) {
   // Get pricing information for a specific locale
   app.get("/api/stripe/pricing/:locale", async (req, res) => {
     try {
+      const stripe = getStripeInstance();
       const locale = req.params.locale as Locale;
       
       if (!PRICING_CONFIG[locale]) {
@@ -194,6 +203,7 @@ export function setupStripeRoutes(app: Express) {
   // Create payment intent for one-time payments
   app.post("/api/stripe/create-payment-intent", requireJWTAuth, async (req, res) => {
     try {
+      const stripe = getStripeInstance();
       const { amount, paymentType, currency = 'usd' } = req.body;
       const userId = req.user.id;
 
@@ -263,6 +273,7 @@ export function setupStripeRoutes(app: Express) {
   // Create subscription for recurring payments
   app.post("/api/stripe/create-subscription", requireJWTAuth, async (req, res) => {
     try {
+      const stripe = getStripeInstance();
       const { priceId, planType } = req.body;
       const userId = req.user.id;
 
@@ -338,6 +349,7 @@ export function setupStripeRoutes(app: Express) {
     let event;
 
     try {
+      const stripe = getStripeInstance();
       // You'll need to set STRIPE_WEBHOOK_SECRET in your environment
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
       if (webhookSecret) {
@@ -394,6 +406,7 @@ export function setupStripeRoutes(app: Express) {
   // Get subscription status
   app.get("/api/stripe/subscription-status", requireJWTAuth, async (req, res) => {
     try {
+      const stripe = getStripeInstance();
       const userId = req.user.id;
       const user = await storage.getUser(userId);
       
@@ -431,6 +444,7 @@ export function setupStripeRoutes(app: Express) {
   // Verify payment and ensure user session
   app.post("/api/stripe/verify-payment", async (req, res) => {
     try {
+      const stripe = getStripeInstance();
       const { paymentIntentId } = req.body;
       
       if (!paymentIntentId) {
@@ -643,6 +657,7 @@ async function handleSubscriptionPaymentSuccess(invoice: any) {
   const subscriptionId = invoice.subscription;
   
   try {
+    const stripe = getStripeInstance();
     // Get subscription details
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     const userId = subscription.metadata?.userId;
