@@ -202,36 +202,37 @@ export function setupAccountCenterRoutes(app: Express) {
   // ==================== Token 驗證端點 ====================
   
   /**
-   * 驗證 JWT Token
+   * 驗證 JWT Token (已移至 server/index.ts 為了更好的 CORS 支援)
+   * 此端點已被 server/index.ts 中的實現取代
    */
-  app.post('/api/sso/verify-token', (req: Request, res: Response) => {
-    const { token } = req.body;
-    
-    if (!token) {
-      return res.status(400).json({ error: 'Token is required' });
-    }
-    
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
-      res.json({ 
-        success: true,
-        valid: true, 
-        user: {
-          id: decoded.sub,
-          email: decoded.email,
-          name: decoded.name,
-          membership: decoded.membership,
-          credits: decoded.credits
-        }
-      });
-    } catch (error) {
-      res.status(401).json({ 
-        success: false,
-        valid: false, 
-        error: 'Invalid token' 
-      });
-    }
-  });
+  // app.post('/api/sso/verify-token', (req: Request, res: Response) => {
+  //   const { token } = req.body;
+  //   
+  //   if (!token) {
+  //     return res.status(400).json({ error: 'Token is required' });
+  //   }
+  //   
+  //   try {
+  //     const decoded = jwt.verify(token, JWT_SECRET) as any;
+  //     res.json({ 
+  //       success: true,
+  //       valid: true, 
+  //       user: {
+  //         id: decoded.sub,
+  //         email: decoded.email,
+  //         name: decoded.name,
+  //         membership: decoded.membership,
+  //         credits: decoded.credits
+  //       }
+  //     });
+  //   } catch (error) {
+  //     res.status(401).json({ 
+  //       success: false,
+  //       valid: false, 
+  //       error: 'Invalid token' 
+  //     });
+  //   }
+  // });
 
   /**
    * 刷新 Token

@@ -108,3 +108,15 @@ Preferred communication style: Simple, everyday language.
     - Added port binding validation and descriptive error messages
     - Implemented SIGTERM/SIGINT handlers for clean shutdowns
   - **Impact**: Faster server startup, reduced resource usage, and improved deployment reliability
+
+### SSO Token Format Issue Resolution (2025-08-09)
+- **Issue Resolution**: Fixed SSO token format problem where tokens had incorrect JWT structure (1 part instead of 3)
+  - **Problem**: Duplicate `/api/sso/verify-token` endpoints causing confusion; JWT tokens not properly passed to external services in URL parameters
+  - **Root Cause**: Two different SSO implementations - cookie-based for internal use and URL parameter-based for cross-domain SSO
+  - **Solution**: Unified token handling logic
+    - Removed duplicate endpoint in `server/accountCenterRoutes.ts`
+    - Enhanced JWT token validation with proper 3-part format checking
+    - Modified JWT OAuth callback to include token in URL parameters for external domains
+    - Added comprehensive token format debugging and validation
+  - **Implementation**: Updated `server/jwtAuth.ts` OAuth callback to distinguish between internal (cookie-based) and external (URL parameter-based) redirects
+  - **Impact**: Proper SSO functionality for cross-platform authentication with external services

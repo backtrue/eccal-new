@@ -1940,6 +1940,32 @@ app.post('/api/sso/verify-token', express.json(), async (req, res) => {
       });
     }
     
+    // 詳細的 token 格式檢查和調試
+    console.log('SSO Token 驗證調試信息:', {
+      tokenType: typeof token,
+      tokenLength: token.length,
+      tokenParts: token.split('.').length,
+      tokenPrefix: token.substring(0, 20) + '...'
+    });
+    
+    // 檢查 JWT 格式 (應該有三個部分: header.payload.signature)
+    if (typeof token !== 'string' || token.split('.').length !== 3) {
+      console.error('Token 格式錯誤 - 不是有效的 JWT 格式:', {
+        tokenType: typeof token,
+        parts: token.split('.').length,
+        expected: 3
+      });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid token format - JWT should have 3 parts separated by dots',
+        debug: {
+          tokenType: typeof token,
+          parts: token.split('.').length,
+          expected: 3
+        }
+      });
+    }
+    
     // 使用動態 import 載入 jwt
     const { default: jwt } = await import('jsonwebtoken');
     const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';

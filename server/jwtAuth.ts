@@ -238,6 +238,14 @@ export function setupJWTGoogleAuth(app: Express) {
         // 生成 JWT token
         const token = jwtUtils.generateToken(user);
         
+        // 調試 JWT token 格式
+        console.log('Generated JWT token details:', {
+          tokenLength: token.length,
+          tokenParts: token.split('.').length,
+          tokenPrefix: token.substring(0, 20) + '...',
+          isValidJWT: token.split('.').length === 3
+        });
+        
         // 設置 httpOnly cookie (更安全)
         const cookieOptions = {
           httpOnly: true,
@@ -275,8 +283,10 @@ export function setupJWTGoogleAuth(app: Express) {
         
         let redirectUrl: string;
         if (returnTo.startsWith('http')) {
-          redirectUrl = `${returnTo}${returnTo.includes('?') ? '&' : '?'}auth_success=1`;
+          // 外部 URL - 包含 token (用於跨域 SSO)
+          redirectUrl = `${returnTo}${returnTo.includes('?') ? '&' : '?'}auth_success=1&token=${encodeURIComponent(token)}`;
         } else {
+          // 內部 URL - 只設置 auth_success (使用 cookie)
           const cleanPath = returnTo.startsWith('/') ? returnTo : `/${returnTo}`;
           redirectUrl = `${baseUrl}${cleanPath}${cleanPath.includes('?') ? '&' : '?'}auth_success=1`;
         }
