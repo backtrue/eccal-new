@@ -302,6 +302,17 @@ export class DatabaseStorage implements IStorage {
       isNewUser: isNewUser
     });
 
+    // 為 kikichuan860618@gmail.com 增加特別監控
+    if (user?.email === 'kikichuan860618@gmail.com') {
+      console.log('[KIKI-MONITOR] 用戶 upsert 成功:', {
+        timestamp: new Date().toISOString(),
+        userId: user.id,
+        email: user.email,
+        tokenExpiresAt: user.tokenExpiresAt,
+        operation: isNewUser ? 'CREATE' : 'UPDATE'
+      });
+    }
+
     // Create initial credits for new users
     if (isNewUser) {
       try {

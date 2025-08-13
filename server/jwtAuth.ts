@@ -190,6 +190,7 @@ export function setupJWTGoogleAuth(app: Express) {
       });
 
       // 特別為 kikichuan860618@gmail.com 增加詳細日誌
+      const userEmail = profile.emails?.[0]?.value;
       if (userEmail === 'kikichuan860618@gmail.com') {
         console.log('[KIKI-DEBUG] Upsert 完成:', {
           userCreated: !!user,
@@ -288,6 +289,17 @@ export function setupJWTGoogleAuth(app: Express) {
           reason: 'user object is null/undefined',
           profileId: req.query?.state ? 'check state parameter' : 'no state'
         });
+        
+        // 特別為 kikichuan860618@gmail.com 記錄失敗詳情
+        if (req.user && req.user.email === 'kikichuan860618@gmail.com') {
+          console.error('[KIKI-FAIL] 登入失敗詳細記錄:', {
+            timestamp: new Date().toISOString(),
+            userAgent: req.get('User-Agent'),
+            ip: req.ip,
+            info: info,
+            errorType: 'no_user_returned'
+          });
+        }
         
         // 提供更詳細的錯誤信息
         const errorMessage = info ? `認證失敗: ${JSON.stringify(info)}` : '認證失敗: 無法建立用戶';
