@@ -48,6 +48,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Eccal Purchase tracking routes
   app.use("/api/eccal-purchase", eccalPurchaseRoutes);
 
+  // Debug endpoint for specific user status
+  app.get('/api/debug/user-status', async (req, res) => {
+    try {
+      const email = req.query.email as string;
+      if (!email) {
+        return res.status(400).json({ error: 'Email parameter required' });
+      }
+
+      // 查詢用戶狀態
+      const user = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+      
+      if (user.length === 0) {
+        return res.json({
+          status: 'user_not_found',
+          email: email,
+          message: '用戶不存在'
+        });
+      }
+
+      const userData = user[0];
+      const now = new Date();
+      const tokenExpired = userData.tokenExpiresAt ? new Date(userData.tokenExpiresAt) < now : true;
+
+      return res.json({
+        status: 'user_found',
+        email: userData.email,
+        userId: userData.id,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        membershipLevel: userData.membershipLevel,
+        hasGoogleToken: !!userData.googleAccessToken,
+        hasRefreshToken: !!userData.googleRefreshToken,
+        tokenExpiresAt: userData.tokenExpiresAt,
+        tokenExpired: tokenExpired,
+        lastLoginAt: userData.lastLoginAt,
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt
+      });
+    } catch (error) {
+      console.error('Debug user status error:', error);
+      return res.status(500).json({ 
+        error: 'Internal server error',
+        message: error.message 
+      });
+    }
+  });
+
   // Critical: Handle root path for Replit port monitoring
   app.get('/api/ping', (req, res) => {
     res.status(200).send('pong');

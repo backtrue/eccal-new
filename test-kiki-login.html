@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiki 登入測試頁面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #4285f4;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #357ae8;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kiki 登入問題調試頁面</h1>
+        <p>kikichuan860618@gmail.com 專用測試頁面</p>
+        
+        <div class="info">
+            <h3>當前狀態檢查：</h3>
+            <p id="authStatus">檢查中...</p>
+            <p id="userInfo">載入中...</p>
+        </div>
+
+        <h3>登入選項：</h3>
+        <a href="/api/auth/google?returnTo=test-kiki-login.html" class="btn">
+            🔄 Google OAuth 登入
+        </a>
+        
+        <a href="/api/auth/logout" class="btn" style="background-color: #dc3545;">
+            🚪 登出
+        </a>
+
+        <div id="debugInfo" style="margin-top: 30px;">
+            <h3>調試信息：</h3>
+            <pre id="debugLog">準備載入調試信息...</pre>
+        </div>
+
+        <div id="serverLogs" style="margin-top: 20px;">
+            <h3>即時伺服器日誌：</h3>
+            <div id="logContainer" style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 5px;">
+                載入中...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 檢查認證狀態
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/auth/me');
+                const statusElement = document.getElementById('authStatus');
+                const userInfoElement = document.getElementById('userInfo');
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    statusElement.textContent = '✅ 已登入';
+                    userInfoElement.innerHTML = `
+                        用戶 ID: ${user.id}<br>
+                        Email: ${user.email}<br>
+                        姓名: ${user.firstName} ${user.lastName}<br>
+                        會員等級: ${user.membershipLevel}
+                    `;
+                    statusElement.parentElement.className = 'status success';
+                } else {
+                    statusElement.textContent = '❌ 未登入';
+                    userInfoElement.textContent = `HTTP ${response.status}: ${response.statusText}`;
+                    statusElement.parentElement.className = 'status error';
+                }
+            } catch (error) {
+                document.getElementById('authStatus').textContent = '⚠️ 檢查失敗';
+                document.getElementById('userInfo').textContent = error.message;
+                document.getElementById('authStatus').parentElement.className = 'status error';
+            }
+        }
+
+        // 載入調試信息
+        async function loadDebugInfo() {
+            try {
+                const response = await fetch('/api/debug/user-status?email=kikichuan860618@gmail.com');
+                const debugElement = document.getElementById('debugLog');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    debugElement.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    debugElement.textContent = `Error: ${response.status} ${response.statusText}`;
+                }
+            } catch (error) {
+                document.getElementById('debugLog').textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // 檢查 URL 參數中的錯誤信息
+        function checkUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const error = params.get('error');
+            const success = params.get('success');
+            
+            if (error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'status error';
+                errorDiv.innerHTML = `<h3>登入錯誤：</h3><p>${decodeURIComponent(error)}</p>`;
+                document.querySelector('.container').insertBefore(errorDiv, document.querySelector('h3'));
+            }
+            
+            if (success) {
+                const successDiv = document.createElement('div');
+                successDiv.className = 'status success';
+                successDiv.innerHTML = `<h3>登入成功！</h3><p>${decodeURIComponent(success)}</p>`;
+                document.querySelector('.container').insertBefore(successDiv, document.querySelector('h3'));
+            }
+        }
+
+        // 頁面載入時執行
+        window.onload = function() {
+            checkUrlParams();
+            checkAuthStatus();
+            loadDebugInfo();
+        };
+
+        console.log('Kiki 測試頁面已載入，email: kikichuan860618@gmail.com');
+    </script>
+</body>
+</html>
