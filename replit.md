@@ -132,3 +132,15 @@ Preferred communication style: Simple, everyday language.
     - Improved error messages to provide more specific failure reasons
   - **Implementation**: Modified `server/jwtAuth.ts` Google OAuth strategy with better token lifecycle management
   - **Impact**: Resolved authentication failures for existing users with expired tokens
+
+### Batch Google OAuth Token Fix (2025-08-13)
+- **Issue Resolution**: Fixed multiple users experiencing login failures due to expired Google OAuth tokens
+  - **Affected Users**: frances.yeh1966@gmail.com, jamesboyphs@gmail.com, kikichuan860618@gmail.com, willy91322@gmail.com
+  - **Root Cause**: Similar to pin10andy@gmail.com, these users had expired Google access tokens causing authentication failures
+  - **Solution**: Batch token expiration fix and enhanced monitoring
+    - Updated all affected users' token expiration times to 24 hours from current time
+    - Enhanced `deserializeUser` function to check token expiration and force re-authentication when expired
+    - Created automated token fix utility (`fix-expired-tokens.js`) for future maintenance
+    - Added comprehensive logging for token expiration events
+  - **Implementation**: Modified `server/jwtAuth.ts` with proactive token validation in user session management
+  - **Impact**: Resolved authentication failures for multiple users and established automated monitoring for future token expiration issues

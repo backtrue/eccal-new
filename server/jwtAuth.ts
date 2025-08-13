@@ -204,8 +204,23 @@ export function setupJWTGoogleAuth(app: Express) {
   passport.deserializeUser(async (id: string, done) => {
     try {
       const user = await storage.getUser(id);
+      
+      // 檢查 token 是否過期
+      if (user && user.tokenExpiresAt && new Date(user.tokenExpiresAt) < new Date()) {
+        console.log('用戶 token 已過期:', {
+          userId: user.id,
+          email: user.email,
+          expiredAt: user.tokenExpiresAt
+        });
+        
+        // Token 過期時返回 null，強制重新認證
+        done(null, null);
+        return;
+      }
+      
       done(null, user || null);
     } catch (error) {
+      console.error('deserializeUser 錯誤:', error);
       done(error, null);
     }
   });
