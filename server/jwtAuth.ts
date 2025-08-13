@@ -189,6 +189,16 @@ export function setupJWTGoogleAuth(app: Express) {
         email: user?.email
       });
 
+      // 特別為 kikichuan860618@gmail.com 增加詳細日誌
+      if (userEmail === 'kikichuan860618@gmail.com') {
+        console.log('[KIKI-DEBUG] Upsert 完成:', {
+          userCreated: !!user,
+          userId: user?.id,
+          userEmail: user?.email,
+          tokenExpiresAt: user?.tokenExpiresAt
+        });
+      }
+
       return done(null, user || false);
     } catch (error) {
       console.error('Google OAuth 策略錯誤:', error);
