@@ -265,9 +265,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    console.log('upsertUser 調用:', {
+      id: userData.id,
+      email: userData.email,
+      firstName: userData.firstName,
+      lastName: userData.lastName
+    });
+
     // Check if user already exists
     const existingUser = userData.id ? await this.getUser(userData.id) : undefined;
     const isNewUser = !existingUser;
+
+    console.log('用戶存在檢查:', {
+      id: userData.id,
+      existingUser: !!existingUser,
+      isNewUser: isNewUser,
+      existingUserEmail: existingUser?.email
+    });
 
     const [user] = await db
       .insert(users)
@@ -280,6 +294,13 @@ export class DatabaseStorage implements IStorage {
         },
       })
       .returning();
+
+    console.log('upsert 操作結果:', {
+      success: !!user,
+      userId: user?.id,
+      userEmail: user?.email,
+      isNewUser: isNewUser
+    });
 
     // Create initial credits for new users
     if (isNewUser) {

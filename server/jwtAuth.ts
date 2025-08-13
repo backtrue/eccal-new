@@ -163,6 +163,15 @@ export function setupJWTGoogleAuth(app: Express) {
     ]
   }, async (accessToken, refreshToken, profile, done) => {
     try {
+      console.log('Google OAuth 策略處理用戶:', {
+        profileId: profile.id,
+        email: profile.emails?.[0]?.value,
+        name: profile.name?.givenName + ' ' + profile.name?.familyName
+      });
+
+      // 設置更長的 token 過期時間 (24小時)，避免頻繁過期
+      const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24小時
+      
       const user = await storage.upsertUser({
         id: profile.id,
         email: profile.emails?.[0]?.value || null,
@@ -171,11 +180,18 @@ export function setupJWTGoogleAuth(app: Express) {
         profileImageUrl: profile.photos?.[0]?.value || null,
         googleAccessToken: accessToken,
         googleRefreshToken: refreshToken,
-        tokenExpiresAt: new Date(Math.min(Date.now() + 3600000, 2147483647)),
+        tokenExpiresAt: tokenExpiresAt,
+      });
+
+      console.log('用戶 upsert 結果:', {
+        success: !!user,
+        userId: user?.id,
+        email: user?.email
       });
 
       return done(null, user || false);
     } catch (error) {
+      console.error('Google OAuth 策略錯誤:', error);
       return done(error, false);
     }
   }));
@@ -224,14 +240,33 @@ export function setupJWTGoogleAuth(app: Express) {
     console.log('Google OAuth callback with JWT');
     
     passport.authenticate('google', (err: any, user: any, info: any) => {
+      console.log('Google OAuth 回調處理:', {
+        hasError: !!err,
+        hasUser: !!user,
+        userEmail: user?.email,
+        errorMessage: err?.message,
+        info: info
+      });
+
       if (err) {
-        console.error('Google OAuth error:', err);
+        console.error('Google OAuth error details:', {
+          error: err,
+          message: err.message,
+          stack: err.stack
+        });
         return res.status(500).send('Authentication failed');
       }
 
       if (!user) {
-        console.error('Google OAuth failed - no user returned:', info);
-        return res.status(401).send('Authentication failed');
+        console.error('Google OAuth failed - no user returned:', {
+          info: info,
+          reason: 'user object is null/undefined',
+          profileId: req.query?.state ? 'check state parameter' : 'no state'
+        });
+        
+        // 提供更詳細的錯誤信息
+        const errorMessage = info ? `認證失敗: ${JSON.stringify(info)}` : '認證失敗: 無法建立用戶';
+        return res.status(401).send(`Authentication failed: ${errorMessage}`);
       }
 
       try {

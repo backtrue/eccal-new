@@ -120,3 +120,15 @@ Preferred communication style: Simple, everyday language.
     - Added comprehensive token format debugging and validation
   - **Implementation**: Updated `server/jwtAuth.ts` OAuth callback to distinguish between internal (cookie-based) and external (URL parameter-based) redirects
   - **Impact**: Proper SSO functionality for cross-platform authentication with external services
+
+### Google OAuth Token Expiration Fix (2025-08-09)
+- **Issue Resolution**: Fixed authentication failure for pin10andy@gmail.com due to expired Google access tokens
+  - **Problem**: User authentication failed with "Authentication failed" error when Google access tokens expired
+  - **Root Cause**: Google access tokens in database were expired, and system lacked proper token refresh handling
+  - **Solution**: Enhanced token management and error handling
+    - Extended token expiration time from 1 hour to 24 hours to reduce frequent expiration
+    - Updated expired tokens in database to current time + 1 hour
+    - Added comprehensive debugging logs for OAuth strategy and upsertUser process
+    - Improved error messages to provide more specific failure reasons
+  - **Implementation**: Modified `server/jwtAuth.ts` Google OAuth strategy with better token lifecycle management
+  - **Impact**: Resolved authentication failures for existing users with expired tokens
