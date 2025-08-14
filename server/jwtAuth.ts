@@ -142,13 +142,17 @@ async function autoFixExpiredTokens(req: Request, res: Response, next: NextFunct
         const { storage } = await import('./storage');
         const newTokenExpiry = new Date(now.getTime() + 24 * 60 * 60 * 1000);
         
-        await storage.db
-          .update(storage.users)
+        const { db } = await import('./db');
+        const { users } = await import('../shared/schema');
+        const { eq } = await import('drizzle-orm');
+        
+        await db
+          .update(users)
           .set({
             tokenExpiresAt: newTokenExpiry,
             updatedAt: now
           })
-          .where(storage.eq(storage.users.email, user.email));
+          .where(eq(users.email, user.email));
         
         // 更新記憶體中的用戶資料
         user.tokenExpiresAt = newTokenExpiry;
@@ -236,12 +240,19 @@ export function setupJWTGoogleAuth(app: Express) {
         'jamesboyphs@gmail.com',
         'willy91322@gmail.com',
         'qazwsx132914@gmail.com',
-        'kaoic08@gmail.com'
+        'kaoic08@gmail.com',
+        'pin10andy@gmail.com'
       ];
       
       // 為特定問題用戶增加超詳細日誌
-      if (userEmail === 'jamesboyphs@gmail.com' || userEmail === 'kaoic08@gmail.com') {
-        const debugPrefix = userEmail === 'jamesboyphs@gmail.com' ? 'JAMES-SUPER-DEBUG' : 'KAOIC-SUPER-DEBUG';
+      const criticalUsers = ['jamesboyphs@gmail.com', 'kaoic08@gmail.com', 'pin10andy@gmail.com'];
+      if (userEmail && criticalUsers.includes(userEmail)) {
+        const debugMap: Record<string, string> = {
+          'jamesboyphs@gmail.com': 'JAMES-SUPER-DEBUG',
+          'kaoic08@gmail.com': 'KAOIC-SUPER-DEBUG', 
+          'pin10andy@gmail.com': 'PIN10ANDY-CRITICAL-DEBUG'
+        };
+        const debugPrefix = debugMap[userEmail];
         console.log(`[${debugPrefix}] 完整認證流程:`, {
           step: 'after_upsert',
           userFound: !!user,
@@ -258,7 +269,7 @@ export function setupJWTGoogleAuth(app: Express) {
         });
       }
       
-      if (problemUsers.includes(userEmail)) {
+      if (userEmail && problemUsers.includes(userEmail)) {
         console.log(`[AUTH-DEBUG-${userEmail}] Upsert 完成:`, {
           userCreated: !!user,
           userId: user?.id,
@@ -274,7 +285,7 @@ export function setupJWTGoogleAuth(app: Express) {
       
       // 嘗試自動修復認證錯誤
       const userEmail = profile?.emails?.[0]?.value;
-      if (userEmail && error.message?.includes('token') || error.message?.includes('expired')) {
+      if (userEmail && (error as any).message?.includes('token') || (error as any).message?.includes('expired')) {
         console.log(`[AUTO-RECOVERY] 嘗試自動修復 ${userEmail} 的認證錯誤`);
         
         try {
@@ -384,18 +395,19 @@ export function setupJWTGoogleAuth(app: Express) {
           profileId: req.query?.state ? 'check state parameter' : 'no state'
         });
         
-        // 為所有問題用戶記錄失敗詳情 (包含 kaoic08@gmail.com)
+        // 為所有問題用戶記錄失敗詳情 (包含 pin10andy@gmail.com)
         const problemUsers = [
           'kikichuan860618@gmail.com',
           'frances.yeh1966@gmail.com', 
           'jamesboyphs@gmail.com',
           'willy91322@gmail.com',
           'qazwsx132914@gmail.com',
-          'kaoic08@gmail.com'
+          'kaoic08@gmail.com',
+          'pin10andy@gmail.com'
         ];
         
         // 特別為 jamesboyphs@gmail.com 記錄超詳細失敗信息
-        if (req.user && req.user.email === 'jamesboyphs@gmail.com') {
+        if (req.user && (req.user as any).email === 'jamesboyphs@gmail.com') {
           console.error('[JAMES-SUPER-FAIL] 超詳細失敗記錄:', {
             timestamp: new Date().toISOString(),
             userAgent: req.get('User-Agent'),
@@ -409,8 +421,8 @@ export function setupJWTGoogleAuth(app: Express) {
           });
         }
         
-        if (req.user && problemUsers.includes(req.user.email)) {
-          console.error(`[AUTH-FAIL-${req.user.email}] 登入失敗詳細記錄:`, {
+        if (req.user && problemUsers.includes((req.user as any).email)) {
+          console.error(`[AUTH-FAIL-${(req.user as any).email}] 登入失敗詳細記錄:`, {
             timestamp: new Date().toISOString(),
             userAgent: req.get('User-Agent'),
             ip: req.ip,

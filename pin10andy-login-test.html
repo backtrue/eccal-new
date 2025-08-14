@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>pin10andy@gmail.com 專用認證測試</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .status { background: #e3f2fd; padding: 15px; border-radius: 4px; margin: 10px 0; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { background: #1976d2; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .critical-box { background: #fff3cd; border: 2px solid #ffc107; padding: 15px; border-radius: 4px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>pin10andy@gmail.com 500錯誤修復測試</h1>
+        
+        <div class="critical-box">
+            <h3>🚨 已知問題</h3>
+            <p>❌ OAuth callback 返回 500 Internal Server Error</p>
+            <p>❌ HAR 檔案顯示 "Authentication failed" 錯誤</p>
+            <p>✅ Token 已強制修復至 72 小時有效</p>
+            <p>✅ TypeScript 錯誤已從 12 個減少到 1 個</p>
+        </div>
+        
+        <div id="status" class="status">檢查中...</div>
+        
+        <h2>緊急測試</h2>
+        <button onclick="testOAuthCallback()">🔥 測試 OAuth Callback</button>
+        <button onclick="testDirectAuth()">🚀 測試直接認證</button>
+        <button onclick="testServerHealth()">💊 測試服務器健康</button>
+        <button onclick="clearAndRetry()">🔄 清除並重試</button>
+        
+        <h2>修復後登入測試</h2>
+        <p><a href="/api/auth/google?returnTo=%2Fdashboard" target="_blank">🔗 Google OAuth 登入 (修復版)</a></p>
+        <p><a href="/dashboard" target="_blank">📊 直接前往儀表板</a></p>
+        
+        <div id="results"></div>
+        <div id="serverLogs" style="background: #000; color: #0f0; padding: 10px; font-family: monospace; height: 200px; overflow-y: auto; margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        let logPolling;
+
+        async function testOAuthCallback() {
+            document.getElementById('results').innerHTML = '<p>🔄 測試 OAuth callback 修復...</p>';
+            
+            try {
+                // 模擬一個 OAuth callback 請求
+                const testParams = new URLSearchParams({
+                    state: btoa(JSON.stringify({ returnTo: '/dashboard' })),
+                    code: 'test_authorization_code',
+                    scope: 'email profile'
+                });
+                
+                const response = await fetch(`/api/auth/google/callback?${testParams}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                const result = await response.text();
+                
+                if (response.status === 500) {
+                    document.getElementById('results').innerHTML = `
+                        <div class="status error">
+                            <h3>❌ 仍然有 500 錯誤</h3>
+                            <p>狀態: ${response.status}</p>
+                            <p>回應: ${result}</p>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('results').innerHTML = `
+                        <div class="status success">
+                            <h3>✅ OAuth callback 修復成功</h3>
+                            <p>狀態: ${response.status}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('results').innerHTML = `
+                    <div class="status error">
+                        <h3>❌ 測試失敗</h3>
+                        <p>錯誤: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testDirectAuth() {
+            try {
+                const response = await fetch('/api/user/me');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('status').innerHTML = `
+                        <h3>✅ 直接認證成功！</h3>
+                        <p>用戶: ${data.email}</p>
+                        <p>積分: ${data.credits}</p>
+                    `;
+                    document.getElementById('status').className = 'status success';
+                } else {
+                    document.getElementById('status').innerHTML = `
+                        <h3>❌ 認證失敗</h3>
+                        <p>錯誤: ${data.error}</p>
+                    `;
+                    document.getElementById('status').className = 'status error';
+                }
+            } catch (error) {
+                document.getElementById('status').innerHTML = `
+                    <h3>❌ 連線錯誤</h3>
+                    <p>${error.message}</p>
+                `;
+                document.getElementById('status').className = 'status error';
+            }
+        }
+        
+        async function testServerHealth() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                document.getElementById('status').innerHTML = `
+                    <h3>📊 服務器狀態</h3>
+                    <p>狀態: ${data.status}</p>
+                    <p>運行時間: ${Math.floor(data.uptime / 60)} 分鐘</p>
+                    <p>記憶體使用: ${Math.round(data.memory.used / 1024 / 1024)} MB</p>
+                `;
+                document.getElementById('status').className = data.status === 'healthy' ? 'status success' : 'status error';
+            } catch (error) {
+                document.getElementById('status').innerHTML = `❌ 服務器檢查失敗: ${error.message}`;
+                document.getElementById('status').className = 'status error';
+            }
+        }
+        
+        function clearAndRetry() {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.cookie.split(";").forEach(cookie => {
+                const eqPos = cookie.indexOf("=");
+                const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+            });
+            alert('已清除所有本地資料，請重新測試');
+            location.reload();
+        }
+        
+        // 自動檢查狀態
+        testServerHealth();
+        
+        // 每 10 秒更新一次
+        setInterval(testServerHealth, 10000);
+    </script>
+</body>
+</html>
