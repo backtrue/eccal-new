@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>kaoic08@gmail.com 專用登入測試</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .status { background: #e3f2fd; padding: 15px; border-radius: 4px; margin: 10px 0; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { background: #1976d2; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .info-box { background: #fff3e0; padding: 15px; border-left: 4px solid #ff9800; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>kaoic08@gmail.com PRO 會員專用診斷</h1>
+        
+        <div class="info-box">
+            <h3>🎯 已知狀態</h3>
+            <p>✅ PRO 終身會員 (2099年到期)</p>
+            <p>✅ 350 積分餘額</p>
+            <p>⚠️ 最後成功登入：2025-08-04 (10天前)</p>
+            <p>🔧 Token 已刷新至 48 小時有效</p>
+        </div>
+        
+        <div id="status" class="status">檢查中...</div>
+        
+        <h2>診斷測試</h2>
+        <button onclick="checkDetailedStatus()">🔍 詳細狀態檢查</button>
+        <button onclick="testDirectLogin()">🚀 測試直接登入</button>
+        <button onclick="resetAuth()">🔄 重置認證狀態</button>
+        <button onclick="clearBrowserData()">🧹 清除瀏覽器指引</button>
+        
+        <h2>登入連結</h2>
+        <p><a href="/api/auth/google?returnTo=%2Fdashboard" target="_blank">🔗 Google OAuth 登入</a></p>
+        <p><a href="/dashboard" target="_blank">📊 直接前往儀表板</a></p>
+        
+        <div id="results"></div>
+        
+        <div id="browserInstructions" style="display:none;" class="info-box">
+            <h3>🧹 清除瀏覽器資料步驟</h3>
+            <ol>
+                <li>按 F12 開啟開發者工具</li>
+                <li>按 F5 重新整理頁面</li>
+                <li>在網址列右鍵 → 清除瀏覽資料</li>
+                <li>選擇「Cookie 和其他網站資料」</li>
+                <li>點擊「清除資料」</li>
+                <li>關閉瀏覽器重新開啟</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        async function checkDetailedStatus() {
+            try {
+                const response = await fetch('/api/debug/user-status?email=kaoic08@gmail.com');
+                const data = await response.json();
+                
+                document.getElementById('status').innerHTML = `
+                    <h3>📊 完整狀態報告</h3>
+                    <p><strong>用戶狀態:</strong> ${data.status}</p>
+                    <p><strong>Email:</strong> ${data.email || 'N/A'}</p>
+                    <p><strong>會員等級:</strong> ${data.membershipLevel || 'N/A'}</p>
+                    <p><strong>積分:</strong> ${data.credits || 'N/A'}</p>
+                    <p><strong>Token 狀態:</strong> ${data.tokenValid ? '✅ 有效' : '❌ 無效'}</p>
+                    <p><strong>最後登入:</strong> ${data.lastLoginAt || '無記錄'}</p>
+                    <p><strong>檢查時間:</strong> ${new Date().toLocaleString()}</p>
+                `;
+                
+                document.getElementById('status').className = data.status === 'user_found' ? 'status success' : 'status error';
+            } catch (error) {
+                document.getElementById('status').innerHTML = `❌ 檢查失敗: ${error.message}`;
+                document.getElementById('status').className = 'status error';
+            }
+        }
+        
+        async function testDirectLogin() {
+            document.getElementById('results').innerHTML = '<p>🔄 測試登入中...</p>';
+            
+            // 嘗試呼叫認證檢查
+            try {
+                const response = await fetch('/api/user/me');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('results').innerHTML = `
+                        <div class="status success">
+                            <h3>✅ 登入成功！</h3>
+                            <p>用戶: ${data.email}</p>
+                            <p>會員: ${data.membershipLevel}</p>
+                            <p>積分: ${data.credits}</p>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('results').innerHTML = `
+                        <div class="status error">
+                            <h3>❌ 登入失敗</h3>
+                            <p>錯誤: ${data.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('results').innerHTML = `
+                    <div class="status error">
+                        <h3>❌ 連線錯誤</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function resetAuth() {
+            try {
+                const response = await fetch('/api/debug/reset-auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'kaoic08@gmail.com' })
+                });
+                
+                const result = await response.json();
+                alert(`重置結果: ${result.success ? '✅ 成功' : '❌ 失敗'} - ${result.message || result.error}`);
+                
+                checkDetailedStatus();
+            } catch (error) {
+                alert(`重置失敗: ${error.message}`);
+            }
+        }
+        
+        function clearBrowserData() {
+            const instructions = document.getElementById('browserInstructions');
+            instructions.style.display = instructions.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        // 自動檢查狀態
+        checkDetailedStatus();
+        
+        // 每30秒重新檢查
+        setInterval(checkDetailedStatus, 30000);
+    </script>
+</body>
+</html>

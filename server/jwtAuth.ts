@@ -189,19 +189,21 @@ export function setupJWTGoogleAuth(app: Express) {
         email: user?.email
       });
 
-      // 為所有問題用戶增加詳細日誌 (特別關注 jamesboyphs@gmail.com)
+      // 為所有問題用戶增加詳細日誌 (包含新問題用戶 kaoic08@gmail.com)
       const userEmail = profile.emails?.[0]?.value;
       const problemUsers = [
         'kikichuan860618@gmail.com',
         'frances.yeh1966@gmail.com', 
         'jamesboyphs@gmail.com',
         'willy91322@gmail.com',
-        'qazwsx132914@gmail.com'
+        'qazwsx132914@gmail.com',
+        'kaoic08@gmail.com'
       ];
       
-      // 特別為 jamesboyphs@gmail.com 增加超詳細日誌
-      if (userEmail === 'jamesboyphs@gmail.com') {
-        console.log('[JAMES-SUPER-DEBUG] 完整認證流程:', {
+      // 為特定問題用戶增加超詳細日誌
+      if (userEmail === 'jamesboyphs@gmail.com' || userEmail === 'kaoic08@gmail.com') {
+        const debugPrefix = userEmail === 'jamesboyphs@gmail.com' ? 'JAMES-SUPER-DEBUG' : 'KAOIC-SUPER-DEBUG';
+        console.log(`[${debugPrefix}] 完整認證流程:`, {
           step: 'after_upsert',
           userFound: !!user,
           userId: user?.id,
@@ -211,6 +213,8 @@ export function setupJWTGoogleAuth(app: Express) {
           hasGoogleRefreshToken: !!user?.googleRefreshToken,
           profileId: profile.id,
           profileEmail: profile.emails?.[0]?.value,
+          membershipLevel: user?.membershipLevel,
+          credits: user?.credits,
           timestamp: new Date().toISOString()
         });
       }
@@ -229,21 +233,24 @@ export function setupJWTGoogleAuth(app: Express) {
     } catch (error) {
       console.error('Google OAuth 策略錯誤:', error);
       
-      // 特別記錄問題用戶的錯誤
+      // 特別記錄問題用戶的錯誤 (包含 kaoic08@gmail.com)
       const userEmail = profile?.emails?.[0]?.value;
       const problemUsers = [
         'kikichuan860618@gmail.com',
         'frances.yeh1966@gmail.com', 
         'jamesboyphs@gmail.com',
         'willy91322@gmail.com',
-        'qazwsx132914@gmail.com'
+        'qazwsx132914@gmail.com',
+        'kaoic08@gmail.com'
       ];
       
       if (problemUsers.includes(userEmail)) {
-        console.error(`[AUTH-ERROR-${userEmail}] OAuth 策略失敗:`, {
+        const prefix = userEmail === 'kaoic08@gmail.com' ? 'KAOIC-ERROR' : 'AUTH-ERROR';
+        console.error(`[${prefix}-${userEmail}] OAuth 策略失敗:`, {
           error: error.message,
           stack: error.stack,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          membershipNote: userEmail === 'kaoic08@gmail.com' ? 'PRO終身會員認證失敗' : 'Free會員認證失敗'
         });
       }
       
@@ -334,13 +341,14 @@ export function setupJWTGoogleAuth(app: Express) {
           profileId: req.query?.state ? 'check state parameter' : 'no state'
         });
         
-        // 為所有問題用戶記錄失敗詳情 (特別關注 jamesboyphs@gmail.com)
+        // 為所有問題用戶記錄失敗詳情 (包含 kaoic08@gmail.com)
         const problemUsers = [
           'kikichuan860618@gmail.com',
           'frances.yeh1966@gmail.com', 
           'jamesboyphs@gmail.com',
           'willy91322@gmail.com',
-          'qazwsx132914@gmail.com'
+          'qazwsx132914@gmail.com',
+          'kaoic08@gmail.com'
         ];
         
         // 特別為 jamesboyphs@gmail.com 記錄超詳細失敗信息
