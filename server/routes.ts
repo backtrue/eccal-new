@@ -95,6 +95,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 測試特定用戶登入狀態的診斷端點
+  app.get('/api/debug/test-login/:email', async (req, res) => {
+    try {
+      const { email } = req.params;
+      
+      const user = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+      
+      if (user.length === 0) {
+        return res.status(404).json({ error: '用戶不存在' });
+      }
+      
+      const userData = user[0];
+      const now = new Date();
+      const tokenValid = userData.tokenExpiresAt && userData.tokenExpiresAt > now;
+      
+      return res.json({
+        email: userData.email,
+        userId: userData.id,
+        hasGoogleAccessToken: !!userData.googleAccessToken,
+        hasGoogleRefreshToken: !!userData.googleRefreshToken,
+        tokenExpiresAt: userData.tokenExpiresAt,
+        tokenValid: tokenValid,
+        membershipLevel: userData.membershipLevel,
+        credits: userData.credits,
+        lastLoginAt: userData.lastLoginAt,
+        serverTime: now.toISOString(),
+        loginUrl: `https://629e49c6-8dc3-42cd-b86c-d35b18e038dd-00-2e3bopfmdivrv.kirk.replit.dev/auth/google?returnTo=${encodeURIComponent('https://629e49c6-8dc3-42cd-b86c-d35b18e038dd-00-2e3bopfmdivrv.kirk.replit.dev/dashboard')}`,
+        directTestUrl: `https://629e49c6-8dc3-42cd-b86c-d35b18e038dd-00-2e3bopfmdivrv.kirk.replit.dev/api/debug/simulate-login/${email}`
+      });
+    } catch (error) {
+      console.error('Test login error:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // 強制重置特定用戶的認證狀態
   app.post('/api/debug/reset-auth', async (req, res) => {
     try {

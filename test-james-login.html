@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>James Login Test</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>jamesboyphs@gmail.com 登入測試頁面</h1>
+    
+    <h2>狀態檢查</h2>
+    <div id="status">檢查中...</div>
+    
+    <h2>直接登入連結</h2>
+    <p><a href="/auth/google?returnTo=%2Fdashboard" target="_blank">點擊這裡登入 Google OAuth</a></p>
+    
+    <h2>重置認證</h2>
+    <button onclick="resetAuth()">重置 James 的認證狀態</button>
+    
+    <script>
+        // 檢查用戶狀態
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/debug/test-login/jamesboyphs@gmail.com');
+                const data = await response.json();
+                
+                document.getElementById('status').innerHTML = `
+                    <h3>認證狀態：</h3>
+                    <p>Email: ${data.email}</p>
+                    <p>Token 有效: ${data.tokenValid ? '✅ 是' : '❌ 否'}</p>
+                    <p>Token 過期時間: ${data.tokenExpiresAt}</p>
+                    <p>有 Google Token: ${data.hasGoogleAccessToken ? '✅ 是' : '❌ 否'}</p>
+                    <p>會員等級: ${data.membershipLevel}</p>
+                    <p>積分: ${data.credits}</p>
+                    <p>最後登入: ${data.lastLoginAt}</p>
+                `;
+            } catch (error) {
+                document.getElementById('status').innerHTML = `❌ 檢查失敗: ${error.message}`;
+            }
+        }
+        
+        // 重置認證狀態
+        async function resetAuth() {
+            try {
+                const response = await fetch('/api/debug/reset-auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email: 'jamesboyphs@gmail.com' })
+                });
+                
+                const result = await response.json();
+                alert(`重置結果: ${result.success ? '成功' : '失敗'} - ${result.message || result.error}`);
+                
+                // 重新檢查狀態
+                checkStatus();
+            } catch (error) {
+                alert(`重置失敗: ${error.message}`);
+            }
+        }
+        
+        // 頁面載入時檢查狀態
+        checkStatus();
+        
+        // 每10秒自動檢查狀態
+        setInterval(checkStatus, 10000);
+    </script>
+</body>
+</html>

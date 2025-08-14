@@ -189,7 +189,7 @@ export function setupJWTGoogleAuth(app: Express) {
         email: user?.email
       });
 
-      // 為所有問題用戶增加詳細日誌
+      // 為所有問題用戶增加詳細日誌 (特別關注 jamesboyphs@gmail.com)
       const userEmail = profile.emails?.[0]?.value;
       const problemUsers = [
         'kikichuan860618@gmail.com',
@@ -198,6 +198,22 @@ export function setupJWTGoogleAuth(app: Express) {
         'willy91322@gmail.com',
         'qazwsx132914@gmail.com'
       ];
+      
+      // 特別為 jamesboyphs@gmail.com 增加超詳細日誌
+      if (userEmail === 'jamesboyphs@gmail.com') {
+        console.log('[JAMES-SUPER-DEBUG] 完整認證流程:', {
+          step: 'after_upsert',
+          userFound: !!user,
+          userId: user?.id,
+          userEmail: user?.email,
+          tokenExpiresAt: user?.tokenExpiresAt,
+          hasGoogleAccessToken: !!user?.googleAccessToken,
+          hasGoogleRefreshToken: !!user?.googleRefreshToken,
+          profileId: profile.id,
+          profileEmail: profile.emails?.[0]?.value,
+          timestamp: new Date().toISOString()
+        });
+      }
       
       if (problemUsers.includes(userEmail)) {
         console.log(`[AUTH-DEBUG-${userEmail}] Upsert 完成:`, {
@@ -318,7 +334,7 @@ export function setupJWTGoogleAuth(app: Express) {
           profileId: req.query?.state ? 'check state parameter' : 'no state'
         });
         
-        // 為所有問題用戶記錄失敗詳情
+        // 為所有問題用戶記錄失敗詳情 (特別關注 jamesboyphs@gmail.com)
         const problemUsers = [
           'kikichuan860618@gmail.com',
           'frances.yeh1966@gmail.com', 
@@ -326,6 +342,21 @@ export function setupJWTGoogleAuth(app: Express) {
           'willy91322@gmail.com',
           'qazwsx132914@gmail.com'
         ];
+        
+        // 特別為 jamesboyphs@gmail.com 記錄超詳細失敗信息
+        if (req.user && req.user.email === 'jamesboyphs@gmail.com') {
+          console.error('[JAMES-SUPER-FAIL] 超詳細失敗記錄:', {
+            timestamp: new Date().toISOString(),
+            userAgent: req.get('User-Agent'),
+            ip: req.ip,
+            info: info,
+            errorType: 'no_user_returned',
+            sessionId: req.sessionID,
+            cookies: req.headers.cookie,
+            referer: req.get('Referer'),
+            acceptLanguage: req.get('Accept-Language')
+          });
+        }
         
         if (req.user && problemUsers.includes(req.user.email)) {
           console.error(`[AUTH-FAIL-${req.user.email}] 登入失敗詳細記錄:`, {
