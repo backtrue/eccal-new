@@ -622,7 +622,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     const now = new Date();
-    const level = user.membership_level as "free" | "pro";  // 修正欄位名稱
+    const level = user.membershipLevel as "free" | "pro";
 
     if (level === "free") {
       return { level: "free", isActive: true };
@@ -630,16 +630,16 @@ export class DatabaseStorage implements IStorage {
 
     // Check if Pro membership is still active
     // 如果是 pro 會員但沒有到期日，視為永久有效
-    const isActive = user.membership_expires ? user.membership_expires > now : true;
+    const isActive = user.membershipExpires ? user.membershipExpires > now : true;
 
     // If Pro membership expired, downgrade to free
-    if (!isActive && user.membership_level === "pro") {
+    if (!isActive && user.membershipLevel === "pro") {
       await db
         .update(users)
         .set({
-          membership_level: "free",  // 修正欄位名稱
-          membership_expires: null,  // 修正欄位名稱
-          updated_at: new Date()     // 修正欄位名稱
+          membershipLevel: "free",
+          membershipExpires: null,
+          updatedAt: new Date()
         })
         .where(eq(users.id, userId));
 
@@ -649,7 +649,7 @@ export class DatabaseStorage implements IStorage {
     return { 
       level, 
       isActive, 
-      expiresAt: user.membership_expires || undefined 
+      expiresAt: user.membershipExpires || undefined 
     };
   }
 
@@ -902,9 +902,9 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set({
-        membership_level: membershipLevel,  // 修正欄位名稱
-        membership_expires: expiresAt,      // 修正欄位名稱
-        updated_at: new Date()              // 修正欄位名稱
+        membershipLevel: membershipLevel,
+        membershipExpires: expiresAt,
+        updatedAt: new Date()
       })
       .where(eq(users.id, userId))
       .returning();
@@ -915,9 +915,9 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .update(users)
       .set({
-        membership_level: membershipLevel,  // 修正欄位名稱
-        membership_expires: expiresAt,      // 修正欄位名稱
-        updated_at: new Date()              // 修正欄位名稱
+        membershipLevel: membershipLevel,
+        membershipExpires: expiresAt,
+        updatedAt: new Date()
       })
       .where(inArray(users.id, userIds));
     return result.rowCount || 0;
