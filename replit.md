@@ -144,3 +144,15 @@ Preferred communication style: Simple, everyday language.
     - Added comprehensive logging for token expiration events
   - **Implementation**: Modified `server/jwtAuth.ts` with proactive token validation in user session management
   - **Impact**: Resolved authentication failures for multiple users and established automated monitoring for future token expiration issues
+
+### Critical Data Integrity Fix (2025-08-14)
+- **Issue Resolution**: Fixed critical Google ID conflict bug that was overwriting user data
+  - **Problem**: `onConflictDoUpdate` logic was overwriting existing user data when Google ID conflicts occurred
+  - **Root Cause**: Two different Google accounts somehow received the same Google ID, causing system to overwrite kiki@livtec.com.tw data with kikichuan860618@gmail.com data
+  - **Solution**: Enhanced conflict detection and prevention
+    - Added pre-insert validation to detect Google ID conflicts with different emails
+    - Modified upsert logic to generate new unique IDs for conflicting users instead of overwriting
+    - Changed conflict update to only update token-related fields, preserving user profile data
+    - Added comprehensive logging for conflict detection and resolution
+  - **Implementation**: Modified `server/storage.ts` upsertUser function with proper conflict handling
+  - **Impact**: Prevents data loss and ensures user data integrity in OAuth authentication process

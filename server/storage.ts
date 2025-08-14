@@ -283,13 +283,30 @@ export class DatabaseStorage implements IStorage {
       existingUserEmail: existingUser?.email
     });
 
+    // 檢查是否存在 ID 衝突但 email 不同的情況
+    if (existingUser && existingUser.email !== userData.email) {
+      console.error('嚴重錯誤: Google ID 衝突detected!', {
+        existingEmail: existingUser.email,
+        newEmail: userData.email,
+        googleId: userData.id,
+        action: 'generating_new_id'
+      });
+      
+      // 為新用戶生成唯一 ID，避免覆蓋現有用戶
+      userData.id = Date.now().toString() + Math.random().toString(36).substring(2);
+    }
+
     const [user] = await db
       .insert(users)
       .values(userData)
       .onConflictDoUpdate({
         target: users.id,
         set: {
-          ...userData,
+          // 只更新 token 相關資訊，不覆蓋用戶基本資料
+          googleAccessToken: userData.googleAccessToken,
+          googleRefreshToken: userData.googleRefreshToken,
+          tokenExpiresAt: userData.tokenExpiresAt,
+          lastLoginAt: new Date(),
           updatedAt: new Date(),
         },
       })
