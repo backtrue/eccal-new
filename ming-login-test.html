@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ming2635163@gmail.com 認證測試</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .status { background: #e3f2fd; padding: 15px; border-radius: 4px; margin: 10px 0; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { background: #1976d2; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .warning-box { background: #fff8e1; border: 2px solid #ff9800; padding: 15px; border-radius: 4px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ming2635163@gmail.com 認證問題檢測</h1>
+        
+        <div class="warning-box">
+            <h3>🔍 預防性檢查</h3>
+            <p>正在檢查是否會遇到與 pin10andy@gmail.com 相同的認證問題</p>
+            <p>✅ 已將 ming2635163@gmail.com 加入特殊監控清單</p>
+            <p>✅ 預先修復 token 有效期</p>
+        </div>
+        
+        <div id="status" class="status">檢查中...</div>
+        
+        <h2>認證測試</h2>
+        <button onclick="checkTokenStatus()">🔍 檢查 Token 狀態</button>
+        <button onclick="testDirectAuth()">🚀 測試直接認證</button>
+        <button onclick="forceTokenFix()">🔧 強制修復 Token</button>
+        <button onclick="testOAuthFlow()">🔗 測試 OAuth 流程</button>
+        
+        <h2>登入連結</h2>
+        <p><a href="/api/auth/google?returnTo=%2Fdashboard" target="_blank">🔗 Google OAuth 登入</a></p>
+        <p><a href="/dashboard" target="_blank">📊 前往儀表板</a></p>
+        
+        <div id="results"></div>
+        <div id="serverLogs" style="background: #000; color: #0f0; padding: 10px; font-family: monospace; height: 200px; overflow-y: auto; margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        async function checkTokenStatus() {
+            document.getElementById('results').innerHTML = '<p>🔄 檢查 ming2635163@gmail.com 的 token 狀態...</p>';
+            
+            try {
+                const response = await fetch('/api/admin/fix-user-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'ming2635163@gmail.com' })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('results').innerHTML = `
+                        <div class="status success">
+                            <h3>✅ Token 狀態正常</h3>
+                            <p>用戶: ${data.user.email}</p>
+                            <p>會員等級: ${data.user.membershipLevel}</p>
+                            <p>積分: ${data.user.credits}</p>
+                            <p>新到期時間: ${data.newExpiry}</p>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('results').innerHTML = `
+                        <div class="status error">
+                            <h3>❌ Token 問題</h3>
+                            <p>錯誤: ${data.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('results').innerHTML = `
+                    <div class="status error">
+                        <h3>❌ 檢查失敗</h3>
+                        <p>錯誤: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testDirectAuth() {
+            try {
+                const response = await fetch('/api/user/me');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('status').innerHTML = `
+                        <h3>✅ 直接認證成功！</h3>
+                        <p>用戶: ${data.email}</p>
+                        <p>積分: ${data.credits}</p>
+                    `;
+                    document.getElementById('status').className = 'status success';
+                } else {
+                    document.getElementById('status').innerHTML = `
+                        <h3>❌ 認證失敗</h3>
+                        <p>錯誤: ${data.error}</p>
+                    `;
+                    document.getElementById('status').className = 'status error';
+                }
+            } catch (error) {
+                document.getElementById('status').innerHTML = `
+                    <h3>❌ 連線錯誤</h3>
+                    <p>${error.message}</p>
+                `;
+                document.getElementById('status').className = 'status error';
+            }
+        }
+        
+        async function forceTokenFix() {
+            document.getElementById('results').innerHTML = '<p>🔧 強制修復 ming2635163@gmail.com 的 token...</p>';
+            
+            try {
+                const response = await fetch('/api/admin/fix-user-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'ming2635163@gmail.com' })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('results').innerHTML = `
+                        <div class="status success">
+                            <h3>✅ Token 修復成功</h3>
+                            <p>${data.message}</p>
+                            <p>新到期時間: ${data.newExpiry}</p>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('results').innerHTML = `
+                        <div class="status error">
+                            <h3>❌ 修復失敗</h3>
+                            <p>錯誤: ${data.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('results').innerHTML = `
+                    <div class="status error">
+                        <h3>❌ 修復失敗</h3>
+                        <p>錯誤: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testOAuthFlow() {
+            document.getElementById('results').innerHTML = '<p>🔄 測試 OAuth 流程...</p>';
+            
+            try {
+                // 模擬一個輕量級的 OAuth 測試
+                const response = await fetch('/api/auth/google', {
+                    method: 'GET',
+                    redirect: 'manual'
+                });
+                
+                if (response.status === 302 || response.status === 0) {
+                    document.getElementById('results').innerHTML = `
+                        <div class="status success">
+                            <h3>✅ OAuth 端點正常</h3>
+                            <p>Google OAuth 重定向正常工作</p>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('results').innerHTML = `
+                        <div class="status error">
+                            <h3>❌ OAuth 端點異常</h3>
+                            <p>狀態: ${response.status}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('results').innerHTML = `
+                    <div class="status error">
+                        <h3>❌ OAuth 測試失敗</h3>
+                        <p>錯誤: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // 自動開始檢查
+        checkTokenStatus();
+    </script>
+</body>
+</html>

@@ -241,16 +241,18 @@ export function setupJWTGoogleAuth(app: Express) {
         'willy91322@gmail.com',
         'qazwsx132914@gmail.com',
         'kaoic08@gmail.com',
-        'pin10andy@gmail.com'
+        'pin10andy@gmail.com',
+        'ming2635163@gmail.com'
       ];
       
       // 為特定問題用戶增加超詳細日誌
-      const criticalUsers = ['jamesboyphs@gmail.com', 'kaoic08@gmail.com', 'pin10andy@gmail.com'];
+      const criticalUsers = ['jamesboyphs@gmail.com', 'kaoic08@gmail.com', 'pin10andy@gmail.com', 'ming2635163@gmail.com'];
       if (userEmail && criticalUsers.includes(userEmail)) {
         const debugMap: Record<string, string> = {
           'jamesboyphs@gmail.com': 'JAMES-SUPER-DEBUG',
           'kaoic08@gmail.com': 'KAOIC-SUPER-DEBUG', 
-          'pin10andy@gmail.com': 'PIN10ANDY-CRITICAL-DEBUG'
+          'pin10andy@gmail.com': 'PIN10ANDY-CRITICAL-DEBUG',
+          'ming2635163@gmail.com': 'MING-CRITICAL-DEBUG'
         };
         const debugPrefix = debugMap[userEmail];
         console.log(`[${debugPrefix}] 完整認證流程:`, {
