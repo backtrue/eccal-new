@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>實際登入測試</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .user-test { border: 2px solid #ff5722; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .test-btn { background: #d32f2f; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; margin: 3px; }
+        .logs { background: #000; color: #0f0; padding: 10px; font-family: monospace; height: 200px; overflow-y: auto; margin: 5px 0; font-size: 12px; }
+        .status { padding: 8px; border-radius: 4px; margin: 5px 0; }
+        .error { background: #ffcdd2; color: #d32f2f; }
+        .success { background: #c8e6c9; color: #388e3c; }
+        .warning { background: #fff3e0; color: #f57c00; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 實際登入失敗測試</h1>
+        
+        <div class="user-test">
+            <h3>jamesboyphs@gmail.com</h3>
+            <button class="test-btn" onclick="testUserAuth('jamesboyphs@gmail.com')">測試認證</button>
+            <button class="test-btn" onclick="simulateOAuth('jamesboyphs@gmail.com')">模擬登入</button>
+            <div id="james-status" class="status"></div>
+            <div id="james-logs" class="logs"></div>
+        </div>
+        
+        <div class="user-test">
+            <h3>kaoic08@gmail.com</h3>
+            <button class="test-btn" onclick="testUserAuth('kaoic08@gmail.com')">測試認證</button>
+            <button class="test-btn" onclick="simulateOAuth('kaoic08@gmail.com')">模擬登入</button>
+            <div id="kaoic-status" class="status"></div>
+            <div id="kaoic-logs" class="logs"></div>
+        </div>
+        
+        <div class="user-test">
+            <h3>pin10andy@gmail.com</h3>
+            <button class="test-btn" onclick="testUserAuth('pin10andy@gmail.com')">測試認證</button>
+            <button class="test-btn" onclick="simulateOAuth('pin10andy@gmail.com')">模擬登入</button>
+            <div id="pin10andy-status" class="status"></div>
+            <div id="pin10andy-logs" class="logs"></div>
+        </div>
+        
+        <div class="user-test">
+            <h3>ming2635163@gmail.com</h3>
+            <button class="test-btn" onclick="testUserAuth('ming2635163@gmail.com')">測試認證</button>
+            <button class="test-btn" onclick="simulateOAuth('ming2635163@gmail.com')">模擬登入</button>
+            <div id="ming-status" class="status"></div>
+            <div id="ming-logs" class="logs"></div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button class="test-btn" onclick="testAllUsers()" style="background: #1976d2; font-size: 16px; padding: 12px 20px;">🚀 測試所有用戶</button>
+        </div>
+        
+        <h2>診斷結果</h2>
+        <div id="diagnosis"></div>
+    </div>
+
+    <script>
+        function log(userId, message) {
+            const logElement = document.getElementById(userId + '-logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function setStatus(userId, message, type = 'warning') {
+            const statusElement = document.getElementById(userId + '-status');
+            statusElement.innerHTML = message;
+            statusElement.className = `status ${type}`;
+        }
+        
+        async function testUserAuth(email) {
+            const userId = email.split('@')[0];
+            log(userId, `開始測試 ${email} 的認證狀態`);
+            setStatus(userId, '測試中...', 'warning');
+            
+            try {
+                // 測試當前認證狀態
+                const authResponse = await fetch('/api/user/me', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                log(userId, `認證測試響應: ${authResponse.status}`);
+                
+                if (authResponse.ok) {
+                    const userData = await authResponse.json();
+                    log(userId, `✅ 認證成功: ${JSON.stringify(userData)}`);
+                    setStatus(userId, '認證成功！', 'success');
+                } else {
+                    const errorData = await authResponse.text();
+                    log(userId, `❌ 認證失敗: ${errorData}`);
+                    setStatus(userId, '認證失敗', 'error');
+                    
+                    // 如果認證失敗，嘗試修復 token
+                    await fixUserToken(email, userId);
+                }
+            } catch (error) {
+                log(userId, `💥 認證測試錯誤: ${error.message}`);
+                setStatus(userId, '測試錯誤', 'error');
+            }
+        }
+        
+        async function fixUserToken(email, userId) {
+            log(userId, `嘗試修復 ${email} 的 token`);
+            
+            try {
+                const fixResponse = await fetch('/api/admin/fix-user-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                
+                const fixData = await fixResponse.json();
+                
+                if (fixResponse.ok) {
+                    log(userId, `✅ Token 修復成功: ${fixData.newExpiry}`);
+                } else {
+                    log(userId, `❌ Token 修復失敗: ${fixData.error}`);
+                }
+            } catch (error) {
+                log(userId, `💥 Token 修復錯誤: ${error.message}`);
+            }
+        }
+        
+        async function simulateOAuth(email) {
+            const userId = email.split('@')[0];
+            log(userId, `模擬 ${email} 的 OAuth 登入流程`);
+            
+            try {
+                // 測試 OAuth 初始化
+                const oauthResponse = await fetch('/api/auth/google', {
+                    method: 'GET',
+                    redirect: 'manual'
+                });
+                
+                log(userId, `OAuth 初始化: ${oauthResponse.status} ${oauthResponse.statusText}`);
+                
+                if (oauthResponse.status === 302) {
+                    log(userId, '✅ OAuth 重定向正常');
+                } else {
+                    log(userId, '❌ OAuth 初始化異常');
+                }
+            } catch (error) {
+                log(userId, `💥 OAuth 測試錯誤: ${error.message}`);
+            }
+        }
+        
+        async function testAllUsers() {
+            document.getElementById('diagnosis').innerHTML = '<h3>🔄 正在診斷所有問題用戶...</h3>';
+            
+            const users = [
+                'jamesboyphs@gmail.com',
+                'kaoic08@gmail.com', 
+                'pin10andy@gmail.com',
+                'ming2635163@gmail.com'
+            ];
+            
+            for (const email of users) {
+                await testUserAuth(email);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒
+            }
+            
+            document.getElementById('diagnosis').innerHTML += '<div class="status success">所有用戶測試完成。請查看各用戶的詳細日誌。</div>';
+        }
+        
+        // 頁面載入時自動開始測試
+        window.onload = function() {
+            setTimeout(testAllUsers, 1000);
+        };
+    </script>
+</body>
+</html>

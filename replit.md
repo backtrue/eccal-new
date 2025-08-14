@@ -167,3 +167,16 @@ Preferred communication style: Simple, everyday language.
     - Extended all token validity to 24 hours from current time
   - **System Improvements**: Enhanced OAuth monitoring and error tracking for all affected users
   - **Impact**: Restored login functionality for all users and established 24-hour token lifecycle to prevent frequent expiration
+
+### Critical JWT Token Format Bug Fix (2025-08-14)
+- **Issue Resolution**: Fixed critical bug where Google Access Tokens were incorrectly stored as JWT tokens causing persistent authentication failures
+  - **Affected Users**: 4 users experiencing continuous "jwt malformed" errors despite valid token expiry times
+    - jamesboyphs@gmail.com, kaoic08@gmail.com, pin10andy@gmail.com, ming2635163@gmail.com
+  - **Root Cause**: System stored Google OAuth Access Tokens (`ya29.` format) instead of application JWT tokens
+  - **Technical Discovery**: JWT verification failed because Google Access Tokens are single-part tokens, not 3-part JWT format
+  - **Solution Implementation**: 
+    - Enhanced JWT verification to detect and reject Google Access Token format
+    - Created emergency fix endpoint `/api/admin/emergency-jwt-fix` for batch token correction
+    - Cleared incorrect Google Access Tokens and extended token validity to 24 hours
+  - **Prevention Measures**: Added format validation in `jwtAuth.ts` to prevent future Google Access Token storage as JWT
+  - **Impact**: Resolved authentication failures for all 4 users, preventing customer relations issues

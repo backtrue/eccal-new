@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>持續失敗用戶診斷</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .user-card { border: 2px solid #ff5722; background: #ffebee; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .test-btn { background: #d32f2f; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .logs { background: #000; color: #0f0; padding: 15px; font-family: monospace; height: 300px; overflow-y: auto; margin: 10px 0; }
+        .error { background: #ffcdd2; color: #d32f2f; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        .success { background: #c8e6c9; color: #388e3c; padding: 10px; border-radius: 4px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 持續失敗用戶診斷報告</h1>
+        
+        <div class="user-card">
+            <h2>問題用戶清單</h2>
+            <ul>
+                <li>ming2635163@gmail.com</li>
+                <li>kaoic08@gmail.com</li> 
+                <li>pin10andy@gmail.com</li>
+                <li>jamesboyphs@gmail.com</li>
+            </ul>
+        </div>
+        
+        <h2>診斷測試</h2>
+        <button class="test-btn" onclick="testAllUsers()">🔍 測試所有問題用戶</button>
+        <button class="test-btn" onclick="checkServerLogs()">📋 檢查服務器日誌</button>
+        <button class="test-btn" onclick="testAuthEndpoint()">🔑 測試認證端點</button>
+        <button class="test-btn" onclick="simulateLogin()">🚀 模擬登入流程</button>
+        
+        <div id="results"></div>
+        <div id="serverLogs" class="logs"></div>
+    </div>
+
+    <script>
+        const problemUsers = [
+            'ming2635163@gmail.com',
+            'kaoic08@gmail.com', 
+            'pin10andy@gmail.com',
+            'jamesboyphs@gmail.com'
+        ];
+        
+        function log(message) {
+            const logs = document.getElementById('serverLogs');
+            logs.innerHTML += new Date().toISOString() + ' - ' + message + '\n';
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        async function testAllUsers() {
+            document.getElementById('results').innerHTML = '<h3>🔄 測試所有問題用戶...</h3>';
+            log('開始測試所有問題用戶');
+            
+            for (const email of problemUsers) {
+                try {
+                    log(`測試用戶: ${email}`);
+                    
+                    // 測試 token 狀態
+                    const tokenResponse = await fetch('/api/admin/fix-user-token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email })
+                    });
+                    
+                    const tokenData = await tokenResponse.json();
+                    
+                    if (tokenResponse.ok) {
+                        log(`✅ ${email} token 狀態正常: ${tokenData.newExpiry}`);
+                    } else {
+                        log(`❌ ${email} token 問題: ${tokenData.error}`);
+                    }
+                    
+                    // 測試直接認證
+                    const authTest = await fetch('/api/user/me', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer fake-token-for-${email.split('@')[0]}`
+                        }
+                    });
+                    
+                    if (authTest.status === 401) {
+                        log(`❌ ${email} 認證失敗 - 這是預期的`);
+                    } else {
+                        log(`🤔 ${email} 認證響應異常: ${authTest.status}`);
+                    }
+                    
+                } catch (error) {
+                    log(`💥 ${email} 測試錯誤: ${error.message}`);
+                }
+            }
+            
+            document.getElementById('results').innerHTML += '<div class="success">所有用戶測試完成，請查看日誌</div>';
+        }
+        
+        async function checkServerLogs() {
+            log('檢查服務器錯誤日誌...');
+            
+            try {
+                const response = await fetch('/api/admin/system-status');
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`服務器狀態: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    log(`服務器狀態檢查失敗: ${response.status}`);
+                }
+            } catch (error) {
+                log(`無法獲取服務器狀態: ${error.message}`);
+            }
+        }
+        
+        async function testAuthEndpoint() {
+            log('測試認證端點...');
+            
+            try {
+                const response = await fetch('/api/auth/google', {
+                    method: 'GET',
+                    redirect: 'manual'
+                });
+                
+                log(`Google OAuth 端點狀態: ${response.status}`);
+                log(`響應類型: ${response.type}`);
+                
+                if (response.status === 302) {
+                    log('✅ OAuth 重定向正常');
+                } else {
+                    log('❌ OAuth 端點異常');
+                }
+            } catch (error) {
+                log(`OAuth 測試錯誤: ${error.message}`);
+            }
+        }
+        
+        async function simulateLogin() {
+            log('模擬登入流程測試...');
+            
+            for (const email of problemUsers) {
+                log(`模擬 ${email} 登入...`);
+                
+                // 模擬 OAuth 回調
+                try {
+                    const callbackTest = await fetch(`/api/auth/google/callback?code=fake-code&state=fake-state`, {
+                        method: 'GET',
+                        redirect: 'manual'
+                    });
+                    
+                    log(`${email} OAuth 回調測試: ${callbackTest.status}`);
+                } catch (error) {
+                    log(`${email} OAuth 回調錯誤: ${error.message}`);
+                }
+            }
+        }
+        
+        // 自動開始診斷
+        window.onload = function() {
+            log('診斷工具已準備就緒');
+            log('準備測試4個持續失敗的用戶...');
+            setTimeout(testAllUsers, 1000);
+        };
+    </script>
+</body>
+</html>

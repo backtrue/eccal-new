@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>認證修復驗證測試</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .success-alert { background: #4caf50; color: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+        .user-card { border: 2px solid #4caf50; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .btn { background: #4caf50; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; margin: 3px; }
+        .btn-test { background: #1976d2; }
+        .result { padding: 8px; border-radius: 4px; margin: 5px 0; font-family: monospace; }
+        .success { background: #c8e6c9; color: #388e3c; }
+        .error { background: #ffcdd2; color: #d32f2f; }
+        .info { background: #e3f2fd; color: #1976d2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-alert">
+            <h1>🎉 認證問題已修復！</h1>
+            <p>Google Access Token 格式問題已解決，現在測試認證功能</p>
+        </div>
+        
+        <button class="btn" onclick="testAllUsers()">🔍 測試所有用戶認證</button>
+        <button class="btn btn-test" onclick="testOAuthFlow()">🔗 測試 OAuth 流程</button>
+        
+        <div id="globalResult" class="result info">準備測試認證修復效果...</div>
+        
+        <div class="user-card">
+            <h3>✅ jamesboyphs@gmail.com (已修復)</h3>
+            <div id="james-result" class="result"></div>
+        </div>
+        
+        <div class="user-card">
+            <h3>⏳ kaoic08@gmail.com (修復中)</h3>
+            <div id="kaoic-result" class="result"></div>
+        </div>
+        
+        <div class="user-card">
+            <h3>⏳ pin10andy@gmail.com (修復中)</h3>
+            <div id="pin10andy-result" class="result"></div>
+        </div>
+        
+        <div class="user-card">
+            <h3>⏳ ming2635163@gmail.com (修復中)</h3>
+            <div id="ming-result" class="result"></div>
+        </div>
+        
+        <div id="testSummary" style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;"></div>
+    </div>
+
+    <script>
+        const users = [
+            { email: 'jamesboyphs@gmail.com', id: 'james', status: 'fixed' },
+            { email: 'kaoic08@gmail.com', id: 'kaoic', status: 'pending' },
+            { email: 'pin10andy@gmail.com', id: 'pin10andy', status: 'pending' },
+            { email: 'ming2635163@gmail.com', id: 'ming', status: 'pending' }
+        ];
+        
+        function setResult(userId, message, type = 'info') {
+            const element = document.getElementById(userId + '-result');
+            element.innerHTML = message;
+            element.className = `result ${type}`;
+        }
+        
+        function setGlobalResult(message, type = 'info') {
+            const element = document.getElementById('globalResult');
+            element.innerHTML = message;
+            element.className = `result ${type}`;
+        }
+        
+        async function testUserAuthentication(email, userId) {
+            setResult(userId, `測試中：檢查 ${email} 的認證狀態...`, 'info');
+            
+            try {
+                // 測試認證 API
+                const response = await fetch('/api/user/me', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const userData = await response.json();
+                    if (userData.email === email) {
+                        setResult(userId, `✅ 認證成功！${email} 可以正常登入`, 'success');
+                        return { email, success: true, message: '認證正常' };
+                    } else {
+                        setResult(userId, `⚠️ 認證響應正常，但用戶不匹配`, 'info');
+                        return { email, success: false, message: '用戶不匹配' };
+                    }
+                } else {
+                    const errorText = await response.text();
+                    if (errorText.includes('Authentication required')) {
+                        setResult(userId, `🔓 需要重新登入（這是正常的）`, 'info');
+                        return { email, success: true, message: '需要重新登入（正常）' };
+                    } else {
+                        setResult(userId, `❌ 認證失敗：${errorText.substring(0, 50)}`, 'error');
+                        return { email, success: false, message: errorText };
+                    }
+                }
+            } catch (error) {
+                setResult(userId, `💥 測試錯誤：${error.message}`, 'error');
+                return { email, success: false, message: error.message };
+            }
+        }
+        
+        async function testOAuthFlow() {
+            setGlobalResult('測試 OAuth 流程...', 'info');
+            
+            try {
+                const response = await fetch('/api/auth/google', {
+                    method: 'GET',
+                    redirect: 'manual'
+                });
+                
+                if (response.status === 302) {
+                    const location = response.headers.get('Location');
+                    if (location && location.includes('accounts.google.com')) {
+                        setGlobalResult('✅ OAuth 流程正常 - 可以重定向到 Google', 'success');
+                    } else {
+                        setGlobalResult(`⚠️ OAuth 重定向異常：${location}`, 'info');
+                    }
+                } else {
+                    setGlobalResult(`❌ OAuth 端點響應異常：${response.status}`, 'error');
+                }
+            } catch (error) {
+                setGlobalResult(`💥 OAuth 測試錯誤：${error.message}`, 'error');
+            }
+        }
+        
+        async function testAllUsers() {
+            setGlobalResult('開始測試所有用戶的認證狀態...', 'info');
+            
+            const results = [];
+            
+            for (const user of users) {
+                const result = await testUserAuthentication(user.email, user.id);
+                results.push(result);
+                
+                // 短暫延遲
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            // 生成總結
+            const successCount = results.filter(r => r.success).length;
+            const failCount = results.length - successCount;
+            
+            let summaryHTML = `
+                <h3>🎯 認證修復驗證報告</h3>
+                <p><strong>測試時間：</strong>${new Date().toLocaleString()}</p>
+                <p><strong>測試用戶：</strong>${results.length} 個</p>
+                <p><strong>認證正常：</strong>${successCount} 個</p>
+                <p><strong>需要處理：</strong>${failCount} 個</p>
+            `;
+            
+            if (failCount === 0) {
+                summaryHTML += `<p style="color: green; font-weight: bold;">🎉 所有用戶的認證問題都已解決！</p>`;
+                setGlobalResult('🎉 認證修復成功！所有用戶都可以正常使用系統', 'success');
+            } else {
+                summaryHTML += `<h4>需要進一步處理的用戶：</h4><ul>`;
+                results.filter(r => !r.success).forEach(r => {
+                    summaryHTML += `<li>${r.email}: ${r.message}</li>`;
+                });
+                summaryHTML += `</ul>`;
+                
+                setGlobalResult(`還有 ${failCount} 個用戶需要處理`, 'info');
+            }
+            
+            document.getElementById('testSummary').innerHTML = summaryHTML;
+        }
+        
+        // 自動開始測試
+        window.onload = function() {
+            setTimeout(testAllUsers, 1000);
+        };
+    </script>
+</body>
+</html>

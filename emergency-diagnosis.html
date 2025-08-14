@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>緊急認證診斷</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .emergency { background: #d32f2f; color: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+        .user-card { border: 2px solid #ff5722; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .btn { background: #1976d2; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; margin: 3px; }
+        .btn-emergency { background: #d32f2f; }
+        .logs { background: #000; color: #0f0; padding: 10px; font-family: monospace; height: 150px; overflow-y: auto; margin: 5px 0; font-size: 11px; }
+        .result { padding: 8px; border-radius: 4px; margin: 5px 0; }
+        .error { background: #ffcdd2; color: #d32f2f; }
+        .success { background: #c8e6c9; color: #388e3c; }
+        .warning { background: #fff3e0; color: #f57c00; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="emergency">
+            <h1>🚨 緊急認證失敗診斷</h1>
+            <p>正在調查 4 個持續認證失敗的用戶，避免客戶關係問題</p>
+        </div>
+        
+        <button class="btn btn-emergency" onclick="emergencyDiagnosis()">🔥 立即緊急診斷</button>
+        <button class="btn" onclick="clearLogs()">清除日誌</button>
+        
+        <div id="globalResult" class="result warning">等待診斷...</div>
+        
+        <div class="user-card">
+            <h3>👤 jamesboyphs@gmail.com</h3>
+            <div id="james-result" class="result"></div>
+            <div id="james-logs" class="logs"></div>
+        </div>
+        
+        <div class="user-card">
+            <h3>👤 kaoic08@gmail.com</h3>
+            <div id="kaoic-result" class="result"></div>
+            <div id="kaoic-logs" class="logs"></div>
+        </div>
+        
+        <div class="user-card">
+            <h3>👤 pin10andy@gmail.com</h3>
+            <div id="pin10andy-result" class="result"></div>
+            <div id="pin10andy-logs" class="logs"></div>
+        </div>
+        
+        <div class="user-card">
+            <h3>👤 ming2635163@gmail.com</h3>
+            <div id="ming-result" class="result"></div>
+            <div id="ming-logs" class="logs"></div>
+        </div>
+        
+        <div id="summary" style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;"></div>
+    </div>
+
+    <script>
+        const problemUsers = [
+            { email: 'jamesboyphs@gmail.com', id: 'james' },
+            { email: 'kaoic08@gmail.com', id: 'kaoic' },
+            { email: 'pin10andy@gmail.com', id: 'pin10andy' },
+            { email: 'ming2635163@gmail.com', id: 'ming' }
+        ];
+        
+        function log(userId, message) {
+            const logElement = document.getElementById(userId + '-logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function setResult(userId, message, type = 'warning') {
+            const resultElement = document.getElementById(userId + '-result');
+            resultElement.innerHTML = message;
+            resultElement.className = `result ${type}`;
+        }
+        
+        function setGlobalResult(message, type = 'warning') {
+            const element = document.getElementById('globalResult');
+            element.innerHTML = message;
+            element.className = `result ${type}`;
+        }
+        
+        async function testUserAuthentication(email, userId) {
+            log(userId, `🔍 開始測試 ${email} 的認證`);
+            
+            const tests = [
+                { name: '檢查Token狀態', endpoint: '/api/admin/fix-user-token', method: 'POST' },
+                { name: '測試用戶API', endpoint: '/api/user/me', method: 'GET' },
+                { name: '測試OAuth端點', endpoint: '/api/auth/google', method: 'GET' }
+            ];
+            
+            let successCount = 0;
+            let issues = [];
+            
+            for (const test of tests) {
+                try {
+                    log(userId, `測試: ${test.name}`);
+                    
+                    const options = {
+                        method: test.method,
+                        credentials: 'include'
+                    };
+                    
+                    if (test.method === 'POST') {
+                        options.headers = { 'Content-Type': 'application/json' };
+                        options.body = JSON.stringify({ email });
+                    }
+                    
+                    if (test.endpoint === '/api/auth/google') {
+                        options.redirect = 'manual';
+                    }
+                    
+                    const response = await fetch(test.endpoint, options);
+                    
+                    log(userId, `${test.name} 響應: ${response.status}`);
+                    
+                    if (test.endpoint === '/api/auth/google') {
+                        if (response.status === 302) {
+                            log(userId, `✅ ${test.name} 正常`);
+                            successCount++;
+                        } else {
+                            log(userId, `❌ ${test.name} 異常: ${response.status}`);
+                            issues.push(`OAuth端點異常 (${response.status})`);
+                        }
+                    } else if (response.ok) {
+                        const data = await response.json();
+                        log(userId, `✅ ${test.name} 成功: ${data.message || '響應正常'}`);
+                        successCount++;
+                    } else {
+                        const errorText = await response.text();
+                        log(userId, `❌ ${test.name} 失敗: ${errorText.substring(0, 100)}`);
+                        issues.push(`${test.name}失敗 (${response.status})`);
+                    }
+                    
+                } catch (error) {
+                    log(userId, `💥 ${test.name} 錯誤: ${error.message}`);
+                    issues.push(`${test.name}錯誤: ${error.message}`);
+                }
+            }
+            
+            // 總結測試結果
+            if (successCount === tests.length) {
+                setResult(userId, `✅ 認證測試全部通過 (${successCount}/${tests.length})`, 'success');
+                log(userId, '✅ 該用戶的認證系統正常');
+            } else {
+                setResult(userId, `❌ 認證測試失敗 (${successCount}/${tests.length}) - ${issues.join(', ')}`, 'error');
+                log(userId, `❌ 發現問題: ${issues.join(', ')}`);
+            }
+            
+            return { email, successCount, totalTests: tests.length, issues };
+        }
+        
+        async function emergencyDiagnosis() {
+            setGlobalResult('🔥 執行緊急診斷中...', 'warning');
+            
+            const results = [];
+            
+            for (const user of problemUsers) {
+                const result = await testUserAuthentication(user.email, user.id);
+                results.push(result);
+                
+                // 等待一下避免過度請求
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            // 生成總結報告
+            const successfulUsers = results.filter(r => r.successCount === r.totalTests);
+            const failedUsers = results.filter(r => r.successCount < r.totalTests);
+            
+            let summaryHTML = `
+                <h3>🔍 緊急診斷報告</h3>
+                <p><strong>診斷時間:</strong> ${new Date().toLocaleString()}</p>
+                <p><strong>測試用戶:</strong> ${results.length} 個</p>
+                <p><strong>認證正常:</strong> ${successfulUsers.length} 個</p>
+                <p><strong>認證異常:</strong> ${failedUsers.length} 個</p>
+            `;
+            
+            if (failedUsers.length > 0) {
+                summaryHTML += `<h4>❌ 失敗用戶詳情:</h4><ul>`;
+                failedUsers.forEach(user => {
+                    summaryHTML += `<li>${user.email}: ${user.issues.join(', ')}</li>`;
+                });
+                summaryHTML += `</ul>`;
+                
+                setGlobalResult(`🚨 發現 ${failedUsers.length} 個用戶認證異常！`, 'error');
+            } else {
+                summaryHTML += `<p style="color: green;">所有用戶的認證系統都正常運行！</p>`;
+                setGlobalResult('✅ 所有用戶認證測試通過！', 'success');
+            }
+            
+            document.getElementById('summary').innerHTML = summaryHTML;
+        }
+        
+        function clearLogs() {
+            problemUsers.forEach(user => {
+                document.getElementById(user.id + '-logs').innerHTML = '';
+                setResult(user.id, '等待測試...', 'warning');
+            });
+            setGlobalResult('日誌已清除', 'warning');
+            document.getElementById('summary').innerHTML = '';
+        }
+        
+        // 自動開始診斷
+        window.onload = function() {
+            setTimeout(emergencyDiagnosis, 1000);
+        };
+    </script>
+</body>
+</html>

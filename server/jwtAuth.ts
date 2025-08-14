@@ -54,6 +54,21 @@ export const jwtUtils = {
         return null;
       }
       
+      // 檢查是否為 Google Access Token（不是我們的 JWT）
+      if (cleanToken.startsWith('ya29.') || cleanToken.startsWith('ya30.')) {
+        console.log(`JWT verification failed: this is a Google Access Token, not our JWT`);
+        console.log(`Token preview: ${cleanToken.substring(0, 50)}...`);
+        return null;
+      }
+      
+      // 檢查 JWT 格式（必須有3個部分）
+      const tokenParts = cleanToken.split('.');
+      if (tokenParts.length !== 3) {
+        console.log(`JWT verification failed: malformed token - has ${tokenParts.length} parts instead of 3`);
+        console.log(`Token preview: ${cleanToken.substring(0, 50)}...`);
+        return null;
+      }
+      
       const decoded = jwt.verify(cleanToken, JWT_SECRET) as any;
       return {
         id: decoded.id,
@@ -321,7 +336,31 @@ export function setupJWTGoogleAuth(app: Express) {
 
   passport.deserializeUser(async (id: string, done) => {
     try {
+      // 為問題用戶添加詳細的 deserialize 日誌
+      const criticalUsers = ['jamesboyphs@gmail.com', 'kaoic08@gmail.com', 'pin10andy@gmail.com', 'ming2635163@gmail.com'];
+      
       const user = await storage.getUser(id);
+      
+      // 為關鍵用戶記錄詳細的 deserialize 過程
+      if (user && user.email && criticalUsers.includes(user.email)) {
+        const debugMap: Record<string, string> = {
+          'jamesboyphs@gmail.com': 'JAMES-DESERIALIZE-DEBUG',
+          'kaoic08@gmail.com': 'KAOIC-DESERIALIZE-DEBUG', 
+          'pin10andy@gmail.com': 'PIN10ANDY-DESERIALIZE-DEBUG',
+          'ming2635163@gmail.com': 'MING-DESERIALIZE-DEBUG'
+        };
+        const debugPrefix = debugMap[user.email];
+        console.log(`[${debugPrefix}] deserializeUser 過程:`, {
+          userId: id,
+          userFound: !!user,
+          email: user.email,
+          tokenExpiresAt: user.tokenExpiresAt,
+          isTokenExpired: user.tokenExpiresAt ? new Date(user.tokenExpiresAt) < new Date() : null,
+          hasGoogleAccessToken: !!user.googleAccessToken,
+          membershipLevel: user.membershipLevel,
+          timestamp: new Date().toISOString()
+        });
+      }
       
       // 檢查 token 是否過期
       if (user && user.tokenExpiresAt && new Date(user.tokenExpiresAt) < new Date()) {
@@ -405,7 +444,8 @@ export function setupJWTGoogleAuth(app: Express) {
           'willy91322@gmail.com',
           'qazwsx132914@gmail.com',
           'kaoic08@gmail.com',
-          'pin10andy@gmail.com'
+          'pin10andy@gmail.com',
+          'ming2635163@gmail.com'
         ];
         
         // 特別為 jamesboyphs@gmail.com 記錄超詳細失敗信息

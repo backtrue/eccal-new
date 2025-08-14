@@ -102,6 +102,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // 緊急修復 JWT 格式問題（Google Access Token 錯誤存儲為 JWT）
+  app.post('/api/admin/emergency-jwt-fix', async (req, res) => {
+    try {
+      const { emails } = req.body;
+      if (!emails || !Array.isArray(emails)) {
+        return res.status(400).json({ success: false, error: '需要提供 emails 陣列' });
+      }
+      
+      console.log(`[EMERGENCY-JWT-FIX] 開始緊急修復 ${emails.length} 個用戶的 JWT 問題`);
+      
+      const results = [];
+      
+      for (const email of emails) {
+        try {
+          console.log(`[EMERGENCY-JWT-FIX] 正在修復: ${email}`);
+          
+          // 直接從資料庫獲取用戶
+          const { db } = await import('./db');
+          const { users: usersTable } = await import('../shared/schema');
+          const { eq } = await import('drizzle-orm');
+          
+          const userResult = await db
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.email, email))
+            .limit(1);
+          
+          const user = userResult[0];
+          
+          if (!user) {
+            results.push({ email, success: false, error: '用戶不存在' });
+            continue;
+          }
+          
+          // 檢查是否有 Google Access Token 格式問題
+          const currentToken = user.googleAccessToken;
+          if (!currentToken || !currentToken.startsWith('ya29.')) {
+            results.push({ email, success: false, error: '用戶 token 格式正常' });
+            continue;
+          }
+          
+          console.log(`[EMERGENCY-JWT-FIX] 發現 Google Access Token 錯誤: ${email}`);
+          
+          // 生成新的 JWT token
+          const { jwtUtils } = await import('./jwtAuth');
+          const newJwtToken = jwtUtils.generateToken(user);
+          
+          // 更新資料庫：清除錯誤的 Google Access Token，延長過期時間
+          
+          const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+          
+          await db
+            .update(usersTable)
+            .set({
+              googleAccessToken: null, // 清除錯誤的 Google Access Token
+              tokenExpiresAt: newExpiry,
+              updatedAt: new Date()
+            })
+            .where(eq(usersTable.email, email));
+          
+          console.log(`[EMERGENCY-JWT-FIX] 成功修復: ${email} - 新的 JWT: ${newJwtToken.substring(0, 20)}...`);
+          
+          results.push({
+            email,
+            success: true,
+            message: '成功清除錯誤的 Google Access Token 並生成新 JWT',
+            newJwt: newJwtToken.substring(0, 20) + '...',
+            newExpiry: newExpiry.toLocaleString()
+          });
+          
+        } catch (error) {
+          console.error(`[EMERGENCY-JWT-FIX] 修復 ${email} 失敗:`, error);
+          results.push({
+            email,
+            success: false,
+            error: error instanceof Error ? error.message : '未知錯誤'
+          });
+        }
+      }
+      
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.length - successCount;
+      
+      console.log(`[EMERGENCY-JWT-FIX] 修復完成: ${successCount} 成功, ${failCount} 失敗`);
+      
+      res.json({
+        success: true,
+        message: `緊急修復完成: ${successCount} 成功, ${failCount} 失敗`,
+        results,
+        summary: {
+          total: results.length,
+          success: successCount,
+          failed: failCount
+        }
+      });
+      
+    } catch (error) {
+      console.error('[EMERGENCY-JWT-FIX] 緊急修復失敗:', error);
+      res.status(500).json({
+        success: false,
+        error: '緊急修復失敗',
+        message: error instanceof Error ? error.message : '未知錯誤'
+      });
+    }
+  });
   
   // Setup Eccal Purchase tracking routes
   app.use("/api/eccal-purchase", eccalPurchaseRoutes);
