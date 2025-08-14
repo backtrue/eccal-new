@@ -103,6 +103,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 批量修復所有問題用戶
+  app.post('/api/admin/emergency-batch-fix', async (req, res) => {
+    try {
+      console.log('[BATCH-EMERGENCY-FIX] 開始批量修復所有問題用戶');
+      
+      // 獲取所有有問題的用戶
+      const { db } = await import('./db');
+      const { users: usersTable } = await import('../shared/schema');
+      const { like, or } = await import('drizzle-orm');
+      
+      const problemUsers = await db
+        .select({ email: usersTable.email })
+        .from(usersTable)
+        .where(
+          or(
+            like(usersTable.googleAccessToken, 'ya29.%'),
+            like(usersTable.googleAccessToken, 'ya30.%')
+          )
+        )
+        .limit(100); // 分批處理避免超時
+      
+      const emails = problemUsers.map(u => u.email);
+      
+      if (emails.length === 0) {
+        return res.json({
+          success: true,
+          message: '沒有發現問題用戶',
+          results: []
+        });
+      }
+      
+      console.log(`[BATCH-EMERGENCY-FIX] 發現 ${emails.length} 個問題用戶`);
+      
+      // 直接批量清除錯誤的 Google Access Token
+      const { eq, inArray } = await import('drizzle-orm');
+      
+      const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      
+      const updateResult = await db
+        .update(usersTable)
+        .set({
+          googleAccessToken: null, // 清除錯誤的 Google Access Token
+          tokenExpiresAt: newExpiry,
+          updatedAt: new Date()
+        })
+        .where(inArray(usersTable.email, emails));
+      
+      console.log(`[BATCH-EMERGENCY-FIX] 批量修復完成，更新了 ${emails.length} 個用戶`);
+      
+      res.json({
+        success: true,
+        message: `批量修復完成：修復了 ${emails.length} 個用戶的認證問題`,
+        fixedCount: emails.length,
+        newExpiry: newExpiry.toLocaleString(),
+        affectedUsers: emails.slice(0, 10) // 只顯示前10個
+      });
+      
+    } catch (error) {
+      console.error('[BATCH-EMERGENCY-FIX] 批量修復失敗:', error);
+      res.status(500).json({
+        success: false,
+        error: '批量修復失敗',
+        message: error instanceof Error ? error.message : '未知錯誤'
+      });
+    }
+  });
+
   // 緊急修復 JWT 格式問題（Google Access Token 錯誤存儲為 JWT）
   app.post('/api/admin/emergency-jwt-fix', async (req, res) => {
     try {

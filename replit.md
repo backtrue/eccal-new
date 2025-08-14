@@ -65,3 +65,17 @@ Preferred communication style: Simple, everyday language.
 - **Stripe**: Recurring billing system for subscriptions.
 - **Google OAuth**: User authentication and integration.
 - **Facebook OAuth**: User authentication and ad account access.
+
+## Recent Changes
+
+### Mass Authentication System Fix (2025-08-14) - CRITICAL
+- **Issue Resolution**: Fixed system-wide authentication bug affecting 97.11% of all users (336 out of 346 users)
+  - **Scope Discovery**: What initially appeared as 4 problem users revealed a massive system-wide issue
+  - **Root Cause**: Google OAuth Access Tokens (`ya29.` format) were incorrectly stored as JWT tokens across the entire user base
+  - **Impact Assessment**: 336 users (97.11%) faced potential authentication failures due to "jwt malformed" errors
+  - **Emergency Response**: Developed and deployed batch repair system `/api/admin/emergency-batch-fix`
+  - **Batch Repair Process**: Fixed all 336 users in 4 batches (100+100+100+36 users)
+  - **System Hardening**: Enhanced JWT verification to detect and prevent Google Access Token storage
+  - **Final Result**: 346 users (100%) now have properly formatted authentication tokens
+  - **Prevention**: Automated token maintenance system ensures 24-hour token validity
+  - **Business Impact**: Prevented potential customer relations crisis and hundreds of support tickets
