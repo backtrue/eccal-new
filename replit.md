@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a full-stack web application, "報數據" (Report Data), designed to help e-commerce businesses calculate advertising budget requirements based on revenue targets, average order value, and conversion rates. It features a React frontend and a Node.js/Express backend, providing advanced budget allocation algorithms and AI-powered insights for campaign planning and ad performance diagnosis. The project aims to be a professional e-commerce advertising analysis platform, offering tools for precise budget planning and strategic recommendations.
+This is a full-stack web application, "報數據" (Report Data), designed to help e-commerce businesses calculate advertising budget requirements based on revenue targets, average order value, and conversion rates. It provides advanced budget allocation algorithms and AI-powered insights for campaign planning and ad performance diagnosis. The project aims to be a professional e-commerce advertising analysis platform, offering tools for precise budget planning and strategic recommendations.
 
 ## User Preferences
 
@@ -23,26 +23,27 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js 20 with TypeScript
 - **Framework**: Express.js for REST API
 - **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: JWT (jsonwebtoken) based authentication using httpOnly cookies, integrated with Google OAuth and Facebook OAuth.
-- **Session Management**: Session-based for specific functionalities, but moving towards stateless JWT.
+- **Authentication**: JWT (jsonwebtoken) based authentication using httpOnly cookies, integrated with Google OAuth and Facebook OAuth. Session-based authentication is also used for specific functionalities.
 
 ### Key Features and Design Patterns
-- **Campaign Budget Planner**: Advanced algorithms for 3-60 day campaigns with dynamic budget allocation across pre-heat, launch, main, final, and repurchase periods. Server-side calculation for security.
-- **Facebook Ad Performance Diagnosis System**: AI-powered diagnosis reports (using OpenAI GPT-4) based on real-time Facebook Marketing API data, providing account-level health analysis and strategic recommendations. Includes ad account selection and comprehensive permission diagnostics.
-- **Project Saving System**: Users can save and manage calculation projects.
-- **Enterprise Admin Dashboard**: Modules for user behavior analytics, announcements, data export, API monitoring/rate limiting, and maintenance mode control.
+- **Campaign Budget Planner**: Advanced algorithms for dynamic budget allocation across campaign periods (e.g., pre-heat, launch, main, final, repurchase). Calculations are server-side for security.
+- **Facebook Ad Performance Diagnosis System**: AI-powered diagnosis reports (using OpenAI GPT-4) based on Facebook Marketing API data, providing account-level health analysis and strategic recommendations.
+- **Project Saving System**: Allows users to save and manage calculation projects.
+- **Enterprise Admin Dashboard**: Includes modules for user behavior analytics, announcements, data export, API monitoring/rate limiting, and maintenance mode control.
 - **PDCA Plan Results Storage**: Stores calculation results for future analysis.
-- **Multilingual AI Persona**: AI recommendations are localized for Chinese (小黑老師), English (Mr.Kuro), and Japanese (小黒先生) with accurate business terminology.
+- **Multilingual AI Persona**: AI recommendations are localized with accurate business terminology for Chinese, English, and Japanese.
 - **Account Center Architecture (SSO)**: Centralized system for multi-site JWT authentication, supporting various subdomains with shared user data, membership, and credits management.
 - **Membership & Credits System**: Tiered membership (Free/Pro) with credit-based usage and referral rewards.
-- **Cross-Platform Integration**: Fully functional Fabe platform integration API enabling automatic course access for eccal founders (5990 NT$ lifetime → 999 NT$/year value).
+- **Cross-Platform Integration**: Fabe platform integration API enabling automatic course access for eccal founders.
 - **Responsive UI/UX**: Mobile-first design using shadcn/ui and custom theming.
+- **Unified Discount Code System**: Cross-platform discount management with API endpoints for validation and application, supporting percentage/fixed discounts, multi-currency, usage limits, and time restrictions.
+- **Meta Purchase Event Tracking**: Accurate conversion tracking for Facebook ads optimization.
 
 ### Technical Implementations
 - **Database Schema**: Normalized relational design for users, sessions, campaign plans, daily budgets, user metrics, marketing plans, and analysis items.
 - **API Structure**: Versioned REST API endpoints with `/api` prefix, service layer for business logic, and centralized error handling.
 - **Data Flow**: Client-side input validation, API communication managed by TanStack Query, Drizzle ORM for database operations.
-- **Deployment**: Replit environment with Vite for frontend, esbuild for backend, and PostgreSQL for database.
+- **Deployment**: Replit environment with Vite for frontend, esbuild for backend, and PostgreSQL for database. Server binds to `0.0.0.0:5000` with health check endpoints (`/health`, `/ready`, `/ping`).
 
 ## External Dependencies
 
@@ -57,126 +58,10 @@ Preferred communication style: Simple, everyday language.
 - **tailwindcss**: Utility-first CSS framework
 - **lucide-react**: Icon library
 - **class-variance-authority**: Utility for component variants
-- **Brevo (formerly Sendinblue)**: Email marketing API integration for user sync.
+- **Brevo (formerly Sendinblue)**: Email marketing API integration.
 - **OpenAI GPT-4**: AI-powered diagnosis reports.
 - **Facebook Marketing API**: Real-time ad account data fetching and analysis.
 - **Google Analytics API**: Integration for fetching e-commerce metrics.
 - **Stripe**: Recurring billing system for subscriptions.
 - **Google OAuth**: User authentication and integration.
 - **Facebook OAuth**: User authentication and ad account access.
-
-## Recent Architectural Changes (2025-08-06)
-
-### Unified Discount Code System (NEW)
-- **Cross-Platform Discount Management**: Eccal serves as central discount hub for entire ecosystem
-  - **API Endpoints**: `/api/discount-codes/validate-cross-platform`, `/api/discount-codes/apply-cross-platform`, `/api/admin/discount-codes/*`
-  - **Database Schema**: `discount_codes`, `discount_usages`, `service_configs` tables with cross-service support
-  - **Features**: Percentage/fixed discounts, multi-currency (TWD/USD/JPY), usage limits, time restrictions, minimum amounts
-  - **Integration**: Works with Stripe payments, supports eccal and fabe services
-  - **Admin Interface**: Complete management dashboard for creating and monitoring discount codes
-  - **Security**: 30-minute tracking IDs, duplicate prevention, comprehensive usage logging
-
-### Cross-Platform Integration System (2025-08-01)
-- **Fabe Platform Integration**: Complete API implementation for cross-platform user synchronization
-  - **API Endpoints**: `/api/fabe/sync-permissions`, `/api/fabe/founders-list`, `/api/fabe/trigger-sync`
-  - **Business Logic**: Eccal founders (5990 NT$ lifetime payment) automatically receive fabe course access (999 NT$/year value)
-  - **Database Integration**: Leverages existing `stripe_payments` table with `payment_type='founders_membership'` identification
-  - **Testing Status**: Fully tested with 7 production founders members, all endpoints operational
-  - **Documentation**: Comprehensive integration guide created for fabe development team
-
-### Meta Purchase Event Tracking Fix (2025-08-07)
-- **Issue Resolution**: Fixed incorrect Purchase event triggering in calculator usage
-  - **Problem**: Purchase events were triggering when users completed budget calculations instead of actual payments
-  - **Solution**: Moved Purchase event to proper Stripe webhook success handler (`payment_intent.succeeded`)
-  - **Implementation**: Added `triggerMetaPurchaseEvent` function and frontend polling mechanism via `useMetaTracking` hook
-  - **Impact**: Accurate conversion tracking for Facebook ads optimization and ROI calculation
-
-### Deployment Configuration Optimization (2025-08-09)
-- **Issue Resolution**: Fixed deployment initialization failures with port configuration improvements
-  - **Server Binding**: Updated server to bind to `0.0.0.0:5000` instead of localhost for deployment compatibility
-  - **Health Check Endpoints**: Added `/health`, `/ready`, and `/ping` endpoints for deployment readiness checks
-    - `/health`: Basic server status with uptime and memory usage
-    - `/ready`: Database connectivity verification with error handling
-    - `/ping`: Simple connectivity confirmation
-  - **Database Optimization**: Reduced connection pool configuration for better resource management
-    - Lowered max connections from 5 to 3, min from 1 to 0 for on-demand connections
-    - Shortened timeout values for faster failure detection
-  - **External Service Lazy Loading**: Implemented lazy initialization for resource-intensive services
-    - Stripe API: Converted to lazy loading pattern to reduce startup time
-    - All Stripe calls now use `getStripeInstance()` for on-demand initialization
-  - **Error Handling**: Enhanced server startup with proper error handling and graceful shutdown
-    - Added port binding validation and descriptive error messages
-    - Implemented SIGTERM/SIGINT handlers for clean shutdowns
-  - **Impact**: Faster server startup, reduced resource usage, and improved deployment reliability
-
-### SSO Token Format Issue Resolution (2025-08-09)
-- **Issue Resolution**: Fixed SSO token format problem where tokens had incorrect JWT structure (1 part instead of 3)
-  - **Problem**: Duplicate `/api/sso/verify-token` endpoints causing confusion; JWT tokens not properly passed to external services in URL parameters
-  - **Root Cause**: Two different SSO implementations - cookie-based for internal use and URL parameter-based for cross-domain SSO
-  - **Solution**: Unified token handling logic
-    - Removed duplicate endpoint in `server/accountCenterRoutes.ts`
-    - Enhanced JWT token validation with proper 3-part format checking
-    - Modified JWT OAuth callback to include token in URL parameters for external domains
-    - Added comprehensive token format debugging and validation
-  - **Implementation**: Updated `server/jwtAuth.ts` OAuth callback to distinguish between internal (cookie-based) and external (URL parameter-based) redirects
-  - **Impact**: Proper SSO functionality for cross-platform authentication with external services
-
-### Google OAuth Token Expiration Fix (2025-08-09)
-- **Issue Resolution**: Fixed authentication failure for pin10andy@gmail.com due to expired Google access tokens
-  - **Problem**: User authentication failed with "Authentication failed" error when Google access tokens expired
-  - **Root Cause**: Google access tokens in database were expired, and system lacked proper token refresh handling
-  - **Solution**: Enhanced token management and error handling
-    - Extended token expiration time from 1 hour to 24 hours to reduce frequent expiration
-    - Updated expired tokens in database to current time + 1 hour
-    - Added comprehensive debugging logs for OAuth strategy and upsertUser process
-    - Improved error messages to provide more specific failure reasons
-  - **Implementation**: Modified `server/jwtAuth.ts` Google OAuth strategy with better token lifecycle management
-  - **Impact**: Resolved authentication failures for existing users with expired tokens
-
-### Batch Google OAuth Token Fix (2025-08-13)
-- **Issue Resolution**: Fixed multiple users experiencing login failures due to expired Google OAuth tokens
-  - **Affected Users**: frances.yeh1966@gmail.com, jamesboyphs@gmail.com, kikichuan860618@gmail.com, willy91322@gmail.com
-  - **Root Cause**: Similar to pin10andy@gmail.com, these users had expired Google access tokens causing authentication failures
-  - **Solution**: Batch token expiration fix and enhanced monitoring
-    - Updated all affected users' token expiration times to 24 hours from current time
-    - Enhanced `deserializeUser` function to check token expiration and force re-authentication when expired
-    - Created automated token fix utility (`fix-expired-tokens.js`) for future maintenance
-    - Added comprehensive logging for token expiration events
-  - **Implementation**: Modified `server/jwtAuth.ts` with proactive token validation in user session management
-  - **Impact**: Resolved authentication failures for multiple users and established automated monitoring for future token expiration issues
-
-### Critical Data Integrity Fix (2025-08-14)
-- **Issue Resolution**: Fixed critical Google ID conflict bug that was overwriting user data
-  - **Problem**: `onConflictDoUpdate` logic was overwriting existing user data when Google ID conflicts occurred
-  - **Root Cause**: Two different Google accounts somehow received the same Google ID, causing system to overwrite kiki@livtec.com.tw data with kikichuan860618@gmail.com data
-  - **Solution**: Enhanced conflict detection and prevention
-    - Added pre-insert validation to detect Google ID conflicts with different emails
-    - Modified upsert logic to generate new unique IDs for conflicting users instead of overwriting
-    - Changed conflict update to only update token-related fields, preserving user profile data
-    - Added comprehensive logging for conflict detection and resolution
-  - **Implementation**: Modified `server/storage.ts` upsertUser function with proper conflict handling
-  - **Impact**: Prevents data loss and ensures user data integrity in OAuth authentication process
-
-### Mass Token Expiration Emergency Fix (2025-08-14)
-- **Issue Resolution**: Fixed massive token expiration affecting 331+ users including all problem users
-  - **Affected Users**: 331 users with expired Google OAuth tokens causing "Authentication failed" errors
-  - **Root Cause**: System-wide token expiration due to short 1-hour default expiry time
-  - **Immediate Action**: Batch updated all expired tokens to 24-hour validity
-    - Updated frances.yeh1966@gmail.com, jamesboyphs@gmail.com, kikichuan860618@gmail.com, willy91322@gmail.com, qazwsx132914@gmail.com
-    - Fixed 331 total users with expired tokens
-    - Extended all token validity to 24 hours from current time
-  - **System Improvements**: Enhanced OAuth monitoring and error tracking for all affected users
-  - **Impact**: Restored login functionality for all users and established 24-hour token lifecycle to prevent frequent expiration
-
-### Critical JWT Token Format Bug Fix (2025-08-14)
-- **Issue Resolution**: Fixed critical bug where Google Access Tokens were incorrectly stored as JWT tokens causing persistent authentication failures
-  - **Affected Users**: 4 users experiencing continuous "jwt malformed" errors despite valid token expiry times
-    - jamesboyphs@gmail.com, kaoic08@gmail.com, pin10andy@gmail.com, ming2635163@gmail.com
-  - **Root Cause**: System stored Google OAuth Access Tokens (`ya29.` format) instead of application JWT tokens
-  - **Technical Discovery**: JWT verification failed because Google Access Tokens are single-part tokens, not 3-part JWT format
-  - **Solution Implementation**: 
-    - Enhanced JWT verification to detect and reject Google Access Token format
-    - Created emergency fix endpoint `/api/admin/emergency-jwt-fix` for batch token correction
-    - Cleared incorrect Google Access Tokens and extended token validity to 24 hours
-  - **Prevention Measures**: Added format validation in `jwtAuth.ts` to prevent future Google Access Token storage as JWT
-  - **Impact**: Resolved authentication failures for all 4 users, preventing customer relations issues
