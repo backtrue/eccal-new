@@ -296,21 +296,48 @@ export class DatabaseStorage implements IStorage {
       userData.id = Date.now().toString() + Math.random().toString(36).substring(2);
     }
 
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          // 只更新 token 相關資訊，不覆蓋用戶基本資料
-          googleAccessToken: userData.googleAccessToken,
-          googleRefreshToken: userData.googleRefreshToken,
-          tokenExpiresAt: userData.tokenExpiresAt,
-          lastLoginAt: new Date(),
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
+    // 使用 try-catch 處理可能的 email 唯一性衝突
+    let user;
+    try {
+      [user] = await db
+        .insert(users)
+        .values(userData)
+        .onConflictDoUpdate({
+          target: users.id,
+          set: {
+            // 只更新 token 相關資訊，不覆蓋用戶基本資料
+            googleAccessToken: userData.googleAccessToken,
+            googleRefreshToken: userData.googleRefreshToken,
+            tokenExpiresAt: userData.tokenExpiresAt,
+            lastLoginAt: new Date(),
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+    } catch (error: any) {
+      // 如果是 email 唯一性衝突，直接使用現有用戶並更新 token
+      if (error?.code === '23505' && error?.constraint === 'users_email_key') {
+        console.log('Email 衝突detected，更新現有用戶 token:', {
+          email: userData.email,
+          action: 'updating_existing_user'
+        });
+        
+        [user] = await db
+          .update(users)
+          .set({
+            googleAccessToken: userData.googleAccessToken,
+            googleRefreshToken: userData.googleRefreshToken,
+            tokenExpiresAt: userData.tokenExpiresAt,
+            lastLoginAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(users.email, userData.email!))
+          .returning();
+      } else {
+        // 其他錯誤重新拋出
+        throw error;
+      }
+    }
 
     console.log('upsert 操作結果:', {
       success: !!user,

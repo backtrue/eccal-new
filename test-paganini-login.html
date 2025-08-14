@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Paganini 用戶登入測試</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .alert { padding: 15px; border-radius: 8px; margin: 15px 0; }
+        .error { background: #ffcdd2; color: #d32f2f; }
+        .success { background: #c8e6c9; color: #388e3c; }
+        .info { background: #e3f2fd; color: #1976d2; }
+        .btn { background: #1976d2; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; text-decoration: none; display: inline-block; }
+        .result { padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Paganini 用戶認證修復測試</h1>
+        
+        <div class="alert info">
+            <strong>問題描述：</strong>
+            paganiniplus36@gmail.com 在 Google OAuth 登入時遇到 "duplicate key value violates unique constraint users_email_key" 錯誤
+        </div>
+        
+        <div class="alert success">
+            <strong>修復措施：</strong>
+            已修改 upsertUser 函數來正確處理 email 唯一性約束衝突
+        </div>
+        
+        <h3>測試步驟：</h3>
+        <a href="/api/auth/google" class="btn">🔗 測試 Google OAuth 登入</a>
+        <button class="btn" onclick="testUserStatus()">📊 檢查用戶狀態</button>
+        <button class="btn" onclick="testAuthFlow()">🔍 測試認證流程</button>
+        
+        <div id="result" class="result info">等待測試結果...</div>
+        
+        <h3>用戶信息：</h3>
+        <div class="result">
+用戶 ID: 02888c5d-bee4-4af0-86ae-69d7338504fa
+Email: paganiniplus36@gmail.com
+當前狀態: Google Access Token 已清除
+Token 過期時間: 2025-08-15 14:16:33.516
+最後登入: 2025-07-30 07:12:17.096
+        </div>
+    </div>
+
+    <script>
+        function setResult(message, type = 'info') {
+            const element = document.getElementById('result');
+            element.textContent = message;
+            element.className = `result ${type}`;
+        }
+        
+        async function testUserStatus() {
+            setResult('檢查用戶狀態中...', 'info');
+            
+            try {
+                const response = await fetch('/api/user/me', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    setResult(`✅ 用戶狀態正常：
+ID: ${user.id}
+Email: ${user.email}
+會員等級: ${user.membershipLevel}
+Token 過期: ${user.tokenExpiresAt}`, 'success');
+                } else {
+                    const error = await response.text();
+                    setResult(`⚠️ 需要重新登入：${error}`, 'info');
+                }
+            } catch (error) {
+                setResult(`❌ 測試錯誤：${error.message}`, 'error');
+            }
+        }
+        
+        async function testAuthFlow() {
+            setResult('測試認證流程...', 'info');
+            
+            try {
+                const response = await fetch('/api/auth/google', {
+                    method: 'GET',
+                    redirect: 'manual'
+                });
+                
+                if (response.status === 302) {
+                    const location = response.headers.get('Location');
+                    if (location && location.includes('accounts.google.com')) {
+                        setResult(`✅ OAuth 流程正常
+重定向地址: ${location.substring(0, 100)}...
+狀態: 可以正常跳轉到 Google 登入`, 'success');
+                    } else {
+                        setResult(`⚠️ OAuth 重定向異常：${location}`, 'info');
+                    }
+                } else {
+                    setResult(`❌ OAuth 端點異常：HTTP ${response.status}`, 'error');
+                }
+            } catch (error) {
+                setResult(`❌ 認證流程錯誤：${error.message}`, 'error');
+            }
+        }
+        
+        // 自動開始檢查用戶狀態
+        window.onload = function() {
+            setTimeout(testUserStatus, 500);
+        };
+        
+        // 監聽頁面的 hash 變化（從 OAuth 回調返回時）
+        window.addEventListener('hashchange', function() {
+            if (window.location.hash.includes('success')) {
+                setResult('🎉 OAuth 登入成功！正在重新檢查用戶狀態...', 'success');
+                setTimeout(testUserStatus, 1000);
+            }
+        });
+    </script>
+</body>
+</html>
