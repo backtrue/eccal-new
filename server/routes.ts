@@ -95,6 +95,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 強制重置特定用戶的認證狀態
+  app.post('/api/debug/reset-auth', async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: 'Email required' });
+      }
+
+      // 清除該用戶的所有 session 和快取
+      req.session?.destroy(() => {});
+      
+      // 更新用戶的認證狀態，強制重新登入
+      const user = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+      
+      if (user.length > 0) {
+        await db
+          .update(usersTable)
+          .set({
+            tokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24小時
+            updatedAt: new Date(),
+            lastLoginAt: new Date()
+          })
+          .where(eq(usersTable.email, email));
+
+        return res.json({
+          success: true,
+          message: `已重置 ${email} 的認證狀態`,
+          newTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        });
+      } else {
+        return res.status(404).json({ error: '用戶不存在' });
+      }
+    } catch (error) {
+      console.error('Reset auth error:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Critical: Handle root path for Replit port monitoring
   app.get('/api/ping', (req, res) => {
     res.status(200).send('pong');

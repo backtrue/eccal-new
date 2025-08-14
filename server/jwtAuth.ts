@@ -189,20 +189,48 @@ export function setupJWTGoogleAuth(app: Express) {
         email: user?.email
       });
 
-      // 特別為 kikichuan860618@gmail.com 增加詳細日誌
+      // 為所有問題用戶增加詳細日誌
       const userEmail = profile.emails?.[0]?.value;
-      if (userEmail === 'kikichuan860618@gmail.com') {
-        console.log('[KIKI-DEBUG] Upsert 完成:', {
+      const problemUsers = [
+        'kikichuan860618@gmail.com',
+        'frances.yeh1966@gmail.com', 
+        'jamesboyphs@gmail.com',
+        'willy91322@gmail.com',
+        'qazwsx132914@gmail.com'
+      ];
+      
+      if (problemUsers.includes(userEmail)) {
+        console.log(`[AUTH-DEBUG-${userEmail}] Upsert 完成:`, {
           userCreated: !!user,
           userId: user?.id,
           userEmail: user?.email,
-          tokenExpiresAt: user?.tokenExpiresAt
+          tokenExpiresAt: user?.tokenExpiresAt,
+          timestamp: new Date().toISOString()
         });
       }
 
       return done(null, user || false);
     } catch (error) {
       console.error('Google OAuth 策略錯誤:', error);
+      
+      // 特別記錄問題用戶的錯誤
+      const userEmail = profile?.emails?.[0]?.value;
+      const problemUsers = [
+        'kikichuan860618@gmail.com',
+        'frances.yeh1966@gmail.com', 
+        'jamesboyphs@gmail.com',
+        'willy91322@gmail.com',
+        'qazwsx132914@gmail.com'
+      ];
+      
+      if (problemUsers.includes(userEmail)) {
+        console.error(`[AUTH-ERROR-${userEmail}] OAuth 策略失敗:`, {
+          error: error.message,
+          stack: error.stack,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
       return done(error, false);
     }
   }));
@@ -290,9 +318,17 @@ export function setupJWTGoogleAuth(app: Express) {
           profileId: req.query?.state ? 'check state parameter' : 'no state'
         });
         
-        // 特別為 kikichuan860618@gmail.com 記錄失敗詳情
-        if (req.user && req.user.email === 'kikichuan860618@gmail.com') {
-          console.error('[KIKI-FAIL] 登入失敗詳細記錄:', {
+        // 為所有問題用戶記錄失敗詳情
+        const problemUsers = [
+          'kikichuan860618@gmail.com',
+          'frances.yeh1966@gmail.com', 
+          'jamesboyphs@gmail.com',
+          'willy91322@gmail.com',
+          'qazwsx132914@gmail.com'
+        ];
+        
+        if (req.user && problemUsers.includes(req.user.email)) {
+          console.error(`[AUTH-FAIL-${req.user.email}] 登入失敗詳細記錄:`, {
             timestamp: new Date().toISOString(),
             userAgent: req.get('User-Agent'),
             ip: req.ip,
