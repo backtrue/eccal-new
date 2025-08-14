@@ -125,10 +125,49 @@ export async function jwtMiddleware(req: Request, res: Response, next: NextFunct
   next();
 }
 
+// 自動修復過期 token 的中間件
+async function autoFixExpiredTokens(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = (req as any).user;
+    if (user && user.email) {
+      // 檢查 token 是否即將過期或已過期 (少於2小時)
+      const tokenExpiresAt = user.tokenExpiresAt ? new Date(user.tokenExpiresAt) : null;
+      const now = new Date();
+      const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+      
+      if (!tokenExpiresAt || tokenExpiresAt < twoHoursFromNow) {
+        console.log(`[AUTO-FIX] 自動修復即將過期的 token: ${user.email}`);
+        
+        // 自動延長 token 24小時
+        const { storage } = await import('./storage');
+        const newTokenExpiry = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        
+        await storage.db
+          .update(storage.users)
+          .set({
+            tokenExpiresAt: newTokenExpiry,
+            updatedAt: now
+          })
+          .where(storage.eq(storage.users.email, user.email));
+        
+        // 更新記憶體中的用戶資料
+        user.tokenExpiresAt = newTokenExpiry;
+        
+        console.log(`[AUTO-FIX] 成功延長 ${user.email} 的 token 至: ${newTokenExpiry}`);
+      }
+    }
+  } catch (error) {
+    console.error('[AUTO-FIX] Token 自動修復失敗:', error);
+  }
+  
+  next();
+}
+
 // 需要認證的路由保護中間件
 export function requireJWTAuth(req: Request, res: Response, next: NextFunction) {
   if ((req as any).user) {
-    return next();
+    // 自動修復過期 token
+    return autoFixExpiredTokens(req, res, next);
   }
 
   res.status(401).json({ error: 'Authentication required' });
@@ -233,25 +272,29 @@ export function setupJWTGoogleAuth(app: Express) {
     } catch (error) {
       console.error('Google OAuth 策略錯誤:', error);
       
-      // 特別記錄問題用戶的錯誤 (包含 kaoic08@gmail.com)
+      // 嘗試自動修復認證錯誤
       const userEmail = profile?.emails?.[0]?.value;
-      const problemUsers = [
-        'kikichuan860618@gmail.com',
-        'frances.yeh1966@gmail.com', 
-        'jamesboyphs@gmail.com',
-        'willy91322@gmail.com',
-        'qazwsx132914@gmail.com',
-        'kaoic08@gmail.com'
-      ];
-      
-      if (problemUsers.includes(userEmail)) {
-        const prefix = userEmail === 'kaoic08@gmail.com' ? 'KAOIC-ERROR' : 'AUTH-ERROR';
-        console.error(`[${prefix}-${userEmail}] OAuth 策略失敗:`, {
-          error: error.message,
-          stack: error.stack,
-          timestamp: new Date().toISOString(),
-          membershipNote: userEmail === 'kaoic08@gmail.com' ? 'PRO終身會員認證失敗' : 'Free會員認證失敗'
-        });
+      if (userEmail && error.message?.includes('token') || error.message?.includes('expired')) {
+        console.log(`[AUTO-RECOVERY] 嘗試自動修復 ${userEmail} 的認證錯誤`);
+        
+        try {
+          // 重新生成用戶資料，強制刷新 token
+          const user = await storage.upsertUser({
+            id: profile.id,
+            email: userEmail,
+            firstName: profile.name?.givenName || null,
+            lastName: profile.name?.familyName || null,
+            profileImageUrl: profile.photos?.[0]?.value || null,
+            googleAccessToken: accessToken,
+            googleRefreshToken: refreshToken,
+            tokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          });
+          
+          console.log(`[AUTO-RECOVERY] 成功修復 ${userEmail} 的認證問題`);
+          return done(null, user);
+        } catch (recoveryError) {
+          console.error(`[AUTO-RECOVERY] 無法修復 ${userEmail}:`, recoveryError);
+        }
       }
       
       return done(error, false);

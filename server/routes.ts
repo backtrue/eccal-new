@@ -45,6 +45,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Stripe Payment routes
   setupStripeRoutes(app);
   
+  // 添加自動 token 修復端點
+  const { batchFixExpiredTokens, forceFixUserToken } = await import('./autoTokenFix');
+  
+  // 批量修復過期 token (管理員端點)
+  app.post('/api/admin/fix-expired-tokens', async (req, res) => {
+    try {
+      console.log('[ADMIN-FIX] 收到批量修復請求');
+      const result = await batchFixExpiredTokens();
+      res.json({
+        success: true,
+        message: `成功修復 ${result.fixed} 個過期 token`,
+        fixed: result.fixed,
+        details: result.details.slice(0, 10) // 只返回前10個詳情
+      });
+    } catch (error) {
+      console.error('[ADMIN-FIX] 批量修復失敗:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: '修復失敗', 
+        message: error.message 
+      });
+    }
+  });
+
+  // 強制修復特定用戶 token
+  app.post('/api/admin/fix-user-token', async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ success: false, error: '需要提供 email' });
+      }
+      
+      console.log(`[ADMIN-FIX] 收到強制修復請求: ${email}`);
+      const result = await forceFixUserToken(email);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          message: `成功修復用戶 ${email}`,
+          user: result.user,
+          newExpiry: result.newExpiry
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          error: result.error
+        });
+      }
+    } catch (error) {
+      console.error('[ADMIN-FIX] 用戶修復失敗:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: '修復失敗', 
+        message: error.message 
+      });
+    }
+  });
+  
   // Setup Eccal Purchase tracking routes
   app.use("/api/eccal-purchase", eccalPurchaseRoutes);
 
