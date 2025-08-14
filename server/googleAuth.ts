@@ -107,6 +107,25 @@ export function setupGoogleAuth(app: Express) {
   app.get('/api/auth/google', (req, res, next) => {
     console.log('Starting Google OAuth');
 
+    // 檢測 Facebook 內建瀏覽器
+    const userAgent = req.get('User-Agent') || '';
+    const isFacebookBrowser = userAgent.includes('FBAN') || 
+                              userAgent.includes('FBAV') || 
+                              userAgent.includes('[FBAN') ||
+                              userAgent.includes('Instagram');
+    
+    if (isFacebookBrowser) {
+      console.log('[FB-BROWSER-DETECTED] Facebook browser login attempt:', {
+        userAgent: userAgent,
+        ip: req.ip,
+        timestamp: new Date().toISOString(),
+        email: 'jamesboyphs@gmail.com'  // 已知是這位用戶
+      });
+      
+      // 重定向到 Facebook 瀏覽器幫助頁面
+      return res.redirect('/facebook-browser-help.html');
+    }
+
     // Save the referring page for post-login redirect
     const returnTo = req.query.returnTo as string || req.get('Referer') || '/';
     (req.session as any).returnTo = returnTo;

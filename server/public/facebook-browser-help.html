@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook 瀏覽器登入問題 - 報數據</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-bottom: 20px; }
+        .error-box {
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .solution-box {
+            background: #eff8ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .copy-url {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚫 Facebook 瀏覽器登入問題</h1>
+        
+        <div class="error-box">
+            <h3>問題原因</h3>
+            <p>您正在使用 <strong>Facebook 內建瀏覽器</strong>，Google 基於安全考量不允許在此環境中進行登入認證。</p>
+            <p>錯誤代碼：<code>disallowed_useragent</code></p>
+        </div>
+
+        <div class="solution-box">
+            <h3>🎯 解決方案</h3>
+            <p>請將此網址複製到 <strong>一般瀏覽器</strong> 中開啟</p>
+        </div>
+
+        <div class="step">
+            <h3>方法一：複製網址到瀏覽器</h3>
+            <p>複製下面的網址：</p>
+            <div class="copy-url" id="websiteUrl">
+                https://629e49c6-8dc3-42cd-b86c-d35b18e038dd-00-2e3bopfmdivrv.kirk.replit.dev
+            </div>
+            <button onclick="copyUrl()">📋 複製網址</button>
+            <p>然後在您的手機瀏覽器（Safari、Chrome、Edge 等）中貼上並開啟</p>
+        </div>
+
+        <div class="step">
+            <h3>方法二：點擊右上角選單</h3>
+            <ol>
+                <li>點擊 Facebook 內建瀏覽器右上角的 <strong>「⋯」</strong> 或 <strong>「選單」</strong></li>
+                <li>選擇 <strong>「在瀏覽器中開啟」</strong> 或 <strong>「Open in Browser」</strong></li>
+                <li>選擇您喜歡的瀏覽器應用程式</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>方法三：直接開啟瀏覽器</h3>
+            <p>直接開啟您的瀏覽器 app，然後搜尋 <strong>「報數據」</strong> 或前往：</p>
+            <div class="copy-url">629e49c6-8dc3-42cd-b86c-d35b18e038dd-00-2e3bopfmdivrv.kirk.replit.dev</div>
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #666;">
+            <p>如果還有問題，請聯繫客服支援</p>
+        </div>
+    </div>
+
+    <script>
+        function copyUrl() {
+            const url = document.getElementById('websiteUrl').textContent;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('網址已複製到剪貼簿！');
+                }).catch(() => {
+                    fallbackCopy(url);
+                });
+            } else {
+                fallbackCopy(url);
+            }
+        }
+        
+        function fallbackCopy(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('網址已複製到剪貼簿！');
+        }
+        
+        // 自動檢測如果是 Facebook 瀏覽器，顯示額外提示
+        if (navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV')) {
+            document.body.style.background = '#fff3cd';
+            const header = document.querySelector('h1');
+            header.innerHTML = '🔍 已檢測到 Facebook 瀏覽器 ' + header.innerHTML;
+        }
+    </script>
+</body>
+</html>
