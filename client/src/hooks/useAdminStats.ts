@@ -76,3 +76,40 @@ export function useBulkCreditsUpdate() {
     },
   });
 }
+
+// 用戶活動監控相關的 hooks
+export interface UserActivityData {
+  dailyStats: Array<{
+    login_date: string;
+    unique_users: number;
+    total_logins: number;
+  }>;
+  activityStats: {
+    total_users: number;
+    daily_active: number;
+    weekly_active: number;
+    monthly_active: number;
+    daily_retention_rate: number;
+    weekly_retention_rate: number;
+  };
+  membershipActivity: Array<{
+    membership_level: string;
+    total_users: number;
+    weekly_active_users: number;
+    activity_rate: number;
+  }>;
+  todayLogins: Array<{
+    email: string;
+    login_hour: number;
+    last_login_at: string;
+    membership_level: string;
+  }>;
+  generatedAt: string;
+}
+
+export function useUserActivity(period: string = '30') {
+  return useQuery<UserActivityData>({
+    queryKey: ['/api/bdmin/user-activity', period],
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+}

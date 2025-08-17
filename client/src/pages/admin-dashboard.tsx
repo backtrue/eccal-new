@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Users, TrendingUp, CreditCard, Settings, Monitor, FileText, Download, Bell, Activity, BarChart3, AlertTriangle, Star, MessageSquare, Calendar } from "lucide-react";
+import { AlertCircle, Users, TrendingUp, CreditCard, Settings, Monitor, FileText, Download, Bell, Activity, BarChart3, AlertTriangle, Star, MessageSquare, Calendar, Clock, UserCheck, TrendingDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUserActivity, type UserActivityData } from "@/hooks/useAdminStats";
 // Removed Footer import as we'll use a simple admin footer instead
 
 interface UserStats {
@@ -197,6 +198,10 @@ export default function AdminDashboard() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  // Fetch user activity data
+  const [activityPeriod, setActivityPeriod] = useState('30');
+  const { data: userActivity, isLoading: activityLoading } = useUserActivity(activityPeriod);
+
   // Marketing Plans mutations
   const uploadPlanMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -371,10 +376,14 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9">
+          <TabsList className="grid w-full grid-cols-10">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               BI 分析
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="flex items-center gap-2">
+              <UserCheck className="w-4 h-4" />
+              登入狀況
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -477,6 +486,208 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* User Activity Monitoring */}
+          <TabsContent value="activity" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-semibold">用戶登入狀況監控</h2>
+                <p className="text-gray-600 mt-1">監控用戶活躍度和登入行為模式</p>
+              </div>
+              <Select value={activityPeriod} onValueChange={setActivityPeriod}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">7 天</SelectItem>
+                  <SelectItem value="14">14 天</SelectItem>
+                  <SelectItem value="30">30 天</SelectItem>
+                  <SelectItem value="60">60 天</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Activity Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">今日活躍用戶</CardTitle>
+                  <UserCheck className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {activityLoading ? '...' : userActivity?.activityStats?.daily_active || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    留存率: {activityLoading ? '...' : userActivity?.activityStats?.daily_retention_rate || 0}%
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">週活躍用戶</CardTitle>
+                  <Clock className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {activityLoading ? '...' : userActivity?.activityStats?.weekly_active || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    留存率: {activityLoading ? '...' : userActivity?.activityStats?.weekly_retention_rate || 0}%
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">月活躍用戶</CardTitle>
+                  <Calendar className="h-4 w-4 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {activityLoading ? '...' : userActivity?.activityStats?.monthly_active || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    總用戶: {activityLoading ? '...' : userActivity?.activityStats?.total_users || 0}
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">今日登入</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-orange-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {activityLoading ? '...' : userActivity?.todayLogins?.length || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    人次登入
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Daily Login Trends */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  每日登入趨勢
+                </CardTitle>
+                <CardDescription>
+                  過去 {activityPeriod} 天的用戶登入狀況
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {activityLoading ? (
+                  <div className="flex items-center justify-center h-48">
+                    <div className="text-gray-500">載入中...</div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {userActivity?.dailyStats?.slice(0, 10).map((stat) => (
+                      <div key={stat.login_date} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <div className="font-medium">{stat.login_date}</div>
+                          <div className="text-sm text-gray-600">{stat.unique_users} 位用戶</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-blue-600">{stat.total_logins}</div>
+                          <div className="text-xs text-gray-500">登入次數</div>
+                        </div>
+                      </div>
+                    )) || <div className="text-center py-8 text-gray-500">無數據</div>}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Membership Activity Analysis */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  會員等級活躍度分析
+                </CardTitle>
+                <CardDescription>
+                  不同會員等級的用戶活躍度比較
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {activityLoading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="text-gray-500">載入中...</div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {userActivity?.membershipActivity?.map((membership) => (
+                      <div key={membership.membership_level} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Badge variant={membership.membership_level === 'pro' ? 'default' : 'secondary'}>
+                            {membership.membership_level === 'pro' ? 'Pro會員' : '免費用戶'}
+                          </Badge>
+                          <div>
+                            <div className="font-medium">總數: {membership.total_users}</div>
+                            <div className="text-sm text-gray-600">週活躍: {membership.weekly_active_users}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-semibold text-green-600">{membership.activity_rate}%</div>
+                          <div className="text-xs text-gray-500">活躍率</div>
+                        </div>
+                      </div>
+                    )) || <div className="text-center py-8 text-gray-500">無數據</div>}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Today's Login Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  今日登入詳細資訊
+                </CardTitle>
+                <CardDescription>
+                  今天登入的用戶列表
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {activityLoading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="text-gray-500">載入中...</div>
+                  </div>
+                ) : userActivity?.todayLogins && userActivity.todayLogins.length > 0 ? (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {userActivity.todayLogins.map((login, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <div className="font-medium">{login.email}</div>
+                          <div className="text-sm text-gray-600">
+                            登入時間: {new Date(login.last_login_at).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={login.membership_level === 'pro' ? 'default' : 'secondary'}>
+                            {login.membership_level === 'pro' ? 'Pro' : '免費'}
+                          </Badge>
+                          <div className="text-sm text-gray-500">
+                            {login.login_hour}時
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">今日尚無用戶登入</div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* User Management */}

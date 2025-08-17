@@ -276,6 +276,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // 用戶登入狀況監控 API (admin only)
+  
+  app.get('/api/bdmin/user-activity', requireJWTAuth, async (req, res) => {
+    try {
+      const period = req.query.period as string || '30';
+      const intervalDays = parseInt(period);
+      
+      // 每日登入用戶數統計
+      const dailyStats = await db.execute(sql`
+        SELECT 
+          DATE(last_login_at) as login_date,
+          COUNT(DISTINCT id) as unique_users,
+          COUNT(*) as total_logins
+        FROM users 
+        WHERE last_login_at >= NOW() - INTERVAL '${sql.raw(intervalDays.toString())} days'
+          AND last_login_at IS NOT NULL
+        GROUP BY DATE(last_login_at)
+        ORDER BY login_date DESC
+      `);
+
+      // 總體活躍度統計
+      const activityStats = await db.execute(sql`
+        SELECT 
+          COUNT(*) as total_users,
+          COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '1 day' THEN 1 END) as daily_active,
+          COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '7 days' THEN 1 END) as weekly_active,
+          COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '30 days' THEN 1 END) as monthly_active,
+          ROUND(COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '1 day' THEN 1 END) * 100.0 / COUNT(*), 2) as daily_retention_rate,
+          ROUND(COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '7 days' THEN 1 END) * 100.0 / COUNT(*), 2) as weekly_retention_rate
+        FROM users 
+        WHERE email IS NOT NULL
+      `);
+
+      // 會員等級活躍度分析
+      const membershipActivity = await db.execute(sql`
+        SELECT 
+          membership_level,
+          COUNT(*) as total_users,
+          COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '7 days' THEN 1 END) as weekly_active_users,
+          ROUND(COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '7 days' THEN 1 END) * 100.0 / COUNT(*), 2) as activity_rate
+        FROM users 
+        WHERE email IS NOT NULL
+        GROUP BY membership_level
+        ORDER BY total_users DESC
+      `);
+
+      // 今日登入用戶詳細資訊
+      const todayLogins = await db.execute(sql`
+        SELECT 
+          email,
+          EXTRACT(HOUR FROM last_login_at) as login_hour,
+          last_login_at,
+          membership_level
+        FROM users 
+        WHERE DATE(last_login_at) = CURRENT_DATE
+          AND email IS NOT NULL
+        ORDER BY last_login_at DESC
+      `);
+
+      res.json({
+        dailyStats: dailyStats.rows,
+        activityStats: activityStats.rows[0],
+        membershipActivity: membershipActivity.rows,
+        todayLogins: todayLogins.rows,
+        generatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error fetching user activity:', error);
+      res.status(500).json({ error: 'Failed to fetch user activity data' });
+    }
+  });
+
   // Setup Eccal Purchase tracking routes
   app.use("/api/eccal-purchase", eccalPurchaseRoutes);
 
