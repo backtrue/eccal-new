@@ -276,10 +276,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // 用戶登入狀況監控 API (admin only)
+  // 用戶登入狀況監控 API (admin only) - 使用預先定義的 requireAdmin
   
-  app.get('/api/bdmin/user-activity', requireJWTAuth, async (req, res) => {
+  app.get('/api/bdmin/user-activity', requireJWTAuth, async (req: any, res) => {
     try {
+      // 先檢查管理員權限
+      const user = req.user;
+      const adminEmails = ['backtrue@gmail.com', 'backtrue@seo-tw.org'];
+      if (!user || !adminEmails.includes(user.email || '')) {
+        return res.status(403).json({ error: '需要管理員權限' });
+      }
+      
       const period = req.query.period as string || '30';
       const intervalDays = parseInt(period);
       
