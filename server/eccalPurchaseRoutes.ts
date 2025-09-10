@@ -245,4 +245,7 @@ async function ensureFabeFoundersProduct() {
   return newProduct;
 }
 
+// Export the sync function for use in other modules
+export { syncFounderAccessToFabe };
+
 export default router;

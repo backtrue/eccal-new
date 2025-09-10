@@ -638,10 +638,18 @@ async function recordEccalPurchase(userId: string, paymentType: string, paymentI
 
     console.log(`Recorded eccal purchase: ${purchase.id} for user ${userId}, plan: ${planType}`);
 
-    // If founders plan, mark for fabe access sync (will be handled separately)
+    // If founders plan, automatically sync to fabe
     if (isFounders) {
-      console.log(`Founders plan detected for user ${userId}, fabe access will be synced`);
-      // Sync will be handled by the eccal-purchase API or manual trigger
+      console.log(`Founders plan detected for user ${userId}, triggering automatic fabe sync`);
+      try {
+        // Import and call syncFounderAccessToFabe function
+        const { syncFounderAccessToFabe } = await import('./eccalPurchaseRoutes.js');
+        await syncFounderAccessToFabe(userId, purchase.id);
+        console.log(`Successfully auto-synced founders access to Fabe for user ${userId}`);
+      } catch (syncError) {
+        console.error('Auto-sync to Fabe failed:', syncError);
+        // Don't fail the payment, but log the error for manual retry
+      }
     }
 
     return purchase;
