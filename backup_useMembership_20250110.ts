@@ -1,3 +1,6 @@
+// 備份檔案: useMembership.ts (2025-01-10)
+// 這是修復 founders 權限問題前的原始檔案備份
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -88,18 +91,17 @@ export function useUpgradeToPro() {
   });
 }
 
-// Utility function to check if user has required membership level
+// 【問題函數】- 缺少 founders 支援
 export function checkMembershipAccess(
-  userLevel: "free" | "pro" | "founders", 
+  userLevel: "free" | "pro", 
   requiredLevel: "free" | "pro"
 ): boolean {
   if (requiredLevel === "free") return true;
   if (requiredLevel === "pro" && userLevel === "pro") return true;
-  if (userLevel === "founders") return true; // 創始會員享有所有權限
   return false;
 }
 
-// Custom hook for protected features
+// 【問題函數】- 只接受 free 或 pro
 export function useProtectedFeature(requiredLevel: "free" | "pro" = "pro") {
   const { data: membership, isLoading } = useMembershipStatus();
   
