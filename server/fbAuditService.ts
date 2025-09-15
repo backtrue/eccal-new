@@ -132,8 +132,11 @@ export class FbAuditService {
   /**
    * 獲取廣告帳戶的貨幣信息
    */
-  async getAccountCurrency(accessToken: string, adAccountId: string): Promise<string> {
+  async getAccountCurrency(accessToken: string, adAccountId?: string): Promise<string> {
     try {
+      if (!adAccountId) {
+        return 'USD';
+      }
       const accountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
       const url = `${this.baseUrl}/${accountId}?fields=currency&access_token=${accessToken}`;
       
@@ -594,7 +597,7 @@ export class FbAuditService {
 
       // 檢測計劃和 Facebook 廣告帳戶的幣值
       const planCurrency = planResult.currency || 'TWD'; // 預設為 TWD
-      const fbAccountCurrency = await this.getAccountCurrency(accessToken, adAccountId || ''); // 從 Facebook API 獲取真實貨幣
+      const fbAccountCurrency = await this.getAccountCurrency(accessToken, adAccountId); // 從 Facebook API 獲取真實貨幣
 
       console.log('===== 幣值轉換資訊 =====');
       console.log('計劃幣值:', planCurrency);
@@ -609,7 +612,7 @@ export class FbAuditService {
         const originalAmount = actualMetrics.dailySpend;
         convertedDailySpend = convertCurrency(originalAmount, fbAccountCurrency, planCurrency);
         
-        const conversionRate = EXCHANGE_RATES[fbAccountCurrency as keyof typeof EXCHANGE_RATES]?.[planCurrency as keyof typeof EXCHANGE_RATES['TWD']] || 1;
+        const conversionRate = (EXCHANGE_RATES as any)[fbAccountCurrency]?.[planCurrency] || 1;
         
         currencyConversionInfo = {
           originalAmount,

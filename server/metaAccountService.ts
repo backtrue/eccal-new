@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { fbAuditTerms } from './businessTermsDictionary';
 
 export interface MetaAccountData {
   accountId: string;
