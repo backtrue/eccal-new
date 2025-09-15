@@ -54,7 +54,7 @@ export interface AccountDiagnosisData {
 
 export class MetaAccountService {
   private openai: OpenAI;
-  private readonly baseUrl = 'https://graph.facebook.com/v19.0';
+  private readonly baseUrl = 'https://graph.facebook.com/v23.0';
 
   constructor() {
     this.openai = new OpenAI({

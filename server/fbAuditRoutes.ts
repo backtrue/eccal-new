@@ -334,7 +334,7 @@ export function setupFbAuditRoutes(app: Express) {
         success: true,
         debugInfo: {
           accountId: accountId,
-          dataSource: 'Facebook Marketing API v19.0 with enhanced aggregation',
+          dataSource: 'Facebook Marketing API v23.0 with enhanced aggregation',
           timeRange: adAccountData.dateRange,
           rawData: {
             spend: adAccountData.spend,
@@ -380,7 +380,7 @@ export function setupFbAuditRoutes(app: Express) {
       const until = '2024-12-28';
       
       const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`;
-      const url = `https://graph.facebook.com/v19.0/${formattedAccountId}/insights?fields=${testFields.join(',')}&time_range={"since":"${since}","until":"${until}"}&access_token=${user.metaAccessToken}`;
+      const url = `https://graph.facebook.com/v23.0/${formattedAccountId}/insights?fields=${testFields.join(',')}&time_range={"since":"${since}","until":"${until}"}&access_token=${user.metaAccessToken}`;
       
       console.log('Test API URL:', url);
       

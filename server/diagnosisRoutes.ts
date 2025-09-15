@@ -61,7 +61,7 @@ export function setupDiagnosisRoutes(app: Express) {
       });
 
       // 🔍 CRITICAL: 確保隱私政策在 Facebook OAuth 對話框中顯示
-      const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?` +
+      const authUrl = `https://www.facebook.com/v23.0/dialog/oauth?` +
         `client_id=${appId}&` +
         `redirect_uri=${encodeURIComponent(redirectUri)}&` +
         `scope=ads_read,ads_management&` +
@@ -265,7 +265,7 @@ export function setupDiagnosisRoutes(app: Express) {
       }
 
       // 交換 access token
-      const tokenUrl = 'https://graph.facebook.com/v19.0/oauth/access_token';
+      const tokenUrl = 'https://graph.facebook.com/v23.0/oauth/access_token';
       const redirectUri = `https://${req.get('host')}/api/diagnosis/facebook-callback`;
 
       console.log('交換 Facebook 存取權杖:', { redirectUri });
@@ -294,7 +294,7 @@ export function setupDiagnosisRoutes(app: Express) {
         if (userId === 'anonymous') {
           // 先獲取用戶資訊
           const userInfoResponse = await fetch(
-            `https://graph.facebook.com/v19.0/me?fields=id,name,email&access_token=${tokenData.access_token}`
+            `https://graph.facebook.com/v23.0/me?fields=id,name,email&access_token=${tokenData.access_token}`
           );
           const userInfo = await userInfoResponse.json();
           
@@ -416,7 +416,7 @@ export function setupDiagnosisRoutes(app: Express) {
 
       // 獲取廣告帳戶列表（支援分頁）
       const allAccounts: Array<{id: string, name: string, status: number, currency: string}> = [];
-      let nextPageUrl = `https://graph.facebook.com/v19.0/me/adaccounts?fields=id,name,account_status,currency&limit=100&access_token=${user.metaAccessToken}`;
+      let nextPageUrl = `https://graph.facebook.com/v23.0/me/adaccounts?fields=id,name,account_status,currency&limit=100&access_token=${user.metaAccessToken}`;
       
       console.log('開始獲取 Facebook 廣告帳戶 (支援分頁) - 用戶:', userId);
       let pageCount = 0;
@@ -500,7 +500,7 @@ export function setupDiagnosisRoutes(app: Express) {
 
       // 驗證廣告帳戶是否有效
       const accountResponse = await fetch(
-        `https://graph.facebook.com/v19.0/${adAccountId}?fields=id,name,account_status&access_token=${user.metaAccessToken}`
+        `https://graph.facebook.com/v23.0/${adAccountId}?fields=id,name,account_status&access_token=${user.metaAccessToken}`
       );
 
       if (!accountResponse.ok) {

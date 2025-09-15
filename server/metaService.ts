@@ -44,7 +44,7 @@ export interface DiagnosisData {
 
 export class MetaService {
   private openai: OpenAI;
-  private readonly baseUrl = 'https://graph.facebook.com/v19.0';
+  private readonly baseUrl = 'https://graph.facebook.com/v23.0';
 
   constructor() {
     if (!process.env.OPENAI_API_KEY) {
