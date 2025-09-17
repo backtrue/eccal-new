@@ -1032,7 +1032,7 @@ export class FbAuditService {
       const shortfall = target - actual;
       const budgetAllocation = this.calculateEfficiencyBasedAllocation(top3AdSets, shortfall);
       
-      const enhancedRecommendation = this.buildEnhancedBudgetRecommendation(top3AdSets, budgetAllocation, locale, accountCurrency);
+      const enhancedRecommendation = this.buildEnhancedBudgetRecommendation(top3AdSets, budgetAllocation, locale, 'USD');
       
       const { prompt, systemMessage } = this.buildPurchasePrompt(target, actual, enhancedRecommendation, locale, isAchieved);
 
@@ -2175,11 +2175,11 @@ I recommend immediately scaling up these high-performing ad sets since they have
 
       default:
         return `
-根據過去7天的數據分析，這是你${metricLabel[locale]}最高的前三個廣告組合：
+根據過去7天的數據分析，這是你${metricLabel['zh-TW']}最高的前三個廣告組合：
 
 ${adSets.map((adSet, index) => 
   `${index + 1}. 【${adSet.adSetName}】
-   - ${metricLabel[locale]}：${metricValue(adSet)}
+   - ${metricLabel['zh-TW']}：${metricValue(adSet)}
    - 平均每天購買數：${adSet.purchases} 次
    - 花費：${adSet.spend.toLocaleString()} 元`
 ).join('\n\n')}
