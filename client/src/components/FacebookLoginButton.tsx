@@ -30,15 +30,7 @@ export default function FacebookLoginButton({ className }: FacebookLoginButtonPr
         ) : (
           <Facebook className="mr-2 h-4 w-4" />
         )}
-        {isLoading ? (
-          t.locale === 'zh-TW' ? '連接中...' : 
-          t.locale === 'en' ? 'Connecting...' : 
-          '接続中...'
-        ) : (
-          t.locale === 'zh-TW' ? '連接 Facebook' : 
-          t.locale === 'en' ? 'Connect Facebook' : 
-          'Facebook接続'
-        )}
+        {isLoading ? '連接中...' : '連接 Facebook'}
       </Button>
       <p className="text-xs text-gray-600 max-w-sm">
         {t.privacyTermsNotice.split('隱私政策').length > 1 ? (

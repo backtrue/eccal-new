@@ -328,7 +328,7 @@ export function setupDiagnosisRoutes(app: Express) {
 
           console.log('為新用戶創建 JWT 認證:', user.id);
         } else {
-          // 更新現有用戶的 Facebook 認證（保持原有的 Google JWT 身份）
+          // 更新現有用戶的 Facebook 認證並重新生成 JWT
           console.log('開始更新現有用戶的 Facebook token:', {
             userId: userId,
             tokenLength: tokenData.access_token?.length,
@@ -343,7 +343,7 @@ export function setupDiagnosisRoutes(app: Express) {
           
           console.log('Facebook token 更新完成:', userId);
           
-          // 驗證 token 是否真的保存成功
+          // 驗證 token 是否真的保存成功並重新生成 JWT
           const updatedUser = await storage.getUser(userId as string);
           console.log('驗證用戶資料更新:', {
             userId: updatedUser?.id,
@@ -351,7 +351,17 @@ export function setupDiagnosisRoutes(app: Express) {
             metaTokenPrefix: updatedUser?.metaAccessToken?.substring(0, 20) + '...' || null
           });
           
-          // 不需要重新生成 JWT，保持原有的 Google 認證身份
+          // 🔧 CRITICAL FIX: 重新生成 JWT 包含新的 metaAccessToken
+          if (updatedUser) {
+            const jwt = jwtUtils.generateToken(updatedUser);
+            res.cookie('auth_token', jwt, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+            console.log('🔧 JWT 重新生成完成，包含新的 Facebook token');
+          }
         }
 
         res.redirect('/fbaudit?facebook_auth_success=true');
