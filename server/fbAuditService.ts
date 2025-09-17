@@ -431,7 +431,7 @@ export class FbAuditService {
 
       // 以預算計劃的幣值為基準
       const planCurrency = planResult.currency || 'TWD';
-      const facebookCurrency = await this.getAccountCurrency(accessToken, adAccountId || '');
+      const facebookCurrency = await this.getAccountCurrency(accessToken || '', adAccountId || '');
       
       // 目標值直接使用計劃中的原始值
       const targetDailySpend = parseFloat(planResult.dailyAdBudget.toString());
@@ -597,7 +597,7 @@ export class FbAuditService {
 
       // 檢測計劃和 Facebook 廣告帳戶的幣值
       const planCurrency = planResult.currency || 'TWD'; // 預設為 TWD
-      const fbAccountCurrency = await this.getAccountCurrency(accessToken, adAccountId); // 從 Facebook API 獲取真實貨幣
+      const fbAccountCurrency = await this.getAccountCurrency(accessToken || '', adAccountId || ''); // 從 Facebook API 獲取真實貨幣
 
       console.log('===== 幣值轉換資訊 =====');
       console.log('計劃幣值:', planCurrency);
@@ -1135,7 +1135,7 @@ export class FbAuditService {
             const spend = parseFloat(item.spend || '0');
             
             if (purchaseValue && spend > 0) {
-              roas = purchaseValue / spend;
+              roas = Number(purchaseValue) / spend;
               console.log('從 action_values 計算 ROAS:', { purchaseValue, spend, roas });
             }
           }
@@ -1160,8 +1160,8 @@ export class FbAuditService {
             spend
           };
         })
-        .filter(item => item.roas > 0) // 過濾掉 ROAS 為 0 的項目
-        .sort((a, b) => b.roas - a.roas) // 按 ROAS 降序排列
+        .filter((item: any) => item.roas > 0) // 過濾掉 ROAS 為 0 的項目
+        .sort((a: any, b: any) => b.roas - a.roas) // 按 ROAS 降序排列
         .slice(0, 3); // 取前三名
 
       console.log('處理後的 ROAS 廣告組合數據:', processedData);
@@ -1533,8 +1533,8 @@ export class FbAuditService {
             utilizationRate: utilizationRate
           };
         })
-        .filter(campaign => campaign.utilizationRate < 90) // 使用率低於90%的算作沒花完
-        .sort((a, b) => a.utilizationRate - b.utilizationRate) // 按使用率從低到高排序
+        .filter((campaign: any) => campaign.utilizationRate < 90) // 使用率低於90%的算作沒花完
+        .sort((a: any, b: any) => a.utilizationRate - b.utilizationRate) // 按使用率從低到高排序
         .slice(0, 3); // 只取前三個
       
       console.log('找到的預算沒花完廣告活動:', underSpentCampaigns);
@@ -1558,7 +1558,7 @@ export class FbAuditService {
       const shortfall = target - actual;
       
       // 獲取預算沒花完的廣告活動數據
-      const underSpentCampaigns = await this.getUnderSpentCampaigns(accessToken, adAccountId);
+      const underSpentCampaigns = await this.getUnderSpentCampaigns(accessToken || '', adAccountId || '');
       
       const campaignData = this.buildCampaignSpendRecommendation(underSpentCampaigns, locale);
       
