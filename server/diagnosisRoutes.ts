@@ -1133,13 +1133,12 @@ export function setupDiagnosisRoutes(app: Express) {
         metaData
       );
 
-      // 計算健康分數
-      const healthScore = metaAccountService.calculateAccountHealthScore(diagnosisData);
+      // 計算健康分數 (簡單計算)
+      const healthScore = Math.round((diagnosisData.trafficAchievementRate + diagnosisData.budgetUtilizationRate) / 2);
 
       // 存儲診斷報告
       const savedReport = await storage.createAdDiagnosisReport({
         userId: user.id,
-        healthScore: healthScore,
         recommendations: JSON.stringify([report]),
         metrics: JSON.stringify({
           targetOrders: diagnosisData.targetRevenue / calculationData.targetAov,
