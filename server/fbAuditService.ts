@@ -754,6 +754,18 @@ export class FbAuditService {
     try {
       const accountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
       
+      // 獲取帳戶貨幣資訊
+      const accountUrl = `${this.baseUrl}/${accountId}?fields=currency&access_token=${accessToken}`;
+      const accountResponse = await fetch(accountUrl);
+      
+      let accountCurrency = 'TWD'; // 預設值
+      if (accountResponse.ok) {
+        const accountData = await accountResponse.json();
+        accountCurrency = accountData.currency || 'TWD';
+      } else {
+        console.log('獲取帳戶貨幣失敗，使用預設值 TWD');
+      }
+      
       // 計算日期範圍（過去28天）
       const endDate = new Date();
       const startDate = new Date();
@@ -779,9 +791,9 @@ export class FbAuditService {
         return [];
       }
 
-      // 獲取廣告組合詳細配置（包含每日預算）
+      // 獲取廣告組合詳細配置（包含每日預算和開始/結束日期）
       const adSetsUrl = `${this.baseUrl}/${accountId}/adsets?` +
-        `fields=id,name,daily_budget,lifetime_budget,budget_remaining,status&` +
+        `fields=id,name,daily_budget,lifetime_budget,budget_remaining,status,start_time,end_time&` +
         `limit=100&` +
         `access_token=${accessToken}`;
 
@@ -815,7 +827,69 @@ export class FbAuditService {
         }
 
         const spend = parseFloat(insight.spend || '0');
-        const dailyBudget = parseFloat(adSetConfig.daily_budget || '0') / 100; // Facebook API 返回分為單位
+        
+        // 調試 Facebook API 回應的預算數據 (僅在調試模式下)
+        if (process.env.DEBUG_FB_BUDGET === '1') {
+          console.log('廣告組合預算數據調試:', {
+            adSetId: insight.adset_id,
+            rawDailyBudget: adSetConfig.daily_budget,
+            rawLifetimeBudget: adSetConfig.lifetime_budget
+          });
+        }
+        
+        // Facebook API 仍然返回 minor units (分為單位)
+        // 根據貨幣標準處理: TWD/USD/EUR 需要除以100，JPY/KRW 除以1
+        const getCurrencyDivisor = (currency: string): number => {
+          switch (currency?.toUpperCase()) {
+            case 'JPY':
+            case 'KRW':
+            case 'VND':
+              return 1; // 這些貨幣沒有小數位
+            default:
+              return 100; // TWD, USD, EUR 等有2位小數的貨幣
+          }
+        };
+        
+        // 使用實際帳戶貨幣
+        const divisor = getCurrencyDivisor(accountCurrency);
+        
+        // 處理日預算
+        let dailyBudget = 0;
+        const rawDailyBudget = parseFloat(adSetConfig.daily_budget || '0');
+        const rawLifetimeBudget = parseFloat(adSetConfig.lifetime_budget || '0');
+        
+        if (rawDailyBudget > 0) {
+          // 有日預算
+          dailyBudget = rawDailyBudget / divisor;
+        } else if (rawLifetimeBudget > 0) {
+          // 沒有日預算但有終身預算，根據實際活動期間估算每日預算
+          let estimatedDays = 30; // 預設值
+          
+          try {
+            if (adSetConfig.start_time && adSetConfig.end_time) {
+              const startTime = new Date(adSetConfig.start_time);
+              const endTime = new Date(adSetConfig.end_time);
+              const diffTime = Math.abs(endTime.getTime() - startTime.getTime());
+              estimatedDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+              // 限制在合理範圍內 (1-365天)
+              estimatedDays = Math.min(365, estimatedDays);
+            } else if (adSetConfig.start_time) {
+              // 只有開始時間，從開始到現在
+              const startTime = new Date(adSetConfig.start_time);
+              const now = new Date();
+              const diffTime = Math.abs(now.getTime() - startTime.getTime());
+              estimatedDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+              estimatedDays = Math.min(365, estimatedDays);
+            }
+          } catch (error) {
+            console.log('計算廣告組合活動期間時發生錯誤，使用預設30天:', error);
+          }
+          
+          dailyBudget = (rawLifetimeBudget / divisor) / estimatedDays;
+        }
+        
+        // 防止 NaN 值並四捨五入到2位小數
+        dailyBudget = isNaN(dailyBudget) ? 0 : Math.round(dailyBudget * 100) / 100;
         
         // 計算 CPA (每次購買成本)
         const cpa = purchases > 0 ? spend / purchases : 0;
