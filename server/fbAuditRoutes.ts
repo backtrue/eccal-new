@@ -5,43 +5,7 @@ import { db } from "./db";
 import { planResults, fbHealthChecks, users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
-// Pro 會員權限檢查中間件
-async function requireProMembership(req: any, res: Response, next: any) {
-  try {
-    const userId = req.user.id;
-    
-    // 獲取用戶會員狀態
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
-    
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'User not found' 
-      });
-    }
-
-    const now = new Date();
-    const isProActive = user.membershipLevel === "pro" && 
-      (!user.membershipExpires || user.membershipExpires > now);
-
-    if (!isProActive) {
-      return res.status(403).json({ 
-        success: false, 
-        error: 'Pro membership required for Facebook health check', 
-        membershipLevel: user.membershipLevel,
-        requiresUpgrade: true
-      });
-    }
-
-    next();
-  } catch (error) {
-    console.error('Error checking Pro membership:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to verify membership status' 
-    });
-  }
-}
+// 移除 Pro 會員權限檢查中間件 - 所有用戶都可以使用廣告健檢
 
 export function setupFbAuditRoutes(app: Express) {
   
@@ -145,8 +109,8 @@ export function setupFbAuditRoutes(app: Express) {
     }
   });
 
-  // 流式廣告健檢 (Server-Sent Events) - 需要 Pro 會員
-  app.post('/api/fbaudit/check-stream', requireJWTAuth, requireProMembership, async (req: Request, res: Response) => {
+  // 流式廣告健檢 (Server-Sent Events) - 移除 Pro 會員限制
+  app.post('/api/fbaudit/check-stream', requireJWTAuth, async (req: Request, res: Response) => {
     try {
       const user = (req as any).user;
       const { adAccountId, planResultId, industryType, locale = 'zh-TW' } = req.body;

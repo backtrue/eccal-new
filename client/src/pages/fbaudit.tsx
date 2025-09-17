@@ -30,8 +30,6 @@ import type { Locale } from "@/lib/i18n";
 import { getTranslations } from "@/lib/i18n";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageViewTracking, useFbAuditTracking } from "@/hooks/useBehaviorTracking";
-import { useProtectedFeature } from "@/hooks/useMembership";
-import ProtectedFeature from "@/components/ProtectedFeature";
 
 interface FbAuditProps {
   locale: Locale;
@@ -47,8 +45,7 @@ export default function FbAudit({ locale }: FbAuditProps) {
   const [showResults, setShowResults] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
-  // 會員權限檢查
-  const { hasAccess, requiresUpgrade, membershipLevel, isLoading: membershipLoading } = useProtectedFeature("pro");
+  // 移除會員權限檢查 - 所有用戶都可以使用廣告健檢
 
   // 追蹤頁面瀏覽和功能使用
   usePageViewTracking('/fbaudit', 'fbaudit', { locale, step: currentStep });
@@ -672,29 +669,24 @@ export default function FbAudit({ locale }: FbAuditProps) {
                 
                 {selectedIndustry && (
                   <div className="text-center pt-4">
-                    <ProtectedFeature 
-                      requiredLevel="pro"
-                      description="Facebook 廣告健檢需要 Pro 會員資格才能使用"
+                    <Button 
+                      onClick={handleStartAudit}
+                      disabled={!canStartAudit || checkMutation.isPending}
+                      size="lg"
+                      className="px-8"
                     >
-                      <Button 
-                        onClick={handleStartAudit}
-                        disabled={!canStartAudit || checkMutation.isPending}
-                        size="lg"
-                        className="px-8"
-                      >
-                        {checkMutation.isPending ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            分析中...
-                          </>
-                        ) : (
-                          <>
-                            <BarChart3 className="w-4 h-4 mr-2" />
-                            {t.startHealthCheck}
-                          </>
-                        )}
-                      </Button>
-                    </ProtectedFeature>
+                      {checkMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          分析中...
+                        </>
+                      ) : (
+                        <>
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          {t.startHealthCheck}
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )}
               </div>
