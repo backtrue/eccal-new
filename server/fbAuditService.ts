@@ -1032,7 +1032,7 @@ export class FbAuditService {
       const shortfall = target - actual;
       const budgetAllocation = this.calculateEfficiencyBasedAllocation(top3AdSets, shortfall);
       
-      const enhancedRecommendation = this.buildEnhancedBudgetRecommendation(top3AdSets, budgetAllocation, locale);
+      const enhancedRecommendation = this.buildEnhancedBudgetRecommendation(top3AdSets, budgetAllocation, locale, accountCurrency);
       
       const { prompt, systemMessage } = this.buildPurchasePrompt(target, actual, enhancedRecommendation, locale, isAchieved);
 
@@ -1995,7 +1995,7 @@ ${heroPosts.map((hero, index) =>
   }
 
   /**
-   * 建立簡潔的預算建議內容
+   * 建立簡潔的預算建議內容 (支援多語系貨幣轉換)
    */
   buildEnhancedBudgetRecommendation(adSets: Array<{
     adSetName: string;
@@ -2010,7 +2010,7 @@ ${heroPosts.map((hero, index) =>
     additionalBudget: number;
     expectedAdditionalPurchases: number;
     allocationRatio: number;
-  }>, locale: string): string {
+  }>, locale: string, accountCurrency: string = 'USD'): string {
     
     let recommendation = '';
     
@@ -2023,17 +2023,25 @@ ${heroPosts.map((hero, index) =>
       recommendation += '💰 予算増額提案:\n\n';
     }
     
-    // 為每個廣告組合添加簡潔建議
+    // 為每個廣告組合添加簡潔建議 (支援貨幣轉換)
     for (let i = 0; i < Math.min(adSets.length, allocations.length); i++) {
       const adSet = adSets[i];
       const allocation = allocations[i];
       
+      // 根據語系轉換貨幣
+      const { currentDisplay, suggestedDisplay } = this.convertBudgetForLocale(
+        adSet.dailyBudget, 
+        allocation.suggestedBudget, 
+        accountCurrency, 
+        locale
+      );
+      
       if (locale === 'zh-TW') {
-        recommendation += `• ${adSet.adSetName}: 現在日預算 $${adSet.dailyBudget}，建議加到 $${allocation.suggestedBudget}\n`;
+        recommendation += `• ${adSet.adSetName}: 現在日預算 ${currentDisplay}，建議加到 ${suggestedDisplay}\n`;
       } else if (locale === 'en') {
-        recommendation += `• ${adSet.adSetName}: Current daily budget $${adSet.dailyBudget}, suggest increasing to $${allocation.suggestedBudget}\n`;
+        recommendation += `• ${adSet.adSetName}: Current daily budget ${currentDisplay}, suggest increasing to ${suggestedDisplay}\n`;
       } else if (locale === 'ja') {
-        recommendation += `• ${adSet.adSetName}: 現在の日予算 $${adSet.dailyBudget}、$${allocation.suggestedBudget}への増額を推奨\n`;
+        recommendation += `• ${adSet.adSetName}: 現在の日予算 ${currentDisplay}、${suggestedDisplay}への増額を推奨\n`;
       }
     }
     
@@ -2047,6 +2055,49 @@ ${heroPosts.map((hero, index) =>
     }
     
     return recommendation;
+  }
+
+  /**
+   * 根據語系轉換預算顯示貨幣
+   */
+  convertBudgetForLocale(currentBudget: number, suggestedBudget: number, accountCurrency: string, locale: string): {
+    currentDisplay: string;
+    suggestedDisplay: string;
+  } {
+    // 導入貨幣轉換功能
+    const { convertCurrency, getCurrencyByLocale } = require('../../shared/currency');
+    
+    // 根據語系決定目標貨幣
+    const targetCurrency = getCurrencyByLocale(locale);
+    
+    // 如果帳戶貨幣和目標貨幣相同，直接顯示
+    if (accountCurrency === targetCurrency.code) {
+      return {
+        currentDisplay: `${targetCurrency.symbol}${Math.round(currentBudget)}`,
+        suggestedDisplay: `${targetCurrency.symbol}${Math.round(suggestedBudget)}`
+      };
+    }
+    
+    // 轉換貨幣
+    const convertedCurrent = convertCurrency(currentBudget, accountCurrency, targetCurrency.code);
+    const convertedSuggested = convertCurrency(suggestedBudget, accountCurrency, targetCurrency.code);
+    
+    // 格式化顯示（包含原始貨幣參考）
+    const getAccountCurrencySymbol = (currency: string): string => {
+      switch (currency) {
+        case 'TWD': return 'NT$';
+        case 'USD': return '$';
+        case 'JPY': return '¥';
+        default: return '$';
+      }
+    };
+    
+    const originalSymbol = getAccountCurrencySymbol(accountCurrency);
+    
+    return {
+      currentDisplay: `${targetCurrency.symbol}${Math.round(convertedCurrent)} (約 ${originalSymbol}${Math.round(currentBudget)} ${accountCurrency})`,
+      suggestedDisplay: `${targetCurrency.symbol}${Math.round(convertedSuggested)} (約 ${originalSymbol}${Math.round(suggestedBudget)} ${accountCurrency})`
+    };
   }
 
   private buildAdSetRecommendation(adSets: any[], type: 'purchase' | 'roas', locale: string = 'zh-TW'): string {
