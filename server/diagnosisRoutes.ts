@@ -1139,17 +1139,7 @@ export function setupDiagnosisRoutes(app: Express) {
       // 存儲診斷報告
       const savedReport = await storage.createAdDiagnosisReport({
         userId: user.id,
-        recommendations: JSON.stringify([report]),
-        metrics: JSON.stringify({
-          targetOrders: diagnosisData.targetRevenue / calculationData.targetAov,
-          actualOrders: metaData.purchases,
-          targetBudget: calculationData.targetRevenue / calculationData.targetRoas,
-          actualBudget: metaData.spend,
-          targetTraffic: (calculationData.targetRevenue / calculationData.targetAov) / (calculationData.targetConversionRate / 100),
-          actualTraffic: metaData.clicks,
-          targetRoas: calculationData.targetRoas,
-          actualRoas: metaData.purchaseValue > 0 ? metaData.purchaseValue / metaData.spend : 0
-        })
+        aiDiagnosisReport: report
       });
 
       res.json({
