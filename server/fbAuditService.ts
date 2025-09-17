@@ -10,7 +10,7 @@ import {
 } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { businessTermsDictionary, fbAuditTerms, getCorrectJapaneseTerm } from "./businessTermsDictionary";
-import { convertCurrency, detectFacebookAccountCurrency, EXCHANGE_RATES } from "@shared/currency";
+import { convertCurrency, EXCHANGE_RATES, getCurrencyByLocale, formatCurrency } from "@shared/currency";
 
 export interface FbAdAccountData {
   accountId: string;
@@ -2064,17 +2064,45 @@ ${heroPosts.map((hero, index) =>
     currentDisplay: string;
     suggestedDisplay: string;
   } {
-    // 導入貨幣轉換功能
-    const { convertCurrency, getCurrencyByLocale } = require('../../shared/currency');
+    // 統一語系映射：將 'ja' 標準化為 'jp'
+    const normalizedLocale = locale === 'ja' ? 'jp' : locale;
     
     // 根據語系決定目標貨幣
-    const targetCurrency = getCurrencyByLocale(locale);
+    const targetCurrency = getCurrencyByLocale(normalizedLocale);
     
-    // 如果帳戶貨幣和目標貨幣相同，直接顯示
+    // 根據貨幣代碼直接取得貨幣配置 (分離語系和貨幣邏輯)
+    const getCurrencyByCode = (currencyCode: string): any => {
+      switch (currencyCode.toUpperCase()) {
+        case 'TWD': return { code: 'TWD', symbol: 'NT$', name: '新台幣' };
+        case 'USD': return { code: 'USD', symbol: '$', name: 'US Dollar' };
+        case 'JPY': return { code: 'JPY', symbol: '¥', name: '日圓' };
+        case 'EUR': return { code: 'EUR', symbol: '€', name: 'Euro' };
+        case 'GBP': return { code: 'GBP', symbol: '£', name: 'British Pound' };
+        case 'KRW': return { code: 'KRW', symbol: '₩', name: 'Korean Won' };
+        case 'VND': return { code: 'VND', symbol: '₫', name: 'Vietnamese Dong' };
+        default: return { code: 'USD', symbol: '$', name: 'US Dollar' };
+      }
+    };
+    
+    // 根據貨幣決定格式化使用的語系 (僅用於數字格式化)
+    const getFormattingLocale = (currency: string): string => {
+      switch (currency.toUpperCase()) {
+        case 'TWD': return 'zh-TW';
+        case 'JPY': return normalizedLocale; // 使用標準化的語系
+        case 'USD':
+        case 'EUR': 
+        case 'GBP':
+        case 'KRW':
+        case 'VND':
+        default: return 'en'; // 預設使用英文數字格式
+      }
+    };
+    
+    // 如果帳戶貨幣和目標貨幣相同，直接使用 formatCurrency
     if (accountCurrency === targetCurrency.code) {
       return {
-        currentDisplay: `${targetCurrency.symbol}${Math.round(currentBudget)}`,
-        suggestedDisplay: `${targetCurrency.symbol}${Math.round(suggestedBudget)}`
+        currentDisplay: formatCurrency(currentBudget, targetCurrency, normalizedLocale),
+        suggestedDisplay: formatCurrency(suggestedBudget, targetCurrency, normalizedLocale)
       };
     }
     
@@ -2082,21 +2110,19 @@ ${heroPosts.map((hero, index) =>
     const convertedCurrent = convertCurrency(currentBudget, accountCurrency, targetCurrency.code);
     const convertedSuggested = convertCurrency(suggestedBudget, accountCurrency, targetCurrency.code);
     
-    // 格式化顯示（包含原始貨幣參考）
-    const getAccountCurrencySymbol = (currency: string): string => {
-      switch (currency) {
-        case 'TWD': return 'NT$';
-        case 'USD': return '$';
-        case 'JPY': return '¥';
-        default: return '$';
-      }
-    };
+    // 使用 formatCurrency 格式化轉換後的金額
+    const currentConverted = formatCurrency(convertedCurrent, targetCurrency, normalizedLocale);
+    const suggestedConverted = formatCurrency(convertedSuggested, targetCurrency, normalizedLocale);
     
-    const originalSymbol = getAccountCurrencySymbol(accountCurrency);
+    // 原始貨幣格式化 (根據貨幣代碼直接解析，避免語系混淆)
+    const originalCurrency = getCurrencyByCode(accountCurrency);
+    const originalFormattingLocale = getFormattingLocale(accountCurrency);
+    const currentOriginal = formatCurrency(currentBudget, originalCurrency, originalFormattingLocale);
+    const suggestedOriginal = formatCurrency(suggestedBudget, originalCurrency, originalFormattingLocale);
     
     return {
-      currentDisplay: `${targetCurrency.symbol}${Math.round(convertedCurrent)} (約 ${originalSymbol}${Math.round(currentBudget)} ${accountCurrency})`,
-      suggestedDisplay: `${targetCurrency.symbol}${Math.round(convertedSuggested)} (約 ${originalSymbol}${Math.round(suggestedBudget)} ${accountCurrency})`
+      currentDisplay: `${currentConverted} (約 ${currentOriginal})`,
+      suggestedDisplay: `${suggestedConverted} (約 ${suggestedOriginal})`
     };
   }
 
