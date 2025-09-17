@@ -1133,12 +1133,14 @@ export function setupDiagnosisRoutes(app: Express) {
         metaData
       );
 
+      // 計算健康分數
+      const healthScore = metaAccountService.calculateAccountHealthScore(diagnosisData);
+
       // 存儲診斷報告
       const savedReport = await storage.createAdDiagnosisReport({
         userId: user.id,
-        accountName: metaData.accountName,
-        healthScore: parseInt(report.healthScore) || 0,
-        recommendations: JSON.stringify(report.recommendations),
+        healthScore: healthScore,
+        recommendations: JSON.stringify([report]),
         metrics: JSON.stringify({
           targetOrders: diagnosisData.targetRevenue / calculationData.targetAov,
           actualOrders: metaData.purchases,
@@ -1154,8 +1156,8 @@ export function setupDiagnosisRoutes(app: Express) {
       res.json({
         success: true,
         reportId: savedReport.id,
-        healthScore: parseInt(report.healthScore) || 0,
-        recommendations: report.recommendations
+        healthScore: healthScore,
+        recommendations: [report]
       });
     } catch (error) {
       console.error('診斷分析錯誤:', error);

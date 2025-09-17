@@ -494,18 +494,18 @@ export class MetaAccountService {
     
     switch (locale) {
       case 'ja':
-        return this.buildJapanesePrompt(accountName, data, metaData, healthScore, targetBrowseToCartRate, targetCartToCheckoutRate);
+        return this.buildJapanesePrompt(accountName, data, healthScore, targetBrowseToCartRate, targetCartToCheckoutRate, metaData);
       case 'en':
-        return this.buildEnglishPrompt(accountName, data, metaData, healthScore, targetBrowseToCartRate, targetCartToCheckoutRate);
+        return this.buildEnglishPrompt(accountName, data, healthScore, targetBrowseToCartRate, targetCartToCheckoutRate, metaData);
       default:
-        return this.buildChinesePrompt(accountName, data, metaData, healthScore, targetBrowseToCartRate, targetCartToCheckoutRate);
+        return this.buildChinesePrompt(accountName, data, healthScore, targetBrowseToCartRate, targetCartToCheckoutRate, metaData);
     }
   }
 
   /**
    * 建構日文診斷提示
    */
-  private buildJapanesePrompt(accountName: string, data: AccountDiagnosisData, metaData?: MetaAccountData, healthScore: number, targetBrowseToCartRate: number, targetCartToCheckoutRate: number): string {
+  private buildJapanesePrompt(accountName: string, data: AccountDiagnosisData, healthScore: number, targetBrowseToCartRate: number, targetCartToCheckoutRate: number, metaData?: MetaAccountData): string {
     return `
 専門的な Facebook 広告最適化コンサルタントとして、「${accountName}」の包括的なアカウント${fbAuditTerms.healthCheck}分析を行ってください：
 
@@ -586,7 +586,7 @@ ${metaData.topPerformingAds.map((ad, index) => `
   /**
    * 建構英文診斷提示
    */
-  private buildEnglishPrompt(accountName: string, data: AccountDiagnosisData, metaData?: MetaAccountData, healthScore: number, targetBrowseToCartRate: number, targetCartToCheckoutRate: number): string {
+  private buildEnglishPrompt(accountName: string, data: AccountDiagnosisData, healthScore: number, targetBrowseToCartRate: number, targetCartToCheckoutRate: number, metaData?: MetaAccountData): string {
     return `
 As a professional Facebook advertising optimization consultant, please conduct a comprehensive account health analysis for "${accountName}":
 
@@ -620,7 +620,7 @@ Please provide a complete diagnosis report following this structure as "Teacher 
   /**
    * 建構中文診斷提示
    */
-  private buildChinesePrompt(accountName: string, data: AccountDiagnosisData, metaData?: MetaAccountData, healthScore: number, targetBrowseToCartRate: number, targetCartToCheckoutRate: number): string {
+  private buildChinesePrompt(accountName: string, data: AccountDiagnosisData, healthScore: number, targetBrowseToCartRate: number, targetCartToCheckoutRate: number, metaData?: MetaAccountData): string {
     return `
 作為專業的 Facebook 廣告優化顧問，請針對「${accountName}」進行全面帳戶健診分析：
 

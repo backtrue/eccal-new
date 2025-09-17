@@ -476,7 +476,7 @@ export function setupFbAuditRoutes(app: Express) {
     try {
       const { id } = req.params;
       const { npsScore, npsComment } = req.body;
-      const userId = req.user?.id;
+      const userId = (req as any).user.id;
 
       console.log('=== 提交 NPS 評分 ===');
       console.log('健檢 ID:', id);
