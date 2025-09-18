@@ -705,9 +705,25 @@ export function setupJWTGoogleAuth(app: Express) {
       if ((req as any).user) {
         console.log('JWT auth check successful:', (req as any).user.email);
         res.set('Cache-Control', 'private, max-age=300');
+        
+        // 安全處理：不暴露敏感的 access tokens 給前端
+        const safeUser = {
+          id: (req as any).user.id,
+          email: (req as any).user.email,
+          firstName: (req as any).user.firstName,
+          lastName: (req as any).user.lastName,
+          profileImageUrl: (req as any).user.profileImageUrl,
+          membershipLevel: (req as any).user.membershipLevel,
+          credits: (req as any).user.credits,
+          // 只提供連接狀態，不暴露實際 token
+          hasFacebookAuth: !!(req as any).user.metaAccessToken,
+          hasSelectedAdAccount: !!(req as any).user.metaAdAccountId,
+          metaAdAccountId: (req as any).user.metaAdAccountId // 廣告帳戶ID可以暴露
+        };
+        
         res.json({
           isAuthenticated: true,
-          user: (req as any).user
+          user: safeUser
         });
       } else {
         console.log('JWT auth check failed - no valid user in request');

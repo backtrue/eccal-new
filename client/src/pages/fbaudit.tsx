@@ -136,7 +136,7 @@ export default function FbAudit({ locale }: FbAuditProps) {
     );
   };
 
-  const isConnected = user?.metaAccessToken;
+  const isConnected = user?.hasFacebookAuth;
   const hasPlans = plans && plans.length > 0;
   const canStartAudit = selectedAccount && selectedPlan && selectedIndustry;
 

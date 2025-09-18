@@ -75,7 +75,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             console.log('Google login successful:', userData.email || userData.name || 'User logged in');
           } else {
             // 基於用戶資料判斷登入來源
-            if (userData.metaAccessToken) {
+            if (userData.hasFacebookAuth) {
               setLoginSource('facebook');
             } else {
               setLoginSource('google');
