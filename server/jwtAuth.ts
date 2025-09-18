@@ -18,6 +18,8 @@ interface JWTUser {
   googleAccessToken?: string | null;
   googleRefreshToken?: string | null;
   tokenExpiresAt?: Date | null;
+  metaAccessToken?: string | null; // Facebook access token
+  metaAdAccountId?: string | null; // 選擇的廣告帳戶ID
 }
 
 // JWT 工具函數
@@ -31,6 +33,8 @@ export const jwtUtils = {
         firstName: user.firstName,
         lastName: user.lastName,
         profileImageUrl: user.profileImageUrl,
+        metaAccessToken: user.metaAccessToken, // 包含 Facebook access token
+        metaAdAccountId: user.metaAdAccountId, // 包含選擇的廣告帳戶ID
         sub: user.id // 標準 JWT subject claim
       },
       JWT_SECRET,
@@ -76,6 +80,8 @@ export const jwtUtils = {
         firstName: decoded.firstName,
         lastName: decoded.lastName,
         profileImageUrl: decoded.profileImageUrl,
+        metaAccessToken: decoded.metaAccessToken, // 包含 Facebook access token
+        metaAdAccountId: decoded.metaAdAccountId, // 包含選擇的廣告帳戶ID
         sub: decoded.sub
       } as JWTUser;
     } catch (error) {
