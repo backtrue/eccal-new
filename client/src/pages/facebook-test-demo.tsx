@@ -36,7 +36,7 @@ export default function FacebookTestDemo({ locale }: FacebookTestDemoProps) {
   
   // 檢查 Facebook 權限
   const checkFacebookPermissions = async () => {
-    if (!user?.metaAccessToken) {
+    if (!user?.hasFacebookAuth) {
       alert('請先完成 Facebook 授權');
       return;
     }
@@ -45,8 +45,8 @@ export default function FacebookTestDemo({ locale }: FacebookTestDemoProps) {
     try {
       const response = await fetch('/api/diagnosis/facebook-permissions', {
         method: 'GET',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${user.metaAccessToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -85,14 +85,14 @@ export default function FacebookTestDemo({ locale }: FacebookTestDemoProps) {
       title: "3. Facebook Authorization",
       description: "🔍 CRITICAL: MUST verify privacy policy display in Facebook OAuth dialog. Click 'Connect Facebook' and confirm privacy policy link appears in the dialog before granting permissions.",
       action: "Facebook Authorization",
-      status: user?.metaAccessToken ? "completed" : "pending"
+      status: user?.hasFacebookAuth ? "completed" : "pending"
     },
     {
       id: 4,
       title: "4. Permission Verification",
       description: "Confirm app received necessary permissions (ads_read, ads_management)",
       action: "Check Permissions",
-      status: user?.metaAccessToken ? "completed" : "pending"
+      status: user?.hasFacebookAuth ? "completed" : "pending"
     },
     {
       id: 5,
@@ -242,7 +242,7 @@ export default function FacebookTestDemo({ locale }: FacebookTestDemoProps) {
                       />
                     )}
                     
-                    {step.id === 3 && isAuthenticated && !user?.metaAccessToken && (
+                    {step.id === 3 && isAuthenticated && !user?.hasFacebookAuth && (
                       <div className="space-y-3">
                         <Alert className="border-red-200 bg-red-50">
                           <AlertTriangle className="h-4 w-4 text-red-600" />
@@ -262,7 +262,7 @@ export default function FacebookTestDemo({ locale }: FacebookTestDemoProps) {
                       </div>
                     )}
                     
-                    {step.id === 4 && user?.metaAccessToken && (
+                    {step.id === 4 && user?.hasFacebookAuth && (
                       <div className="bg-green-50 p-3 rounded-lg">
                         <div className="flex items-center gap-2 text-green-700">
                           <CheckCircle className="w-4 h-4" />
@@ -274,7 +274,7 @@ export default function FacebookTestDemo({ locale }: FacebookTestDemoProps) {
                       </div>
                     )}
                     
-                    {step.id === 5 && user?.metaAccessToken && (
+                    {step.id === 5 && user?.hasFacebookAuth && (
                       <Button 
                         onClick={() => window.location.href = '/fbaudit'}
                         className="bg-purple-600 hover:bg-purple-700"

@@ -17,8 +17,7 @@ export function setupFbAuditRoutes(app: Express) {
       console.log('FB帳戶API調用 - 用戶資料:', {
         userId: user.id,
         email: user.email,
-        hasMetaToken: !!user.metaAccessToken,
-        metaTokenPrefix: user.metaAccessToken ? user.metaAccessToken.substring(0, 20) + '...' : null
+        hasMetaToken: !!user.metaAccessToken
       });
       
       if (!user.metaAccessToken) {

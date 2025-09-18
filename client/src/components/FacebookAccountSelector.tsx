@@ -33,7 +33,7 @@ export default function FacebookAccountSelector({
   const accountsLoading = useExternalData ? externalLoading : internalLoading;
 
   // 檢查是否已連接 Facebook
-  const isConnected = (connectionData as any)?.connected || user?.metaAccessToken;
+  const isConnected = (connectionData as any)?.connected || user?.hasFacebookAuth;
 
   // 過濾廣告帳戶
   const filteredAccounts = useMemo(() => {

@@ -52,7 +52,7 @@ export default function FbAudit({ locale }: FbAuditProps) {
   const { trackAccountSelection, trackPlanSelection, trackHealthCheck, trackNPSRating } = useFbAuditTracking('/fbaudit');
 
   // 只有在用戶已認證且有 Facebook access token 時才載入帳戶
-  const shouldLoadAccounts = Boolean(isAuthenticated && user?.metaAccessToken);
+  const shouldLoadAccounts = Boolean(isAuthenticated && user?.hasFacebookAuth);
   const { data: accounts, isLoading: accountsLoading } = useFbAuditAccounts(shouldLoadAccounts);
   const { data: plans, isLoading: plansLoading, refetch: refetchPlans } = useFbAuditPlans(isAuthenticated, false);
   const { data: industries } = useFbAuditIndustries();
