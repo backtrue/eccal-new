@@ -205,7 +205,7 @@ export function setupStripeRoutes(app: Express) {
     try {
       const stripe = getStripeInstance();
       const { amount, paymentType, currency = 'usd' } = req.body;
-      const userId = req.user.id;
+      const userId = (req as any).user.id;
 
       if (!amount || !paymentType) {
         return res.status(400).json({ error: "Amount and payment type are required" });
@@ -275,7 +275,7 @@ export function setupStripeRoutes(app: Express) {
     try {
       const stripe = getStripeInstance();
       const { priceId, planType } = req.body;
-      const userId = req.user.id;
+      const userId = (req as any).user.id;
 
       if (!priceId || !planType) {
         return res.status(400).json({ error: "Price ID and plan type are required" });
@@ -394,7 +394,7 @@ export function setupStripeRoutes(app: Express) {
   // Get user's payment history
   app.get("/api/stripe/payments", requireJWTAuth, async (req, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req as any).user.id;
       const payments = await storage.getUserStripePayments(userId);
       res.json(payments);
     } catch (error: any) {
@@ -407,7 +407,7 @@ export function setupStripeRoutes(app: Express) {
   app.get("/api/stripe/subscription-status", requireJWTAuth, async (req, res) => {
     try {
       const stripe = getStripeInstance();
-      const userId = req.user.id;
+      const userId = (req as any).user.id;
       const user = await storage.getUser(userId);
       
       if (!user || !user.stripeSubscriptionId) {
