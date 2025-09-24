@@ -787,3 +787,208 @@ export const insertDiscountUsageSchema = createInsertSchema(discountUsages).omit
   id: true,
   usedAt: true,
 });
+
+export type InsertDiscountCodeType = z.infer<typeof insertDiscountCodeSchema>;
+export type SelectDiscountCodeType = typeof discountCodes.$inferSelect;
+export type InsertDiscountUsageType = z.infer<typeof insertDiscountUsageSchema>;
+export type SelectDiscountUsageType = typeof discountUsages.$inferSelect;
+
+// Meta廣告儀表板 - 廣告帳戶表
+export const metaAdAccounts = pgTable("meta_ad_accounts", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  metaAccountId: varchar("meta_account_id").notNull(), // Facebook 廣告帳戶 ID
+  accountName: varchar("account_name").notNull(),
+  currency: varchar("currency", { length: 3 }).notNull(), // USD, TWD, JPY etc
+  timezone: varchar("timezone").notNull(),
+  accountStatus: varchar("account_status").notNull(), // ACTIVE, DISABLED
+  businessType: varchar("business_type", { length: 20 }).notNull(), // ecommerce, consultation, lead_generation
+  accessToken: text("access_token"), // 加密存儲的訪問令牌
+  tokenExpires: timestamp("token_expires"),
+  isActive: boolean("is_active").default(true).notNull(),
+  lastSyncAt: timestamp("last_sync_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Meta廣告數據快照表 - 存儲每日/每小時的廣告數據
+export const metaAdInsights = pgTable("meta_ad_insights", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  accountId: text("account_id").notNull().references(() => metaAdAccounts.id),
+  
+  // 廣告層級資訊
+  campaignId: varchar("campaign_id"),
+  campaignName: varchar("campaign_name"),
+  adsetId: varchar("adset_id"),
+  adsetName: varchar("adset_name"),
+  adId: varchar("ad_id"),
+  adName: varchar("ad_name"),
+  
+  // 時間和維度
+  dateStart: timestamp("date_start").notNull(),
+  dateEnd: timestamp("date_end").notNull(),
+  level: varchar("level", { length: 20 }).notNull(), // campaign, adset, ad
+  
+  // 共同核心指標
+  impressions: integer("impressions").default(0).notNull(),
+  reach: integer("reach").default(0).notNull(),
+  spend: decimal("spend", { precision: 15, scale: 2 }).default("0").notNull(),
+  linkClicks: integer("link_clicks").default(0).notNull(),
+  ctr: decimal("ctr", { precision: 8, scale: 4 }).default("0").notNull(), // Click-through rate
+  cpc: decimal("cpc", { precision: 8, scale: 2 }).default("0").notNull(), // Cost per click
+  
+  // 電商指標
+  viewContent: integer("view_content").default(0).notNull(),
+  addToCart: integer("add_to_cart").default(0).notNull(),
+  purchase: integer("purchase").default(0).notNull(),
+  purchaseValue: decimal("purchase_value", { precision: 15, scale: 2 }).default("0").notNull(),
+  costPerPurchase: decimal("cost_per_purchase", { precision: 10, scale: 2 }).default("0").notNull(),
+  roas: decimal("roas", { precision: 8, scale: 4 }).default("0").notNull(), // Return on Ad Spend
+  
+  // 諮詢類指標
+  messaging: integer("messaging").default(0).notNull(), // 訊息對話開始次數
+  costPerMessaging: decimal("cost_per_messaging", { precision: 10, scale: 2 }).default("0").notNull(),
+  
+  // 名單類指標
+  leads: integer("leads").default(0).notNull(), // 潛在顧客
+  costPerLead: decimal("cost_per_lead", { precision: 10, scale: 2 }).default("0").notNull(),
+  
+  // 計算指標 (自動生成)
+  atcRate: decimal("atc_rate", { precision: 8, scale: 4 }).default("0").notNull(), // AddToCart/ViewContent %
+  pfRate: decimal("pf_rate", { precision: 8, scale: 4 }).default("0").notNull(), // Purchase/AddToCart %
+  
+  // 元數據
+  currency: varchar("currency", { length: 3 }).notNull(),
+  rawData: jsonb("raw_data"), // 存儲原始API響應
+  syncedAt: timestamp("synced_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Meta廣告儀表板配置表
+export const metaDashboardConfigs = pgTable("meta_dashboard_configs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  accountId: text("account_id").notNull().references(() => metaAdAccounts.id),
+  
+  // 儀表板設置
+  dashboardName: varchar("dashboard_name").notNull(),
+  businessType: varchar("business_type", { length: 20 }).notNull(), // ecommerce, consultation, lead_generation
+  defaultDateRange: varchar("default_date_range", { length: 20 }).default("last_30_days").notNull(),
+  defaultLevel: varchar("default_level", { length: 20 }).default("campaign").notNull(), // campaign, adset, ad
+  
+  // 自定義顯示選項
+  visibleMetrics: jsonb("visible_metrics"), // 自定義顯示的指標
+  chartConfigs: jsonb("chart_configs"), // 圖表配置
+  filterConfigs: jsonb("filter_configs"), // 篩選器配置
+  
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// MetaAI分析報告表
+export const metaAiAnalyses = pgTable("meta_ai_analyses", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  accountId: text("account_id").notNull().references(() => metaAdAccounts.id),
+  
+  // 分析配置
+  analysisType: varchar("analysis_type", { length: 30 }).notNull(), // performance, optimization, trend
+  dateRange: jsonb("date_range").notNull(), // {start, end}
+  level: varchar("level", { length: 20 }).notNull(), // campaign, adset, ad
+  businessType: varchar("business_type", { length: 20 }).notNull(),
+  
+  // AI分析結果
+  analysisData: jsonb("analysis_data").notNull(), // 輸入到GPT的數據
+  aiResponse: text("ai_response").notNull(), // GPT分析結果
+  keyInsights: jsonb("key_insights"), // 結構化關鍵洞察
+  recommendations: jsonb("recommendations"), // 結構化建議
+  
+  // 元數據
+  gptModel: varchar("gpt_model", { length: 30 }).default("gpt-4-1106-preview").notNull(),
+  tokenUsed: integer("token_used"),
+  processingTime: integer("processing_time"), // 毫秒
+  
+  status: varchar("status", { length: 20 }).default("completed").notNull(), // processing, completed, failed
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Meta廣告賬戶使用權限表 (多用戶支持)
+export const metaAccountPermissions = pgTable("meta_account_permissions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  accountId: text("account_id").notNull().references(() => metaAdAccounts.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // 權限控制
+  role: varchar("role", { length: 20 }).notNull(), // owner, admin, viewer
+  permissions: jsonb("permissions").notNull(), // 詳細權限配置
+  
+  // 代理商模式支持
+  isAgency: boolean("is_agency").default(false).notNull(),
+  agencyName: varchar("agency_name"),
+  clientName: varchar("client_name"), // 客戶名稱(代理商模式)
+  
+  grantedBy: varchar("granted_by").references(() => users.id), // 誰授予的權限
+  grantedAt: timestamp("granted_at").defaultNow(),
+  expiresAt: timestamp("expires_at"), // 權限過期時間
+  
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Meta廣告數據同步日誌表
+export const metaSyncLogs = pgTable("meta_sync_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  accountId: text("account_id").notNull().references(() => metaAdAccounts.id),
+  
+  syncType: varchar("sync_type", { length: 20 }).notNull(), // manual, auto, scheduled
+  status: varchar("status", { length: 20 }).notNull(), // pending, running, completed, failed
+  
+  dateRange: jsonb("date_range").notNull(),
+  level: varchar("level", { length: 20 }).notNull(),
+  
+  // 同步結果
+  recordsProcessed: integer("records_processed").default(0).notNull(),
+  recordsInserted: integer("records_inserted").default(0).notNull(),
+  recordsUpdated: integer("records_updated").default(0).notNull(),
+  
+  errorMessage: text("error_message"),
+  apiCalls: integer("api_calls").default(0).notNull(), // API調用次數
+  processingTime: integer("processing_time"), // 毫秒
+  
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Meta 廣告儀表板 Schemas
+export const insertMetaAdAccountSchema = createInsertSchema(metaAdAccounts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertMetaAdAccountType = z.infer<typeof insertMetaAdAccountSchema>;
+export type SelectMetaAdAccountType = typeof metaAdAccounts.$inferSelect;
+
+export const insertMetaAdInsightSchema = createInsertSchema(metaAdInsights).omit({
+  id: true,
+  syncedAt: true,
+  createdAt: true,
+});
+export type InsertMetaAdInsightType = z.infer<typeof insertMetaAdInsightSchema>;
+export type SelectMetaAdInsightType = typeof metaAdInsights.$inferSelect;
+
+export const insertMetaDashboardConfigSchema = createInsertSchema(metaDashboardConfigs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertMetaDashboardConfigType = z.infer<typeof insertMetaDashboardConfigSchema>;
+export type SelectMetaDashboardConfigType = typeof metaDashboardConfigs.$inferSelect;
+
+export const insertMetaAiAnalysisSchema = createInsertSchema(metaAiAnalyses).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertMetaAiAnalysisType = z.infer<typeof insertMetaAiAnalysisSchema>;
+export type SelectMetaAiAnalysisType = typeof metaAiAnalyses.$inferSelect;
