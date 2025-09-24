@@ -46,8 +46,8 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   const [currentStep, setCurrentStep] = useState(1);
 
   // 追蹤頁面瀏覽和功能使用
-  usePageViewTracking('/fbaudit', 'fbaudit', { locale, step: currentStep });
-  const { trackAccountSelection, trackPlanSelection, trackHealthCheck, trackNPSRating } = useFbAuditTracking('/fbaudit');
+  usePageViewTracking('/meta-dashboard', 'meta-dashboard', { locale, step: currentStep });
+  const { trackAccountSelection, trackPlanSelection, trackHealthCheck, trackNPSRating } = useFbAuditTracking('/meta-dashboard');
 
   // 只有在用戶已認證且有 Facebook access token 時才載入帳戶
   const shouldLoadAccounts = Boolean(isAuthenticated && user?.hasFacebookAuth);
@@ -130,10 +130,10 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
         <div className="container mx-auto p-6 max-w-4xl">
           <div className="text-center py-20">
             <Facebook className="w-16 h-16 text-blue-600 mx-auto mb-6" />
-            <h1 className="text-3xl font-bold mb-4">Meta 廣告儀表板</h1>
-            <p className="text-gray-600 mb-8">請先登入以查看您的廣告數據</p>
+            <h1 className="text-3xl font-bold mb-4">{t.fbAuditTitle}</h1>
+            <p className="text-gray-600 mb-8">{t.loginRequired}</p>
             <Button size="lg" onClick={() => window.location.href = '/api/auth/google'}>
-              Google 登入
+              {t.loginWithGoogle}
             </Button>
           </div>
         </div>
