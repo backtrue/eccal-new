@@ -238,54 +238,34 @@ interface MetaDashboardProps {
 }
 
 export default function MetaDashboard({ locale }: MetaDashboardProps) {
-  const [, setLocation] = useLocation();
-  const { user, isAuthenticated, checkAuth } = useAuth();
-  const [businessType, setBusinessType] = useState<string>('ecommerce');
+  const { user, isAuthenticated } = useAuth();
+  const [selectedAccount, setSelectedAccount] = useState<string>("");
   const [showDashboard, setShowDashboard] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
 
-  // 只有在用戶明確要求查看儀表板時才載入數據
+  // 照抄 fbaudit 的帳號載入邏輯
+  const shouldLoadAccounts = Boolean(isAuthenticated && user?.hasFacebookAuth);
+  const { data: accounts, isLoading: accountsLoading } = useQuery<any[]>({ 
+    queryKey: ['/api/fbaudit/accounts'],
+    enabled: shouldLoadAccounts,
+    retry: false
+  });
+
+  // 只有在選擇帳號且要求查看儀表板時才載入儀表板數據
   const { 
     data: dashboardData, 
     isLoading: dashboardLoading, 
     error: dashboardError,
     refetch: refetchDashboard
   } = useQuery<{ success: boolean; data: MetaDashboardData }>({ 
-    queryKey: ['/api/meta/dashboard'],
-    enabled: showDashboard && isAuthenticated && user?.hasFacebookAuth,
+    queryKey: ['/api/meta/dashboard', selectedAccount],
+    enabled: showDashboard && selectedAccount && isAuthenticated && user?.hasFacebookAuth,
     retry: false
   });
 
-  // 檢查 URL 參數中的認證成功標記
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('facebook_auth_success')) {
-      // Facebook 認證成功，清除 URL 參數
-      window.history.replaceState({}, '', '/meta-dashboard');
-      // 顯示儀表板
-      setShowDashboard(true);
-    }
-  }, []);
-
-  // 獲取業務指標 - 只有在儀表板模式時才載入
-  const { 
-    data: businessData, 
-    isLoading: businessLoading
-  } = useQuery<{ success: boolean; data: BusinessMetrics }>({ 
-    queryKey: ['/api/meta/business-metrics', businessType],
-    enabled: showDashboard && !!dashboardData?.success && isAuthenticated && user?.hasFacebookAuth
-  });
-
-
-  // 獲取認證狀態 (照抄 fbaudit 的做法)
+  // 照抄 fbaudit 的計算變數
   const isConnected = user?.hasFacebookAuth;
-  
-  // 調試信息
-  console.log('🔍 Meta Dashboard 調試信息:');
-  console.log('🔍 isAuthenticated:', isAuthenticated);
-  console.log('🔍 user:', user);
-  console.log('🔍 user?.hasFacebookAuth:', user?.hasFacebookAuth);
-  console.log('🔍 isConnected:', isConnected);
-  console.log('🔍 showDashboard:', showDashboard);
+  const canStartDashboard = selectedAccount;
 
   // 如果用戶未登入，顯示登入界面
   if (!isAuthenticated) {
