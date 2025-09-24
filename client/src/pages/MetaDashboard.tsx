@@ -241,9 +241,9 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
     error: dashboardError,
     refetch: refetchDashboard
   } = useQuery<{ success: boolean; data: MetaDashboardData }>({ 
-    queryKey: ['/api/meta/dashboard-stats'],
+    queryKey: ['/api/meta/dashboard'],
     queryFn: async () => {
-      const res = await fetch('/api/meta/dashboard-stats', {
+      const res = await fetch('/api/meta/dashboard', {
         credentials: 'include'
       });
       
@@ -281,11 +281,11 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
     if (dashboardError) {
       const status = (dashboardError as any)?.response?.status;
       const errorData = (dashboardError as any)?.response?.data;
+      const errorMessage = dashboardError.message;
       
-      // 處理 401 未認證錯誤
-      if (status === 401) {
-        // 重定向到登入頁面
-        window.location.href = '/fbaudit';
+      // 處理 401 未認證錯誤 (包括 Facebook token 過期)
+      if (status === 401 || errorMessage.includes('401') || errorMessage.includes('Authentication required') || errorMessage.includes('access token')) {
+        setNeedsAuth(true);
         return;
       }
       
@@ -297,8 +297,33 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
   }, [dashboardError]);
 
   // 連接 Facebook 廣告帳戶
-  const handleConnectFacebook = () => {
-    setLocation('/fbaudit');
+  const handleConnectFacebook = async () => {
+    try {
+      const response = await fetch('/api/diagnosis/facebook-auth-url', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.authUrl) {
+        // 在新窗口中打開 Facebook 授權
+        const popup = window.open(data.authUrl, 'facebook-auth', 'width=600,height=700');
+        
+        // 監聽授權完成
+        const checkClosed = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(checkClosed);
+            // 重新載入數據
+            setTimeout(() => {
+              refetchDashboard();
+            }, 1000);
+          }
+        }, 1000);
+      } else {
+        console.error('無法獲取 Facebook 授權 URL');
+      }
+    } catch (error) {
+      console.error('Facebook 連接失敗:', error);
+    }
   };
 
   // 如果需要 Facebook 認證

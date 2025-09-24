@@ -51,8 +51,11 @@ export function setupDiagnosisRoutes(app: Express) {
       }
 
       const redirectUri = `https://${req.get('host')}/api/diagnosis/facebook-callback`;
-      // 對於未認證用戶，使用臨時狀態
+      // 對於未認證用戶，使用臨時狀態，並添加來源信息
+      const referer = req.get('Referer') || '';
+      const origin = referer.includes('/meta-dashboard') ? 'meta-dashboard' : 'fbaudit';
       const userId = req.user?.id || 'anonymous';
+      const state = `${userId}|${origin}`;
 
       console.log('生成 Facebook OAuth URL:', {
         appId: appId.substring(0, 5) + '***',
@@ -66,7 +69,7 @@ export function setupDiagnosisRoutes(app: Express) {
         `redirect_uri=${encodeURIComponent(redirectUri)}&` +
         `scope=ads_read,ads_management&` +
         `response_type=code&` +
-        `state=${userId}&` +
+        `state=${state}&` +
         `auth_type=rerequest&` +
         `display=popup`;
 
@@ -364,9 +367,11 @@ export function setupDiagnosisRoutes(app: Express) {
           }
         }
 
-        // 檢查是否從 Meta 儀表板發起的連接
-        const referer = req.get('Referer') || '';
-        if (referer.includes('/meta-dashboard')) {
+        // 檢查來源並重定向到正確的頁面
+        const stateParams = state?.split('|') || [];
+        const origin = stateParams[1] || 'fbaudit';
+        
+        if (origin === 'meta-dashboard') {
           res.redirect('/meta-dashboard?facebook_auth_success=true');
         } else {
           res.redirect('/fbaudit?facebook_auth_success=true');
