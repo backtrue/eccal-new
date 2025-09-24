@@ -128,13 +128,13 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     }
   };
 
-  const isConnected = user?.hasFacebookAuth && accounts && accounts.length > 0;
+  const isConnected = user?.hasFacebookAuth;
 
   // 如果用戶未登入，顯示登入提示
   if (!isAuthenticated || !user) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <NavigationBar />
+        <NavigationBar locale={locale} />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-md mx-auto text-center space-y-6">
             <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
@@ -166,7 +166,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   if (isAuthenticated && !user?.hasFacebookAuth) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <NavigationBar />
+        <NavigationBar locale={locale} />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
             <div className="text-center space-y-6">
@@ -253,7 +253,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   if (isAuthenticated && user?.hasFacebookAuth && !accountsLoading && (!accounts || accounts.length === 0)) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <NavigationBar />
+        <NavigationBar locale={locale} />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto text-center space-y-6">
             <div className="mx-auto w-20 h-20 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
@@ -290,7 +290,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   if (accountsLoading || showResults) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <NavigationBar />
+        <NavigationBar locale={locale} />
         <div className="container mx-auto px-4 py-8">
           {accountsLoading ? (
             <div className="max-w-2xl mx-auto text-center space-y-6">
@@ -311,7 +311,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                   Meta 廣告儀表板
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                  廣告帳戶: {accounts?.find(acc => acc.id === selectedAccount)?.name}
+                  廣告帳戶: {accounts?.find((acc: any) => acc.id === selectedAccount)?.name}
                 </p>
               </div>
               
@@ -336,7 +336,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   // 主要的選擇介面（步驟 2 和 3）
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <NavigationBar />
+      <NavigationBar locale={locale} />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* 標題和進度 */}
@@ -394,10 +394,9 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
               <CardContent>
                 <FacebookAccountSelector
                   accounts={accounts || []}
-                  selectedAccount={selectedAccount}
-                  onAccountSelect={(accountId) => {
+                  onAccountSelected={(accountId: string) => {
                     setSelectedAccount(accountId);
-                    trackAccountSelection(accountId);
+                    trackAccountSelection(accountId, selectedPlan);
                   }}
                   isLoading={accountsLoading}
                 />
@@ -425,16 +424,16 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                   ) : plans && plans.length > 0 ? (
                     <Select
                       value={selectedPlan}
-                      onValueChange={(value) => {
+                      onValueChange={(value: string) => {
                         setSelectedPlan(value);
-                        trackPlanSelection(value);
+                        trackPlanSelection(value, selectedAccount);
                       }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="選擇一個計劃" />
                       </SelectTrigger>
                       <SelectContent>
-                        {plans.map((plan) => (
+                        {plans.map((plan: any) => (
                           <SelectItem key={plan.id} value={plan.id}>
                             <div className="flex items-center justify-between w-full">
                               <span>{plan.name}</span>
@@ -480,7 +479,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                         <SelectValue placeholder="選擇您的行業" />
                       </SelectTrigger>
                       <SelectContent>
-                        {industries.map((industry) => (
+                        {industries.map((industry: any) => (
                           <SelectItem key={industry.id} value={industry.id}>
                             {industry.name}
                           </SelectItem>
