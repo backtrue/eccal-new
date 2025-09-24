@@ -158,8 +158,8 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
         <NavigationBar locale={locale} />
         <div className="container mx-auto p-6 max-w-6xl">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Meta 廣告儀表板結果</h1>
-            <p className="text-gray-600">基於您的廣告數據分析</p>
+            <h1 className="text-3xl font-bold mb-2">{t.healthCheckResults || 'Meta 廣告儀表板結果'}</h1>
+            <p className="text-gray-600">{t.resultsBasedOn || '基於您的廣告數據分析'}</p>
           </div>
 
           {/* 儀表板數據概覽 */}
@@ -167,18 +167,33 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5" />
-                廣告效果概覽
+                {t.overallScore || '廣告效果概覽'}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 日均花費 */}
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
                   <div className="text-sm text-gray-600 mb-1">日均花費</div>
                   <div className="text-2xl font-bold text-blue-600 mb-1">
-                    {(checkMutation.data as any)?.actualMetrics?.dailySpend?.toLocaleString() || '0'}
+                    {(() => {
+                      const dailySpendComparison = (checkMutation.data as any)?.comparisons?.find((c: any) => c.metric === 'dailySpend');
+                      const actualSpend = (checkMutation.data as any)?.actualMetrics?.dailySpend;
+                      if (dailySpendComparison?.currencyConversionInfo) {
+                        return `${dailySpendComparison.currencyConversionInfo.targetCurrency} ${actualSpend?.toLocaleString() || '0'}`;
+                      }
+                      return `NT$ ${actualSpend?.toLocaleString() || '0'}`;
+                    })()}
                   </div>
                   <div className="text-xs text-gray-500">
-                    目標: {(checkMutation.data as any)?.comparisons?.find((c: any) => c.metric === 'dailySpend')?.target?.toLocaleString() || '0'}
+                    {(() => {
+                      const dailySpendComparison = (checkMutation.data as any)?.comparisons?.find((c: any) => c.metric === 'dailySpend');
+                      const target = dailySpendComparison?.target;
+                      if (dailySpendComparison?.currencyConversionInfo) {
+                        return `目標: ${dailySpendComparison.currencyConversionInfo.targetCurrency} ${target?.toLocaleString() || '0'}`;
+                      }
+                      return `目標: NT$ ${target?.toLocaleString() || '0'}`;
+                    })()}
                   </div>
                 </div>
                 

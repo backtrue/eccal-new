@@ -99,11 +99,11 @@ export default function FacebookAccountSelector({
         </label>
         <Badge variant="outline" className="text-green-600 border-green-300">
           <CheckCircle className="h-3 w-3 mr-1" />
-          已連接
+          <span>已連接</span>
         </Badge>
         {accounts && (
           <Badge variant="secondary" className="text-xs">
-            {(accounts as any[]).length} 個帳戶
+            {String(Array.isArray(accounts) ? accounts.length : 0)} 個帳戶
           </Badge>
         )}
       </div>
