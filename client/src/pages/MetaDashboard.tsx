@@ -5,10 +5,8 @@ import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Loader2, 
   Shield, 
@@ -20,13 +18,7 @@ import {
   AlertTriangle,
   Facebook,
   BarChart3,
-  Lightbulb,
-  DollarSign, 
-  Eye, 
-  MousePointer, 
-  ShoppingCart, 
-  Users, 
-  PieChart
+  Lightbulb
 } from 'lucide-react';
 import { useFbAuditAccounts, useFbAuditPlans, useFbAuditIndustries, useFbAuditCheck } from '@/hooks/useFbAudit';
 import { useFbAuditStream } from '@/hooks/useFbAuditStream';
@@ -117,14 +109,12 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
         locale
       });
 
-      if (result.success) {
-        setShowResults(true);
-        console.log('儀表板載入成功');
-      } else {
-        console.error('儀表板載入失敗:', result.error);
-      }
+      console.log('儀表板載入成功:', result);
+      setShowResults(true);
     } catch (error) {
-      console.error('載入儀表板時發生錯誤:', error);
+      console.error('載入儀表板失敗:', error);
+      // 即使失敗也要有清楚的錯誤顯示
+      alert('儀表板載入失敗');
     }
   };
 
@@ -132,29 +122,16 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   const hasPlans = plans && plans.length > 0;
   const canStartAudit = selectedAccount && selectedPlan && selectedIndustry;
 
-  // 如果用戶未登入，顯示登入提示
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-gray-50">
         <NavigationBar locale={locale} />
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-md mx-auto text-center space-y-6">
-            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <BarChart3 className="w-10 h-10 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-                Meta 廣告儀表板
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                請先登入以查看您的廣告數據
-              </p>
-            </div>
-            <Button 
-              onClick={() => window.location.href = '/api/auth/google'}
-              className="w-full"
-            >
-              <Users className="w-4 h-4 mr-2" />
+        <div className="container mx-auto p-6 max-w-4xl">
+          <div className="text-center py-20">
+            <Facebook className="w-16 h-16 text-blue-600 mx-auto mb-6" />
+            <h1 className="text-3xl font-bold mb-4">Meta 廣告儀表板</h1>
+            <p className="text-gray-600 mb-8">請先登入以查看您的廣告數據</p>
+            <Button size="lg" onClick={() => window.location.href = '/api/auth/google'}>
               Google 登入
             </Button>
           </div>
@@ -164,122 +141,96 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     );
   }
 
-  // 如果用戶已登入但未連接 Facebook，顯示連接提示
-  if (isAuthenticated && !user?.hasFacebookAuth) {
+  // 調試前端狀態
+  console.log('前端狀態檢查:', {
+    showResults,
+    hasData: !!checkMutation.data,
+    mutationStatus: checkMutation.status,
+    isLoading: checkMutation.isPending
+  });
+
+  if (showResults && checkMutation.data) {
+    console.log('儀表板結果數據:', checkMutation.data);
+    
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-gray-50">
         <NavigationBar locale={locale} />
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto">
-            <div className="text-center space-y-6">
-              <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <Facebook className="w-10 h-10 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-                  連接您的 Facebook 廣告帳戶
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  請連接您的 Facebook 廣告帳戶以查看廣告數據和儀表板
-                </p>
-              </div>
-              
-              {/* 步驟指示器 */}
-              <div className="flex justify-center items-center space-x-4 my-8">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Google 登入</span>
-                </div>
-                <div className="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">2</span>
-                  </div>
-                  <span className="ml-2 text-sm text-blue-600 dark:text-blue-400 font-medium">Facebook 連接</span>
-                </div>
-                <div className="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-gray-500">3</span>
-                  </div>
-                  <span className="ml-2 text-sm text-gray-500">查看儀表板</span>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
-                    <Shield className="w-5 h-5 text-green-500 mt-0.5" />
-                    <div className="text-left">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">安全連接</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        我們使用 Facebook 官方 API，確保您的資料安全
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <BarChart3 className="w-5 h-5 text-blue-500 mt-0.5" />
-                    <div className="text-left">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">即時數據</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        獲取最新的廣告數據和效果分析
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <Lightbulb className="w-5 h-5 text-yellow-500 mt-0.5" />
-                    <div className="text-left">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">智能洞察</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        AI 驅動的建議幫您優化廣告效果
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6">
-                  <FacebookLoginButton />
-                </div>
-              </div>
-            </div>
+        <div className="container mx-auto p-6 max-w-6xl">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">Meta 廣告儀表板結果</h1>
+            <p className="text-gray-600">基於您的廣告數據分析</p>
           </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
 
-  // 如果已連接 Facebook 但沒有可用帳戶
-  if (isAuthenticated && user?.hasFacebookAuth && !accountsLoading && (!accounts || accounts.length === 0)) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <NavigationBar locale={locale} />
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto text-center space-y-6">
-            <div className="mx-auto w-20 h-20 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
-              <XCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-                未找到廣告帳戶
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                我們無法找到與您的 Facebook 帳戶關聯的廣告帳戶
-              </p>
-            </div>
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                請確保您的 Facebook 帳戶有廣告帳戶存取權限，或聯繫廣告帳戶管理員為您添加權限。
-              </AlertDescription>
-            </Alert>
+          {/* 儀表板數據概覽 */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                廣告效果概覽
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">日均花費</div>
+                  <div className="text-2xl font-bold text-blue-600 mb-1">
+                    {(checkMutation.data as any)?.actualMetrics?.dailySpend?.toLocaleString() || '0'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    目標: {(checkMutation.data as any)?.comparisons?.find((c: any) => c.metric === 'dailySpend')?.target?.toLocaleString() || '0'}
+                  </div>
+                </div>
+                
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">ROAS</div>
+                  <div className="text-2xl font-bold text-green-600 mb-1">
+                    {(checkMutation.data as any)?.actualMetrics?.roas?.toFixed(2) || '0.00'}x
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    目標: {((checkMutation.data as any)?.comparisons?.find((c: any) => c.metric === 'roas')?.target || 0).toFixed(2)}x
+                  </div>
+                </div>
+                
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">每日購買數</div>
+                  <div className="text-2xl font-bold text-purple-600 mb-1">
+                    {(checkMutation.data as any)?.actualMetrics?.purchases?.toFixed(0) || '0'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    目標: {((checkMutation.data as any)?.comparisons?.find((c: any) => c.metric === 'purchases')?.target || 0).toFixed(0)}
+                  </div>
+                </div>
+                
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">連結點擊率</div>
+                  <div className="text-2xl font-bold text-orange-600 mb-1">
+                    {(checkMutation.data as any)?.actualMetrics?.ctr?.toFixed(2) || '0.00'}%
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    目標: {((checkMutation.data as any)?.comparisons?.find((c: any) => c.metric === 'ctr')?.target || 0).toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 操作按鈕 */}
+          <div className="text-center">
             <Button 
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                setShowResults(false);
+                setCurrentStep(1);
+                setSelectedAccount("");
+                setSelectedPlan("");
+                setSelectedIndustry("");
+              }}
               variant="outline"
+              className="mr-4"
             >
-              重新檢查
+              重新分析
+            </Button>
+            <Button onClick={() => window.location.href = '/dashboard'}>
+              返回儀表板
             </Button>
           </div>
         </div>
@@ -288,239 +239,262 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     );
   }
 
-  // 如果正在載入帳戶或顯示結果
-  if (accountsLoading || showResults) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <NavigationBar locale={locale} />
-        <div className="container mx-auto px-4 py-8">
-          {accountsLoading ? (
-            <div className="max-w-2xl mx-auto text-center space-y-6">
-              <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-500" />
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  載入您的廣告帳戶
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400">
-                  正在從 Facebook 獲取您的廣告帳戶資訊...
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                  Meta 廣告儀表板
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  廣告帳戶: {accounts?.find((acc: any) => acc.id === selectedAccount)?.name}
-                </p>
-              </div>
-              
-              {/* 這裡會顯示實際的儀表板數據 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>儀表板數據載入中...</CardTitle>
-                  <CardDescription>正在分析您的廣告數據</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  // 主要的選擇介面（步驟 2 和 3）
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50">
       <NavigationBar locale={locale} />
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          {/* 標題和進度 */}
-          <div className="text-center space-y-6 mb-8">
-            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <BarChart3 className="w-10 h-10 text-white" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">
-                Meta 廣告儀表板
-              </h1>
-              <p className="text-xl text-gray-600 dark:text-gray-400">
-                深度分析您的 Facebook 廣告數據，優化投資回報率
-              </p>
-            </div>
+      
+      <div className="container mx-auto p-6 max-w-4xl">
+        {/* 頁面標題 */}
+        <div className="text-center mb-12">
+          <Facebook className="w-16 h-16 text-blue-600 mx-auto mb-6" />
+          <h1 className="text-4xl font-bold mb-4">Meta 廣告儀表板</h1>
+          <p className="text-xl text-gray-600 mb-6">
+            深度分析您的 Facebook 廣告數據，優化投資回報率
+          </p>
+          
+          {/* 安全提示 */}
+          <Alert className="max-w-2xl mx-auto mb-8">
+            <Shield className="h-4 w-4" />
+            <AlertDescription>
+              我們使用官方 API 安全連接，您的數據完全保密
+            </AlertDescription>
+          </Alert>
+        </div>
 
-            {/* 步驟指示器 */}
-            <div className="flex justify-center items-center space-x-4 my-8">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-white" />
-                </div>
-                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Google 登入</span>
+        {/* 步驟進度 */}
+        <div className="mb-8">
+          <div className="flex items-center justify-center space-x-4 mb-4">
+            {[1, 2, 3, 4].map((step) => (
+              <div
+                key={step}
+                className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+                  currentStep >= step
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'border-gray-300 text-gray-400'
+                }`}
+              >
+                {step}
               </div>
-              <div className="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-white" />
-                </div>
-                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Facebook 連接</span>
-              </div>
-              <div className="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-bold text-white">3</span>
-                </div>
-                <span className="ml-2 text-sm text-blue-600 dark:text-blue-400 font-medium">設置儀表板</span>
-              </div>
-            </div>
+            ))}
           </div>
-
-          {/* 設置表單 */}
-          <div className="space-y-6">
-            {/* 帳戶選擇 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Target className="w-5 h-5" />
-                  <span>選擇廣告帳戶</span>
-                </CardTitle>
-                <CardDescription>
-                  選擇您要分析的 Facebook 廣告帳戶
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FacebookAccountSelector
-                  accounts={accounts || []}
-                  onAccountSelected={(accountId: string) => {
-                    setSelectedAccount(accountId);
-                    trackAccountSelection(accountId, selectedPlan);
-                  }}
-                  isLoading={accountsLoading}
-                />
-              </CardContent>
-            </Card>
-
-            {/* 計劃選擇 */}
-            {selectedAccount && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <BarChart3 className="w-5 h-5" />
-                    <span>選擇分析計劃</span>
-                  </CardTitle>
-                  <CardDescription>
-                    選擇已儲存的計劃結果進行對比分析
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {plansLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>載入計劃中...</span>
-                    </div>
-                  ) : plans && plans.length > 0 ? (
-                    <Select
-                      value={selectedPlan}
-                      onValueChange={(value: string) => {
-                        setSelectedPlan(value);
-                        trackPlanSelection(value, selectedAccount);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="選擇一個計劃" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {plans.map((plan: any) => (
-                          <SelectItem key={plan.id} value={plan.id}>
-                            <div className="flex items-center justify-between w-full">
-                              <span>{plan.name}</span>
-                              <Badge variant="outline" className="ml-2">
-                                {plan.period}天
-                              </Badge>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Alert>
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        您還沒有任何已儲存的計劃。請先使用預算計算機建立計劃。
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* 行業選擇 */}
-            {selectedAccount && selectedPlan && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Lightbulb className="w-5 h-5" />
-                    <span>選擇行業類型</span>
-                  </CardTitle>
-                  <CardDescription>
-                    選擇您的行業以獲得更精確的分析和建議
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {industries ? (
-                    <Select
-                      value={selectedIndustry}
-                      onValueChange={setSelectedIndustry}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="選擇您的行業" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {industries.map((industry: any) => (
-                          <SelectItem key={industry.id} value={industry.id}>
-                            {industry.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Skeleton className="h-10 w-full" />
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* 開始按鈕 */}
-            {selectedAccount && selectedPlan && selectedIndustry && (
-              <div className="text-center">
-                <Button
-                  onClick={handleStartDashboard}
-                  disabled={checkMutation.isPending}
-                  size="lg"
-                  className="px-8 py-3"
-                >
-                  {checkMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      載入儀表板中...
-                    </>
-                  ) : (
-                    <>
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      查看儀表板
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
+          <div className="text-center text-sm text-gray-600">
+            {currentStep === 1 && 'Facebook 連接'}
+            {currentStep === 2 && '選擇廣告帳戶'}
+            {currentStep === 3 && '選擇分析計劃'}
+            {currentStep === 4 && '選擇行業類型'}
           </div>
         </div>
+
+        {/* 步驟 1: Facebook 連接 */}
+        {currentStep === 1 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Facebook className="w-5 h-5" />
+                Facebook 連接
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!isConnected ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-6">
+                    請連接您的 Facebook 廣告帳戶以開始分析
+                  </p>
+                  <FacebookLoginButton />
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                  <p className="text-green-600 font-medium mb-4">Facebook 已連接</p>
+                  <Button onClick={() => setCurrentStep(2)}>
+                    下一步：選擇廣告帳戶
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 步驟 2: 選擇廣告帳戶 */}
+        {currentStep === 2 && isConnected && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                選擇廣告帳戶
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {accountsLoading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                  <p className="text-gray-600">載入廣告帳戶中...</p>
+                </div>
+              ) : accounts && accounts.length > 0 ? (
+                <div className="space-y-4">
+                  <FacebookAccountSelector
+                    accounts={accounts}
+                    onAccountSelected={(accountId: string) => {
+                      setSelectedAccount(accountId);
+                      trackAccountSelection(accountId, selectedPlan);
+                    }}
+                    isLoading={accountsLoading}
+                  />
+                  
+                  {selectedAccount && (
+                    <div className="text-center pt-4">
+                      <Button onClick={() => setCurrentStep(3)}>
+                        下一步：選擇分析計劃
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertTriangle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
+                  <p className="text-yellow-600 font-medium">未找到廣告帳戶</p>
+                  <p className="text-gray-600 text-sm">請確保您的 Facebook 帳戶有廣告帳戶存取權限</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 步驟 3: 選擇分析計劃 */}
+        {currentStep === 3 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                選擇分析計劃
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {plansLoading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                  <p className="text-gray-600">載入預算計劃中...</p>
+                </div>
+              ) : hasPlans ? (
+                <div className="space-y-4">
+                  <Select value={selectedPlan} onValueChange={(value) => {
+                    if (value === 'create_new_plan') {
+                      // 跳轉到計算機頁面，並帶上返回參數
+                      const returnUrl = `/meta-dashboard?step=3&account=${selectedAccount}&industry=${selectedIndustry}`;
+                      window.location.href = `/calculator?returnTo=${encodeURIComponent(returnUrl)}`;
+                    } else {
+                      setSelectedPlan(value);
+                      const plan = plans.find((p: any) => p.id === value);
+                      trackPlanSelection(value, plan?.planName || 'Unknown');
+                    }
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇一個計劃" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plans.map((plan: any) => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.planName} (目標 ROAS: {plan.targetRoas}x)
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="create_new_plan" className="text-blue-600 font-medium">
+                        + 新增計劃
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {selectedPlan && (
+                    <div className="text-center pt-4">
+                      <Button onClick={() => setCurrentStep(4)}>
+                        下一步：選擇行業類型
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertTriangle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                  <p className="text-blue-600 font-medium mb-4">尚未建立預算計劃</p>
+                  <p className="text-gray-600 mb-6">
+                    需要先建立預算計劃才能進行儀表板分析
+                  </p>
+                  <Button onClick={() => {
+                    const returnUrl = `/meta-dashboard?step=3&account=${selectedAccount}&industry=${selectedIndustry}`;
+                    window.location.href = `/calculator?returnTo=${encodeURIComponent(returnUrl)}`;
+                  }}>
+                    前往建立預算計劃
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 步驟 4: 選擇行業類型 */}
+        {currentStep === 4 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                選擇行業類型
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Select value={selectedIndustry} onValueChange={setSelectedIndustry}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇您的行業" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.isArray(industries) && industries.map((industry: any) => (
+                      <SelectItem key={industry.id} value={industry.id}>
+                        {industry.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {selectedIndustry && (
+                  <div className="text-center pt-4">
+                    <Button 
+                      onClick={handleStartDashboard}
+                      disabled={!canStartAudit || checkMutation.isPending}
+                      size="lg"
+                      className="px-8"
+                    >
+                      {checkMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          分析中...
+                        </>
+                      ) : (
+                        <>
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          開始分析
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 載入狀態 */}
+        {checkMutation.isPending && (
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="mb-6">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              </div>
+              <h3 className="text-lg font-medium mb-2">正在分析您的廣告數據</h3>
+              <p className="text-gray-600 mb-6">這可能需要幾分鐘時間，請稍候...</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
+      
       <Footer />
     </div>
   );
