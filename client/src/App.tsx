@@ -29,6 +29,7 @@ import AuthDebug from "./pages/auth-debug";
 import FacebookPermissions from "./pages/facebook-permissions";
 import FacebookSetup from "./pages/facebook-setup";
 import FbAudit from "./pages/fbaudit";
+import MetaDashboard from "./pages/MetaDashboard";
 import Pricing from "./pages/pricing";
 import FbAuditHelp from "./pages/help/fbaudit-help";
 import CalculatorHelp from "./pages/help/calculator-help";
@@ -125,12 +126,14 @@ function Router() {
       <Route path="/zh-tw/calculator" component={() => <Calculator locale="zh-TW" />} />
       <Route path="/zh-tw/campaign-planner" component={() => <CampaignPlannerV2 locale="zh-TW" />} />
       <Route path="/zh-tw/fbaudit" component={() => <FbAudit locale="zh-TW" />} />
+      <Route path="/zh-tw/meta-dashboard" component={() => <MetaDashboard locale="zh-TW" />} />
       <Route path="/zh-tw/pricing" component={() => <Pricing locale="zh-TW" />} />
       <Route path="/zh-tw/dashboard" component={() => <Dashboard locale="zh-TW" />} />
       <Route path="/zh-tw/about" component={() => <About locale="zh-TW" />} />
       <Route path="/calculator" component={() => <Calculator locale="zh-TW" />} />
       <Route path="/campaign-planner" component={() => <CampaignPlannerV2 locale="zh-TW" />} />
       <Route path="/fbaudit" component={() => <FbAudit locale="zh-TW" />} />
+      <Route path="/meta-dashboard" component={() => <MetaDashboard locale="zh-TW" />} />
       <Route path="/pricing" component={() => <Pricing locale="zh-TW" />} />
       <Route path="/checkout" component={() => <Checkout locale="zh-TW" />} />
       <Route path="/subscription-checkout" component={() => <SubscriptionCheckout locale="zh-TW" />} />
@@ -163,6 +166,7 @@ function Router() {
       <Route path="/en/calculator" component={() => <Calculator locale="en" />} />
       <Route path="/en/campaign-planner" component={() => <CampaignPlannerV2 locale="en" />} />
       <Route path="/en/fbaudit" component={() => <FbAudit locale="en" />} />
+      <Route path="/en/meta-dashboard" component={() => <MetaDashboard locale="en" />} />
       <Route path="/en/pricing" component={() => <Pricing locale="en" />} />
       <Route path="/en/checkout" component={() => <Checkout locale="en" />} />
       <Route path="/en/subscription-checkout" component={() => <SubscriptionCheckout locale="en" />} />
