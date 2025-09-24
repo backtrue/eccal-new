@@ -34,6 +34,18 @@ export function setupFbAuditRoutes(app: Express) {
       });
     } catch (error) {
       console.error('Error fetching ad accounts:', error);
+      
+      // 檢查是否為 Facebook token 失效錯誤
+      if ((error as any).type === 'TOKEN_EXPIRED') {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Facebook access token has expired',
+          errorType: 'TOKEN_EXPIRED',
+          message: 'Please reconnect your Facebook account',
+          requiresReauth: true
+        });
+      }
+      
       res.status(500).json({ 
         success: false, 
         error: 'Failed to fetch ad accounts' 

@@ -9,6 +9,13 @@ export function useFbAuditAccounts(enabled = true) {
     staleTime: 5 * 60 * 1000, // 5 分鐘
     gcTime: 10 * 60 * 1000, // 10 分鐘
     select: (data: any) => data?.data || [], // 提取 API 回應中的 data 欄位
+    retry: (failureCount, error: any) => {
+      // 如果是 token 失效錯誤，不要重試
+      if (error?.status === 401 && error?.data?.errorType === 'TOKEN_EXPIRED') {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 }
 

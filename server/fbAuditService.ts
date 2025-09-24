@@ -77,6 +77,21 @@ export class FbAuditService {
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Facebook API 錯誤詳情:', errorText);
+          
+          // 檢查是否為 token 失效錯誤
+          try {
+            const errorData = JSON.parse(errorText);
+            if (errorData.error && errorData.error.code === 190) {
+              // Token 已失效，需要重新授權
+              const error = new Error('Facebook access token has expired or been invalidated');
+              (error as any).type = 'TOKEN_EXPIRED';
+              (error as any).facebookError = errorData.error;
+              throw error;
+            }
+          } catch (parseError) {
+            // 如果不是 JSON 格式，繼續原有邏輯
+          }
+          
           throw new Error(`Facebook API error: ${response.status} - ${errorText}`);
         }
 
