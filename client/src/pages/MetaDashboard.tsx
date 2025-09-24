@@ -234,7 +234,7 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
   const [businessType, setBusinessType] = useState<string>('ecommerce');
   const [needsAuth, setNeedsAuth] = useState(false);
 
-  // 獲取 Meta 儀表板統計數據 - 使用自定義 queryFn 來正確處理 401 錯誤
+  // 獲取 Meta 儀表板統計數據 - 只在已認證且有 Facebook 連接時載入
   const { 
     data: dashboardData, 
     isLoading: dashboardLoading, 
@@ -242,28 +242,7 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
     refetch: refetchDashboard
   } = useQuery<{ success: boolean; data: MetaDashboardData }>({ 
     queryKey: ['/api/meta/dashboard'],
-    queryFn: async () => {
-      const res = await fetch('/api/meta/dashboard', {
-        credentials: 'include'
-      });
-      
-      // 對於 401 錯誤，創建一個特殊的錯誤對象來保持狀態信息
-      if (res.status === 401) {
-        const errorObj = new Error('Authentication required');
-        (errorObj as any).response = {
-          status: 401,
-          data: await res.json().catch(() => ({ error: 'Authentication required' }))
-        };
-        throw errorObj;
-      }
-      
-      if (!res.ok) {
-        const text = await res.text() || res.statusText;
-        throw new Error(`${res.status}: ${text}`);
-      }
-      
-      return await res.json();
-    },
+    enabled: isAuthenticated && user?.metaAccessToken,  // 只在已認證且有 Meta token 時載入
     retry: false
   });
 
@@ -287,25 +266,28 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
     enabled: !!dashboardData?.success && !needsAuth
   });
 
-  // 處理認證錯誤
+  // 根據認證狀態設置需要認證標記
   useEffect(() => {
+    // 如果未認證，顯示登入界面
+    if (!isAuthenticated) {
+      setNeedsAuth(false); // 會由 isAuthenticated 檢查處理
+      return;
+    }
+    
+    // 如果已認證但沒有 Facebook 連接，需要連接 Facebook
+    if (isAuthenticated && !user?.metaAccessToken) {
+      setNeedsAuth(true);
+      return;
+    }
+    
+    // 如果有錯誤且包含認證相關訊息，設為需要重新認證
     if (dashboardError) {
-      const status = (dashboardError as any)?.response?.status;
-      const errorData = (dashboardError as any)?.response?.data;
       const errorMessage = dashboardError.message;
-      
-      // 處理 401 未認證錯誤 (包括 Facebook token 過期)
-      if (status === 401 || errorMessage.includes('401') || errorMessage.includes('Authentication required') || errorMessage.includes('access token')) {
-        setNeedsAuth(true);
-        return;
-      }
-      
-      // 處理 400 需要 Facebook 認證
-      if (status === 400 && errorData?.needsFacebookAuth) {
+      if (errorMessage.includes('401') || errorMessage.includes('Authentication required') || errorMessage.includes('access token')) {
         setNeedsAuth(true);
       }
     }
-  }, [dashboardError]);
+  }, [isAuthenticated, user?.metaAccessToken, dashboardError]);
 
   // 連接 Facebook 廣告帳戶
   const handleConnectFacebook = async () => {
