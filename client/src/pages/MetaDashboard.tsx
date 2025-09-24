@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import NavigationBar from '@/components/NavigationBar';
+import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
+import type { Locale } from '@/lib/i18n';
 
 interface MetaDashboardData {
   account: {
@@ -228,7 +231,11 @@ function LoginInterface() {
   );
 }
 
-export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string }) {
+interface MetaDashboardProps {
+  locale: Locale;
+}
+
+export default function MetaDashboard({ locale }: MetaDashboardProps) {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, checkAuth } = useAuth();
   const [businessType, setBusinessType] = useState<string>('ecommerce');
@@ -322,15 +329,23 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
 
   // 如果用戶未登入，顯示登入界面
   if (!isAuthenticated) {
-    return <LoginInterface />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <NavigationBar locale={locale} />
+        <LoginInterface />
+        <Footer />
+      </div>
+    );
   }
 
   // 如果需要 Facebook 認證
   if (needsAuth || (dashboardError && (dashboardError as any)?.response?.data?.needsFacebookAuth)) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <NavigationBar locale={locale} />
+        <div className="p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center space-y-6">
             <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
               <Target className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             </div>
@@ -359,8 +374,10 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
             >
               連接 Facebook 廣告帳戶
             </Button>
+            </div>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -368,27 +385,31 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
   // 載入中狀態
   if (dashboardLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-96" />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <Card key={i}>
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-8 w-24" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-4 w-16" />
-                </CardContent>
-              </Card>
-            ))}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <NavigationBar locale={locale} />
+        <div className="p-6">
+          <div className="max-w-7xl mx-auto space-y-6">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-96" />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i}>
+                  <CardHeader className="pb-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-8 w-24" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-16" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -413,29 +434,39 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
     
     // 檢查多種 401 未認證的可能情況
     if (status === 401 || errorMessage?.includes('Unauthorized') || errorMessage?.includes('Authentication required')) {
-      return <LoginInterface />;
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+          <NavigationBar locale={locale} />
+          <LoginInterface />
+          <Footer />
+        </div>
+      );
     }
     
     // 其他錯誤：顯示一般錯誤信息
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-        <div className="max-w-4xl mx-auto">
-          <Alert className="border-red-200 bg-red-50 dark:bg-red-900/20">
-            <AlertCircle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800 dark:text-red-300">
-              載入 Meta 廣告數據時發生錯誤。請檢查您的網路連接或稍後再試。
-              {dashboardError && (
-                <div className="mt-2 text-sm">
-                  錯誤詳情：{(dashboardError as any)?.message || '未知錯誤'}
-                </div>
-              )}
-            </AlertDescription>
-          </Alert>
-          
-          <div className="mt-6 text-center">
-            <Button onClick={() => refetchDashboard()}>重新載入</Button>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <NavigationBar locale={locale} />
+        <div className="p-6">
+          <div className="max-w-4xl mx-auto">
+            <Alert className="border-red-200 bg-red-50 dark:bg-red-900/20">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800 dark:text-red-300">
+                載入 Meta 廣告數據時發生錯誤。請檢查您的網路連接或稍後再試。
+                {dashboardError && (
+                  <div className="mt-2 text-sm">
+                    錯誤詳情：{(dashboardError as any)?.message || '未知錯誤'}
+                  </div>
+                )}
+              </AlertDescription>
+            </Alert>
+            
+            <div className="mt-6 text-center">
+              <Button onClick={() => refetchDashboard()}>重新載入</Button>
+            </div>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -459,11 +490,13 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* 頁面標題 */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <NavigationBar locale={locale} />
+      <div className="p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* 頁面標題 */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               Meta 廣告儀表板
             </h1>
@@ -746,6 +779,8 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
           </TabsContent>
         </Tabs>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }
