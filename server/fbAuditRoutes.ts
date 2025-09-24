@@ -14,13 +14,21 @@ export function setupFbAuditRoutes(app: Express) {
     try {
       const user = (req as any).user;
       
-      console.log('FB帳戶API調用 - 用戶資料:', {
-        userId: user.id,
-        email: user.email,
-        hasMetaToken: !!user.metaAccessToken
+      console.log('=== FB帳戶API調用詳細調試 ===');
+      console.log('完整用戶對象:', JSON.stringify(user, null, 2));
+      console.log('用戶對象類型:', typeof user);
+      console.log('用戶對象鍵:', Object.keys(user || {}));
+      console.log('metaAccessToken 存在性:', !!user?.metaAccessToken);
+      console.log('metaAccessToken 類型:', typeof user?.metaAccessToken);
+      console.log('metaAccessToken 長度:', user?.metaAccessToken?.length || 0);
+      console.log('用戶資料:', {
+        userId: user?.id,
+        email: user?.email,
+        hasMetaToken: !!user?.metaAccessToken,
+        metaTokenPreview: user?.metaAccessToken ? user.metaAccessToken.substring(0, 20) + '...' : 'null'
       });
       
-      if (!user.metaAccessToken) {
+      if (!user?.metaAccessToken) {
         console.log('錯誤：用戶沒有 Facebook access token');
         return res.status(400).json({ 
           success: false, 
