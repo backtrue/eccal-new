@@ -1174,6 +1174,196 @@ export function setupDiagnosisRoutes(app: Express) {
       res.status(500).json({ error: 'Meta 授權失敗' });
     }
   });
+  
+  // Meta 廣告儀表板路由 - 基於現有診斷功能擴展
+  
+  /**
+   * 獲取 Meta 廣告帳戶基本統計 (30天數據)
+   */
+  app.get('/api/meta/dashboard-stats', requireJWTAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // 獲取用戶 Facebook 認證資訊
+      const user = await storage.getUser(userId);
+      if (!user?.metaAccessToken || !user?.metaAdAccountId) {
+        return res.status(400).json({ 
+          error: 'Facebook 認證資訊不完整，請先連接 Facebook 廣告帳戶',
+          needsFacebookAuth: true
+        });
+      }
+      
+      console.log(`[META-DASHBOARD] 獲取用戶 ${userId} 的廣告統計數據`);
+      
+      // 使用現有的 metaAccountService 獲取數據
+      const accountData = await metaAccountService.getAdAccountData(
+        user.metaAccessToken,
+        user.metaAdAccountId
+      );
+      
+      // 計算關鍵指標
+      const ctr = accountData.impressions > 0 ? (accountData.linkClicks / accountData.impressions * 100) : 0;
+      const cpc = accountData.linkClicks > 0 ? (accountData.spend / accountData.linkClicks) : 0;
+      const roas = accountData.spend > 0 ? (accountData.purchaseValue / accountData.spend) : 0;
+      const atcRate = accountData.viewContent > 0 ? (accountData.addToCart / accountData.viewContent * 100) : 0;
+      const pfRate = accountData.addToCart > 0 ? (accountData.purchases / accountData.addToCart * 100) : 0;
+      
+      res.json({
+        success: true,
+        data: {
+          account: {
+            id: accountData.accountId,
+            name: accountData.accountName,
+            currency: accountData.currency
+          },
+          period: {
+            start: accountData.dateRange.since,
+            end: accountData.dateRange.until,
+            days: 30
+          },
+          overview: {
+            totalSpend: accountData.spend,
+            totalImpressions: accountData.impressions,
+            totalClicks: accountData.linkClicks,
+            totalPurchases: accountData.purchases,
+            totalRevenue: accountData.purchaseValue
+          },
+          metrics: {
+            ctr: parseFloat(ctr.toFixed(4)),
+            cpc: parseFloat(cpc.toFixed(2)),
+            roas: parseFloat(roas.toFixed(2)),
+            atcRate: parseFloat(atcRate.toFixed(2)),
+            pfRate: parseFloat(pfRate.toFixed(2))
+          },
+          funnel: {
+            impressions: accountData.impressions,
+            clicks: accountData.linkClicks,
+            viewContent: accountData.viewContent,
+            addToCart: accountData.addToCart,
+            purchases: accountData.purchases
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.error('獲取 Meta 儀表板統計錯誤:', error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : '獲取統計數據失敗' 
+      });
+    }
+  });
+  
+  /**
+   * 獲取業務類型專用的指標分析
+   */
+  app.get('/api/meta/business-metrics', requireJWTAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { businessType = 'ecommerce' } = req.query;
+      
+      // 獲取用戶 Facebook 認證資訊
+      const user = await storage.getUser(userId);
+      if (!user?.metaAccessToken || !user?.metaAdAccountId) {
+        return res.status(400).json({ 
+          error: 'Facebook 認證資訊不完整',
+          needsFacebookAuth: true
+        });
+      }
+      
+      console.log(`[META-BUSINESS] 獲取 ${businessType} 業務指標`);
+      
+      // 獲取廣告數據
+      const accountData = await metaAccountService.getAdAccountData(
+        user.metaAccessToken,
+        user.metaAdAccountId
+      );
+      
+      let businessMetrics = {};
+      
+      switch (businessType) {
+        case 'ecommerce':
+          // 電商指標
+          const atcRate = accountData.viewContent > 0 ? (accountData.addToCart / accountData.viewContent * 100) : 0;
+          const pfRate = accountData.addToCart > 0 ? (accountData.purchases / accountData.addToCart * 100) : 0;
+          const aov = accountData.purchases > 0 ? (accountData.purchaseValue / accountData.purchases) : 0;
+          const costPerPurchase = accountData.purchases > 0 ? (accountData.spend / accountData.purchases) : 0;
+          const roas = accountData.spend > 0 ? (accountData.purchaseValue / accountData.spend) : 0;
+          
+          businessMetrics = {
+            type: 'ecommerce',
+            metrics: {
+              atcRate: parseFloat(atcRate.toFixed(2)),
+              pfRate: parseFloat(pfRate.toFixed(2)),
+              aov: parseFloat(aov.toFixed(2)),
+              costPerPurchase: parseFloat(costPerPurchase.toFixed(2)),
+              roas: parseFloat(roas.toFixed(2))
+            },
+            breakdown: {
+              viewContent: accountData.viewContent,
+              addToCart: accountData.addToCart,
+              purchases: accountData.purchases,
+              revenue: accountData.purchaseValue
+            }
+          };
+          break;
+          
+        case 'consultation':
+          // 諮詢類指標 (估算)
+          const messagingEstimate = Math.floor(accountData.linkClicks * 0.15);
+          const costPerMessaging = messagingEstimate > 0 ? (accountData.spend / messagingEstimate) : 0;
+          const messagingRate = accountData.linkClicks > 0 ? (messagingEstimate / accountData.linkClicks * 100) : 0;
+          
+          businessMetrics = {
+            type: 'consultation',
+            metrics: {
+              costPerMessaging: parseFloat(costPerMessaging.toFixed(2)),
+              messagingRate: parseFloat(messagingRate.toFixed(2)),
+              estimatedConversations: messagingEstimate
+            },
+            breakdown: {
+              clicks: accountData.linkClicks,
+              estimatedMessaging: messagingEstimate
+            }
+          };
+          break;
+          
+        case 'lead_generation':
+          // 名單類指標 (估算)
+          const leadsEstimate = Math.floor(accountData.linkClicks * 0.08);
+          const costPerLead = leadsEstimate > 0 ? (accountData.spend / leadsEstimate) : 0;
+          const leadRate = accountData.linkClicks > 0 ? (leadsEstimate / accountData.linkClicks * 100) : 0;
+          
+          businessMetrics = {
+            type: 'lead_generation',
+            metrics: {
+              costPerLead: parseFloat(costPerLead.toFixed(2)),
+              leadRate: parseFloat(leadRate.toFixed(2)),
+              estimatedLeads: leadsEstimate
+            },
+            breakdown: {
+              clicks: accountData.linkClicks,
+              estimatedLeads: leadsEstimate
+            }
+          };
+          break;
+          
+        default:
+          return res.status(400).json({ error: '不支援的業務類型' });
+      }
+      
+      res.json({
+        success: true,
+        data: businessMetrics
+      });
+      
+    } catch (error) {
+      console.error('獲取業務指標錯誤:', error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : '獲取業務指標失敗' 
+      });
+    }
+  });
+
 }
 
 // 背景處理帳戶診斷邏輯
