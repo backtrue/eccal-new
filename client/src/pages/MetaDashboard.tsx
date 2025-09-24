@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import NavigationBar from '@/components/NavigationBar';
 import Footer from '@/components/Footer';
@@ -36,476 +35,490 @@ import FacebookAccountSelector from '@/components/FacebookAccountSelector';
 import FacebookLoginButton from '@/components/FacebookLoginButton';
 import type { Locale } from '@/lib/i18n';
 import { getTranslations } from '@/lib/i18n';
+import { useQueryClient } from '@tanstack/react-query';
 import { usePageViewTracking, useFbAuditTracking } from '@/hooks/useBehaviorTracking';
-
-interface MetaDashboardData {
-  account: {
-    id: string;
-    name: string;
-    currency: string;
-  };
-  period: {
-    start: string;
-    end: string;
-    days: number;
-  };
-  overview: {
-    totalSpend: number;
-    totalImpressions: number;
-    totalClicks: number;
-    totalPurchases: number;
-    totalRevenue: number;
-  };
-  metrics: {
-    ctr: number;
-    cpc: number;
-    roas: number;
-    atcRate: number;
-    pfRate: number;
-  };
-  funnel: {
-    impressions: number;
-    clicks: number;
-    viewContent: number;
-    addToCart: number;
-    purchases: number;
-  };
-}
-
-// 登入界面組件
-function LoginInterface() {
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isFacebookLoading, setIsFacebookLoading] = useState(false);
-
-  const handleGoogleLogin = () => {
-    setIsGoogleLoading(true);
-    // Google 登入重定向
-    window.location.href = '/api/auth/google';
-  };
-
-  const handleFacebookConnect = () => {
-    setIsFacebookLoading(true);
-    // Facebook 連接重定向
-    window.location.href = '/api/diagnosis/facebook-auth-url';
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-      <div className="max-w-lg mx-auto">
-        <div className="text-center space-y-6">
-          {/* Logo/Icon */}
-          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-            <Target className="w-10 h-10 text-white" />
-          </div>
-          
-          {/* Title */}
-          <div className="space-y-3">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-              Meta 廣告儀表板
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              分析您的 Facebook 廣告數據，優化投資回報率
-            </p>
-          </div>
-
-          {/* Login Steps */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg space-y-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              開始使用 - 兩步驟設置
-            </h2>
-            
-            {/* Step 1: Google Login */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400">1</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Google 登入</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">使用您的 Google 帳戶登入系統</p>
-                </div>
-              </div>
-              
-              <Button
-                onClick={handleGoogleLogin}
-                disabled={isGoogleLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                size="lg"
-                data-testid="google-login-button"
-              >
-                {isGoogleLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    登入中...
-                  </>
-                ) : (
-                  <>
-                    使用 Google 登入
-                  </>
-                )}
-              </Button>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">然後</span>
-              </div>
-            </div>
-
-            {/* Step 2: Facebook Connect */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400">2</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">連接 Facebook 廣告</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">授權存取您的 Facebook 廣告帳戶數據</p>
-                </div>
-              </div>
-              
-              <Button
-                onClick={handleFacebookConnect}
-                disabled={isFacebookLoading}
-                className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white"
-                size="lg"
-                data-testid="facebook-connect-button"
-              >
-                {isFacebookLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    連接中...
-                  </>
-                ) : (
-                  <>
-                    <Facebook className="mr-2 h-4 w-4" />
-                    連接 Facebook 廣告帳戶
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {/* Features Preview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            <div className="space-y-2">
-              <div className="mx-auto w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-green-600 dark:text-green-400" />
-              </div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">即時數據</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">查看最新的廣告表現數據</p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="mx-auto w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">趨勢分析</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">了解廣告成效變化趨勢</p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="mx-auto w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
-                <Target className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">優化建議</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">AI 驅動的廣告優化建議</p>
-            </div>
-          </div>
-
-          {/* Privacy Notice */}
-          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-            <p>
-              點擊上述按鈕表示您同意我們的{' '}
-              <a href="/privacy-policy" className="text-blue-600 hover:text-blue-700 underline">
-                隱私政策
-              </a>
-              {' '}和{' '}
-              <a href="/terms-of-service" className="text-blue-600 hover:text-blue-700 underline">
-                使用條款
-              </a>
-            </p>
-            <p>我們只會存取您授權的廣告數據，不會進行任何未經授權的操作。</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 interface MetaDashboardProps {
   locale: Locale;
 }
 
 export default function MetaDashboard({ locale }: MetaDashboardProps) {
+  const t = getTranslations(locale);
   const { user, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedAccount, setSelectedAccount] = useState<string>("");
-  const [showDashboard, setShowDashboard] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string>("");
+  const [selectedIndustry, setSelectedIndustry] = useState<string>("");
+  const [showResults, setShowResults] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
-  // 照抄 fbaudit 的帳號載入邏輯
+  // 追蹤頁面瀏覽和功能使用
+  usePageViewTracking('/meta-dashboard', 'meta-dashboard', { locale, step: currentStep });
+  const { trackAccountSelection, trackPlanSelection, trackHealthCheck, trackNPSRating } = useFbAuditTracking('/meta-dashboard');
+
+  // 只有在用戶已認證且有 Facebook access token 時才載入帳戶
   const shouldLoadAccounts = Boolean(isAuthenticated && user?.hasFacebookAuth);
   const { data: accounts, isLoading: accountsLoading } = useFbAuditAccounts(shouldLoadAccounts);
+  const { data: plans, isLoading: plansLoading, refetch: refetchPlans } = useFbAuditPlans(isAuthenticated, false);
+  const { data: industries } = useFbAuditIndustries();
+  const checkMutation = useFbAuditCheck();
+  const streamAudit = useFbAuditStream();
 
-  // 只有在選擇帳號且要求查看儀表板時才載入儀表板數據
-  const { 
-    data: dashboardData, 
-    isLoading: dashboardLoading, 
-    error: dashboardError,
-    refetch: refetchDashboard
-  } = useQuery<{ success: boolean; data: MetaDashboardData }>({ 
-    queryKey: ['/api/meta/dashboard', selectedAccount],
-    enabled: showDashboard && selectedAccount && isAuthenticated && user?.hasFacebookAuth,
-    retry: false
-  });
+  // 處理從計算機頁面返回的情況
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const step = urlParams.get('step');
+    const account = urlParams.get('account');
+    const industry = urlParams.get('industry');
+    const newPlan = urlParams.get('newPlan');
 
-  // 照抄 fbaudit 的計算變數
-  const isConnected = user?.hasFacebookAuth;
-  const canStartDashboard = selectedAccount;
-
-  // 如果用戶未登入，顯示登入界面
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <NavigationBar locale={locale} />
-        <LoginInterface />
-        <Footer />
-      </div>
-    );
-  }
-
-  // 檢查是否在儀表板模式且有結果數據 (照抄 fbaudit 的條件邏輯)
-  if (showDashboard && dashboardData?.success) {
-    const data = dashboardData.data;
-    
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <NavigationBar locale={locale} />
-        <div className="p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Meta 廣告儀表板
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              {data.account.name} • {data.period.start} 至 {data.period.end} ({data.period.days} 天)
-            </p>
-            {/* TODO: 這裡會放入完整的儀表板內容 */}
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  // 載入中狀態 - 當點擊查看儀表板後顯示
-  if (showDashboard && dashboardLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <NavigationBar locale={locale} />
-        <div className="p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-64" />
-              <Skeleton className="h-4 w-96" />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i}>
-                  <CardHeader className="pb-2">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-8 w-24" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-4 w-16" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  // 錯誤狀態 - 當點擊查看儀表板後但載入失敗
-  if (showDashboard && dashboardError) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <NavigationBar locale={locale} />
-        <div className="p-6">
-          <div className="max-w-4xl mx-auto">
-            <Alert className="border-red-200 bg-red-50 dark:bg-red-900/20">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800 dark:text-red-300">
-                載入 Meta 廣告數據時發生錯誤。請檢查您的網路連接或稍後再試。
-                <div className="mt-4 space-x-4">
-                  <Button 
-                    onClick={() => window.location.reload()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    重新載入
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowDashboard(false)}
-                  >
-                    返回
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  // 主要邏輯 - 步驟化認證流程 (完全照抄 fbaudit 的邏輯)
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <NavigationBar locale={locale} />
+    if (step === '3' && account && industry) {
+      setSelectedAccount(account);
+      setSelectedIndustry(industry);
+      setCurrentStep(3);
       
-      <div className="container mx-auto p-6 max-w-4xl">
-        {/* 頁面標題 */}
-        <div className="text-center mb-12">
-          <Facebook className="w-16 h-16 text-blue-600 mx-auto mb-6" />
-          <h1 className="text-4xl font-bold mb-4">Meta 廣告儀表板</h1>
-          <p className="text-xl text-gray-600 mb-6">
-            分析您的 Facebook 廣告數據，優化投資回報率
-          </p>
-        </div>
+      // 如果有新建立的計劃，強制重新載入計劃資料並選擇新計劃
+      if (newPlan) {
+        console.log('偵測到新建立的計劃，重新載入計劃資料:', newPlan);
+        // 清除快取並重新載入計劃資料
+        queryClient.invalidateQueries({ queryKey: ['/api/fbaudit/plans'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/plan-results'] });
+        
+        // 強制重新載入並等待完成
+        setTimeout(() => {
+          refetchPlans().then(() => {
+            setSelectedPlan(newPlan);
+            console.log('已選擇新建立的計劃:', newPlan);
+          });
+        }, 100); // 給一點時間讓快取清除生效
+      }
+    }
+  }, [queryClient, refetchPlans]);
 
-        {/* 步驟進度 - 照抄 fbaudit 但改為3步驟 */}
-        <div className="mb-8">
-          <div className="flex items-center justify-center space-x-4 mb-4">
-            {[1, 2, 3].map((step) => (
-              <div
-                key={step}
-                className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                  currentStep >= step
-                    ? 'bg-blue-600 border-blue-600 text-white'
-                    : 'border-gray-300 text-gray-400'
-                }`}
-              >
-                {step}
+  const handleStartDashboard = async () => {
+    if (!selectedAccount || !selectedPlan || !selectedIndustry) {
+      return;
+    }
+
+    try {
+      console.log('開始載入儀表板...', {
+        selectedAccount,
+        selectedPlan,
+        selectedIndustry
+      });
+      
+      // 追蹤儀表板載入
+      trackHealthCheck(selectedAccount, selectedPlan, selectedIndustry);
+      
+      const result = await checkMutation.mutateAsync({
+        adAccountId: selectedAccount,
+        planResultId: selectedPlan,
+        industryType: selectedIndustry,
+        locale
+      });
+
+      if (result.success) {
+        setShowResults(true);
+        console.log('儀表板載入成功');
+      } else {
+        console.error('儀表板載入失敗:', result.error);
+      }
+    } catch (error) {
+      console.error('載入儀表板時發生錯誤:', error);
+    }
+  };
+
+  const isConnected = user?.hasFacebookAuth && accounts && accounts.length > 0;
+
+  // 如果用戶未登入，顯示登入提示
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <NavigationBar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-md mx-auto text-center space-y-6">
+            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <BarChart3 className="w-10 h-10 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                Meta 廣告儀表板
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                請先登入以查看您的廣告數據
+              </p>
+            </div>
+            <Button 
+              onClick={() => window.location.href = '/api/auth/google'}
+              className="w-full"
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Google 登入
+            </Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // 如果用戶已登入但未連接 Facebook，顯示連接提示
+  if (isAuthenticated && !user?.hasFacebookAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <NavigationBar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center space-y-6">
+              <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <Facebook className="w-10 h-10 text-white" />
               </div>
-            ))}
-          </div>
-          <div className="text-center text-sm text-gray-600">
-            {currentStep === 1 && '連接 Facebook 廣告帳戶'}
-            {currentStep === 2 && '選擇廣告帳戶'}
-            {currentStep === 3 && '載入儀表板數據'}
-          </div>
-        </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                  連接您的 Facebook 廣告帳戶
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  請連接您的 Facebook 廣告帳戶以查看廣告數據和儀表板
+                </p>
+              </div>
+              
+              {/* 步驟指示器 */}
+              <div className="flex justify-center items-center space-x-4 my-8">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Google 登入</span>
+                </div>
+                <div className="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-bold text-white">2</span>
+                  </div>
+                  <span className="ml-2 text-sm text-blue-600 dark:text-blue-400 font-medium">Facebook 連接</span>
+                </div>
+                <div className="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-bold text-gray-500">3</span>
+                  </div>
+                  <span className="ml-2 text-sm text-gray-500">查看儀表板</span>
+                </div>
+              </div>
 
-        {/* 步驟 1: Facebook 連接 - 完全照抄 fbaudit */}
-        {currentStep === 1 && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Facebook className="w-5 h-5" />
-                連接 Facebook 廣告帳戶
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!isConnected ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-600 mb-6">
-                    請先連接您的 Facebook 廣告帳戶以開始使用儀表板功能
-                  </p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <Shield className="w-5 h-5 text-green-500 mt-0.5" />
+                    <div className="text-left">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">安全連接</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        我們使用 Facebook 官方 API，確保您的資料安全
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <BarChart3 className="w-5 h-5 text-blue-500 mt-0.5" />
+                    <div className="text-left">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">即時數據</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        獲取最新的廣告數據和效果分析
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <Lightbulb className="w-5 h-5 text-yellow-500 mt-0.5" />
+                    <div className="text-left">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">智能洞察</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        AI 驅動的建議幫您優化廣告效果
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6">
                   <FacebookLoginButton />
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                  <p className="text-green-600 font-medium mb-4">Facebook 已連接成功！</p>
-                  <Button onClick={() => setCurrentStep(2)}>
-                    下一步：選擇廣告帳戶
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 步驟 2: 選擇廣告帳戶 - 完全照抄 fbaudit */}
-        {currentStep === 2 && isConnected && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="w-5 h-5" />
-                選擇廣告帳戶
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {accountsLoading ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                  <p className="text-gray-600">載入廣告帳號中...</p>
-                </div>
-              ) : accounts && accounts.length > 0 ? (
-                <div className="space-y-4">
-                  <FacebookAccountSelector 
-                    onAccountSelected={(accountId: string) => {
-                      setSelectedAccount(accountId);
-                      const account = accounts.find((a: any) => a.id === accountId);
-                      console.log('選擇廣告帳號:', accountId, account?.name || 'Unknown');
-                    }}
-                    accounts={accounts}
-                    isLoading={accountsLoading}
-                    useExternalData={true}
-                  />
-                  
-                  {selectedAccount && (
-                    <div className="text-center pt-4">
-                      <Button onClick={() => setCurrentStep(3)}>
-                        下一步：載入儀表板
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <AlertTriangle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
-                  <p className="text-yellow-600 font-medium">找不到廣告帳戶</p>
-                  <p className="text-gray-600 text-sm">請確認您的 Facebook 權限設定</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 步驟 3: 載入儀表板 */}
-        {currentStep === 3 && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                載入儀表板數據
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="text-center py-8">
-                  <p className="text-gray-600 mb-6">準備載入您的 Meta 廣告儀表板</p>
-                  <Button 
-                    onClick={() => setShowDashboard(true)}
-                    disabled={!canStartDashboard}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    開始載入儀表板
-                  </Button>
-                </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // 如果已連接 Facebook 但沒有可用帳戶
+  if (isAuthenticated && user?.hasFacebookAuth && !accountsLoading && (!accounts || accounts.length === 0)) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <NavigationBar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto text-center space-y-6">
+            <div className="mx-auto w-20 h-20 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+              <XCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                未找到廣告帳戶
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                我們無法找到與您的 Facebook 帳戶關聯的廣告帳戶
+              </p>
+            </div>
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                請確保您的 Facebook 帳戶有廣告帳戶存取權限，或聯繫廣告帳戶管理員為您添加權限。
+              </AlertDescription>
+            </Alert>
+            <Button 
+              onClick={() => window.location.reload()}
+              variant="outline"
+            >
+              重新檢查
+            </Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // 如果正在載入帳戶或顯示結果
+  if (accountsLoading || showResults) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <NavigationBar />
+        <div className="container mx-auto px-4 py-8">
+          {accountsLoading ? (
+            <div className="max-w-2xl mx-auto text-center space-y-6">
+              <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-500" />
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  載入您的廣告帳戶
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  正在從 Facebook 獲取您的廣告帳戶資訊...
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                  Meta 廣告儀表板
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  廣告帳戶: {accounts?.find(acc => acc.id === selectedAccount)?.name}
+                </p>
+              </div>
+              
+              {/* 這裡會顯示實際的儀表板數據 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>儀表板數據載入中...</CardTitle>
+                  <CardDescription>正在分析您的廣告數據</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // 主要的選擇介面（步驟 2 和 3）
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <NavigationBar />
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* 標題和進度 */}
+          <div className="text-center space-y-6 mb-8">
+            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <BarChart3 className="w-10 h-10 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">
+                Meta 廣告儀表板
+              </h1>
+              <p className="text-xl text-gray-600 dark:text-gray-400">
+                深度分析您的 Facebook 廣告數據，優化投資回報率
+              </p>
+            </div>
+
+            {/* 步驟指示器 */}
+            <div className="flex justify-center items-center space-x-4 my-8">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </div>
+                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Google 登入</span>
+              </div>
+              <div className="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </div>
+                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Facebook 連接</span>
+              </div>
+              <div className="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-bold text-white">3</span>
+                </div>
+                <span className="ml-2 text-sm text-blue-600 dark:text-blue-400 font-medium">設置儀表板</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 設置表單 */}
+          <div className="space-y-6">
+            {/* 帳戶選擇 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Target className="w-5 h-5" />
+                  <span>選擇廣告帳戶</span>
+                </CardTitle>
+                <CardDescription>
+                  選擇您要分析的 Facebook 廣告帳戶
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FacebookAccountSelector
+                  accounts={accounts || []}
+                  selectedAccount={selectedAccount}
+                  onAccountSelect={(accountId) => {
+                    setSelectedAccount(accountId);
+                    trackAccountSelection(accountId);
+                  }}
+                  isLoading={accountsLoading}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 計劃選擇 */}
+            {selectedAccount && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <BarChart3 className="w-5 h-5" />
+                    <span>選擇分析計劃</span>
+                  </CardTitle>
+                  <CardDescription>
+                    選擇已儲存的計劃結果進行對比分析
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {plansLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>載入計劃中...</span>
+                    </div>
+                  ) : plans && plans.length > 0 ? (
+                    <Select
+                      value={selectedPlan}
+                      onValueChange={(value) => {
+                        setSelectedPlan(value);
+                        trackPlanSelection(value);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="選擇一個計劃" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {plans.map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{plan.name}</span>
+                              <Badge variant="outline" className="ml-2">
+                                {plan.period}天
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        您還沒有任何已儲存的計劃。請先使用預算計算機建立計劃。
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 行業選擇 */}
+            {selectedAccount && selectedPlan && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Lightbulb className="w-5 h-5" />
+                    <span>選擇行業類型</span>
+                  </CardTitle>
+                  <CardDescription>
+                    選擇您的行業以獲得更精確的分析和建議
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {industries ? (
+                    <Select
+                      value={selectedIndustry}
+                      onValueChange={setSelectedIndustry}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="選擇您的行業" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {industries.map((industry) => (
+                          <SelectItem key={industry.id} value={industry.id}>
+                            {industry.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Skeleton className="h-10 w-full" />
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 開始按鈕 */}
+            {selectedAccount && selectedPlan && selectedIndustry && (
+              <div className="text-center">
+                <Button
+                  onClick={handleStartDashboard}
+                  disabled={checkMutation.isPending}
+                  size="lg"
+                  className="px-8 py-3"
+                >
+                  {checkMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      載入儀表板中...
+                    </>
+                  ) : (
+                    <>
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      查看儀表板
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       <Footer />
     </div>
