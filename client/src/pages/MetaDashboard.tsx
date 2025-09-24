@@ -132,7 +132,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
             <Facebook className="w-16 h-16 text-blue-600 mx-auto mb-6" />
             <h1 className="text-3xl font-bold mb-4">{t.fbAuditTitle}</h1>
             <p className="text-gray-600 mb-8">{t.loginRequired}</p>
-            <Button size="lg" onClick={() => window.location.href = '/api/auth/google'}>
+            <Button size="lg" onClick={() => window.location.href = '/api/auth/google'} data-testid="button-google-login">
               {t.loginWithGoogle}
             </Button>
           </div>
