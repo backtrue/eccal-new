@@ -88,9 +88,19 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
 
   // 處理認證錯誤
   useEffect(() => {
-    if (dashboardError && (dashboardError as any)?.response?.status === 400) {
+    if (dashboardError) {
+      const status = (dashboardError as any)?.response?.status;
       const errorData = (dashboardError as any)?.response?.data;
-      if (errorData?.needsFacebookAuth) {
+      
+      // 處理 401 未認證錯誤
+      if (status === 401) {
+        // 重定向到登入頁面
+        window.location.href = '/fbaudit';
+        return;
+      }
+      
+      // 處理 400 需要 Facebook 認證
+      if (status === 400 && errorData?.needsFacebookAuth) {
         setNeedsAuth(true);
       }
     }
@@ -169,8 +179,51 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
     );
   }
 
-  // 錯誤狀態
+  // 錯誤狀態 - 根據不同錯誤類型處理
   if (dashboardError) {
+    const status = (dashboardError as any)?.response?.status;
+    
+    // 401 未認證：顯示登入提示
+    if (status === 401) {
+      return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center space-y-6">
+              <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                <Target className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              </div>
+              
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Meta 廣告儀表板
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  請先登入以查看您的廣告數據分析
+                </p>
+              </div>
+              
+              <Alert className="max-w-md mx-auto">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  您需要先登入並連接 Facebook 廣告帳戶才能使用儀表板功能
+                </AlertDescription>
+              </Alert>
+              
+              <Button 
+                onClick={() => setLocation('/fbaudit')}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                size="lg"
+                data-testid="login-button"
+              >
+                前往登入並連接 Facebook
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // 其他錯誤：顯示一般錯誤信息
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
         <div className="max-w-4xl mx-auto">
