@@ -21,7 +21,8 @@ import {
   BarChart3,
   PieChart,
   Facebook,
-  Loader2
+  Loader2,
+  CheckCircle
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
