@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 import { 
   Loader2, 
   Shield, 
@@ -45,8 +46,8 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   const [currentStep, setCurrentStep] = useState(1);
 
   // 追蹤頁面瀏覽和功能使用
-  usePageViewTracking('/meta-dashboard', 'meta-dashboard', { locale, step: currentStep });
-  const { trackAccountSelection, trackPlanSelection, trackHealthCheck, trackNPSRating } = useFbAuditTracking('/meta-dashboard');
+  usePageViewTracking('/fbaudit', 'fbaudit', { locale, step: currentStep });
+  const { trackAccountSelection, trackPlanSelection, trackHealthCheck, trackNPSRating } = useFbAuditTracking('/fbaudit');
 
   // 只有在用戶已認證且有 Facebook access token 時才載入帳戶
   const shouldLoadAccounts = Boolean(isAuthenticated && user?.hasFacebookAuth);
@@ -87,7 +88,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     }
   }, [queryClient, refetchPlans]);
 
-  const handleStartDashboard = async () => {
+  const handleStartAudit = async () => {
     if (!selectedAccount || !selectedPlan || !selectedIndustry) {
       return;
     }
@@ -382,7 +383,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                   <Select value={selectedPlan} onValueChange={(value) => {
                     if (value === 'create_new_plan') {
                       // 跳轉到計算機頁面，並帶上返回參數
-                      const returnUrl = `/meta-dashboard?step=3&account=${selectedAccount}&industry=${selectedIndustry}`;
+                      const returnUrl = `/fbaudit?step=3&account=${selectedAccount}&industry=${selectedIndustry}`;
                       window.location.href = `/calculator?returnTo=${encodeURIComponent(returnUrl)}`;
                     } else {
                       setSelectedPlan(value);
@@ -400,7 +401,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                         </SelectItem>
                       ))}
                       <SelectItem value="create_new_plan" className="text-blue-600 font-medium">
-                        + 新增計劃
+                        {locale === 'zh-TW' ? '+ 新增計劃' : locale === 'en' ? '+ Create New Plan' : '+ 新しいプランを作成'}
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -421,10 +422,10 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                     需要先建立預算計劃才能進行儀表板分析
                   </p>
                   <Button onClick={() => {
-                    const returnUrl = `/meta-dashboard?step=3&account=${selectedAccount}&industry=${selectedIndustry}`;
+                    const returnUrl = `/fbaudit?step=3&account=${selectedAccount}&industry=${selectedIndustry}`;
                     window.location.href = `/calculator?returnTo=${encodeURIComponent(returnUrl)}`;
                   }}>
-                    前往建立預算計劃
+                    {locale === 'zh-TW' ? '前往建立預算計劃' : locale === 'en' ? 'Go to Create Campaign Plan' : 'キャンペーンプラン作成へ'}
                   </Button>
                 </div>
               )}
@@ -448,18 +449,47 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                     <SelectValue placeholder="選擇您的行業" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.isArray(industries) && industries.map((industry: any) => (
-                      <SelectItem key={industry.id} value={industry.id}>
-                        {industry.name}
-                      </SelectItem>
-                    ))}
+                    {Array.isArray(industries) && industries.map((industry: any) => {
+                      // 根據語言顯示產業名稱
+                      const getIndustryName = (industry: any, locale: string) => {
+                        if (locale === 'en') {
+                          return industry.nameEn || industry.name;
+                        } else if (locale === 'ja') {
+                          // 日文產業類型翻譯
+                          const jaTranslations: Record<string, string> = {
+                            '藝文娛樂': 'アート・エンターテイメント',
+                            '餐飲食品': '飲食・食品',
+                            '寵物用品': 'ペット用品',
+                            '購物、收藏品與禮品': 'ショッピング・コレクション・ギフト',
+                            '健康與健身': 'ヘルス・フィットネス',
+                            '美妝保養': '美容・スキンケア',
+                            '家居與園藝': 'ホーム・ガーデン',
+                            '家具': '家具',
+                            '服飾／時尚與珠寶': 'ファッション・ジュエリー',
+                            '工業與商業用品': '産業・商業用品',
+                            '其他': 'その他'
+                          };
+                          return jaTranslations[industry.name] || industry.name;
+                        } else {
+                          return industry.name;
+                        }
+                      };
+
+                      const displayName = getIndustryName(industry, locale);
+                      
+                      return (
+                        <SelectItem key={industry.id} value={industry.id}>
+                          {displayName}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 
                 {selectedIndustry && (
                   <div className="text-center pt-4">
                     <Button 
-                      onClick={handleStartDashboard}
+                      onClick={handleStartAudit}
                       disabled={!canStartAudit || checkMutation.isPending}
                       size="lg"
                       className="px-8"
@@ -472,7 +502,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                       ) : (
                         <>
                           <BarChart3 className="w-4 h-4 mr-2" />
-                          開始分析
+                          {t.startHealthCheck || '開始分析'}
                         </>
                       )}
                     </Button>
@@ -490,8 +520,15 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
               <div className="mb-6">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
               </div>
-              <h3 className="text-lg font-medium mb-2">正在分析您的廣告數據</h3>
-              <p className="text-gray-600 mb-6">這可能需要幾分鐘時間，請稍候...</p>
+              <h3 className="text-lg font-medium mb-2">{t.analyzingYourData || '正在分析您的廣告數據'}</h3>
+              <p className="text-gray-600 mb-6">{t.analyzingDescription || '這可能需要幾分鐘時間，請稍候...'}</p>
+              
+              <div className="max-w-md mx-auto">
+                <Progress value={75} className="mb-2" />
+                <p className="text-sm text-gray-500">
+                  {t.tipTitle || '提示'}：{t.tipMessage || '分析期間請保持頁面開啟'}
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}
