@@ -27,17 +27,17 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
         id: user.metaAdAccountId,
         name: accountData.accountName || `Account ${user.metaAdAccountId}`,
         currency: accountData.currency || 'USD',
-        timezone: accountData.timezone || 'UTC'
+        timezone: 'UTC'
       },
       performance: {
         spend: accountData.spend || 0,
         impressions: accountData.impressions || 0,
         clicks: accountData.clicks || 0,
-        conversions: accountData.conversions || 0,
-        cpm: accountData.cpm || 0,
-        cpc: accountData.cpc || 0,
-        ctr: accountData.ctr || 0,
-        roas: accountData.roas || 0
+        conversions: accountData.purchases || 0,
+        cpm: accountData.impressions > 0 ? (accountData.spend / accountData.impressions * 1000) : 0,
+        cpc: accountData.clicks > 0 ? (accountData.spend / accountData.clicks) : 0,
+        ctr: accountData.impressions > 0 ? (accountData.clicks / accountData.impressions * 100) : 0,
+        roas: accountData.spend > 0 ? (accountData.purchaseValue / accountData.spend) : 0
       },
       dateRange: {
         startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],

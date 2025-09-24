@@ -24,11 +24,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const discountRoutes = await import('./discountRoutes');
   const discountAdminRoutes = await import('./discountAdminRoutes');
   const metaEventRoutes = await import('./metaEventRoutes');
+  const metaDashboardRoutes = await import('./metaDashboardRoutes');
   app.use("/api/fabe", fabeIntegrationRoutes.default);
   app.use("/api/fabe-reverse", fabeReverseIntegrationRoutes.default);
   app.use("/api/discount-codes", discountRoutes.default);
   app.use("/api/admin/discount-codes", discountAdminRoutes.default);
   app.use("/api/meta-events", metaEventRoutes.default);
+  app.use("/api/meta", metaDashboardRoutes.default);
   
   // Setup Account Center SSO routes
   setupAccountCenterRoutes(app);

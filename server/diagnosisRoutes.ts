@@ -364,7 +364,13 @@ export function setupDiagnosisRoutes(app: Express) {
           }
         }
 
-        res.redirect('/fbaudit?facebook_auth_success=true');
+        // 檢查是否從 Meta 儀表板發起的連接
+        const referer = req.get('Referer') || '';
+        if (referer.includes('/meta-dashboard')) {
+          res.redirect('/meta-dashboard?facebook_auth_success=true');
+        } else {
+          res.redirect('/fbaudit?facebook_auth_success=true');
+        }
       } else {
         console.error('Facebook token exchange failed:', tokenData);
         res.redirect('/fbaudit?error=token_exchange_failed');
