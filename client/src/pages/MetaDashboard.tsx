@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useFbAuditAccounts } from '@/hooks/useFbAudit';
 import NavigationBar from '@/components/NavigationBar';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -241,11 +242,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
 
   // 照抄 fbaudit 的帳號載入邏輯
   const shouldLoadAccounts = Boolean(isAuthenticated && user?.hasFacebookAuth);
-  const { data: accounts, isLoading: accountsLoading } = useQuery<any[]>({ 
-    queryKey: ['/api/fbaudit/accounts'],
-    enabled: shouldLoadAccounts,
-    retry: false
-  });
+  const { data: accounts, isLoading: accountsLoading } = useFbAuditAccounts(shouldLoadAccounts);
 
   // 只有在選擇帳號且要求查看儀表板時才載入儀表板數據
   const { 
