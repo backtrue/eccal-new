@@ -18,6 +18,7 @@ import {
   Users, 
   Target,
   AlertCircle,
+  AlertTriangle,
   BarChart3,
   PieChart,
   Facebook,
@@ -27,6 +28,7 @@ import {
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
 import FacebookLoginButton from '@/components/FacebookLoginButton';
+import FacebookAccountSelector from '@/components/FacebookAccountSelector';
 import type { Locale } from '@/lib/i18n';
 
 interface MetaDashboardData {
@@ -61,12 +63,6 @@ interface MetaDashboardData {
     addToCart: number;
     purchases: number;
   };
-}
-
-interface BusinessMetrics {
-  type: string;
-  metrics: Record<string, number>;
-  breakdown: Record<string, number>;
 }
 
 // 登入界面組件
@@ -369,54 +365,144 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
 
   // 主要邏輯 - 步驟化認證流程 (完全照抄 fbaudit 的邏輯)
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gray-50">
       <NavigationBar locale={locale} />
+      
       <div className="container mx-auto p-6 max-w-4xl">
         {/* 頁面標題 */}
         <div className="text-center mb-12">
-          <Target className="w-16 h-16 text-blue-600 mx-auto mb-6" />
+          <Facebook className="w-16 h-16 text-blue-600 mx-auto mb-6" />
           <h1 className="text-4xl font-bold mb-4">Meta 廣告儀表板</h1>
           <p className="text-xl text-gray-600 mb-6">
             分析您的 Facebook 廣告數據，優化投資回報率
           </p>
         </div>
 
-        {/* Facebook 連接步驟 */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Facebook className="w-5 h-5" />
-              連接 Facebook 廣告帳戶
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!isConnected ? (
-              <div className="text-center py-8">
-                <p className="text-gray-600 mb-6">
-                  請先連接您的 Facebook 廣告帳戶以開始使用儀表板功能
-                </p>
-                <FacebookLoginButton />
+        {/* 步驟進度 - 照抄 fbaudit 但改為3步驟 */}
+        <div className="mb-8">
+          <div className="flex items-center justify-center space-x-4 mb-4">
+            {[1, 2, 3].map((step) => (
+              <div
+                key={step}
+                className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+                  currentStep >= step
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'border-gray-300 text-gray-400'
+                }`}
+              >
+                {step}
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                <p className="text-green-600 font-medium mb-4">Facebook 已連接成功！</p>
-                <Button 
-                  onClick={() => {
-                    console.log('🔵 查看儀表板按鈕被點擊了！');
-                    console.log('🔵 當前 showDashboard 狀態:', showDashboard);
-                    console.log('🔵 設置 showDashboard 為 true');
-                    setShowDashboard(true);
-                    console.log('🔵 按鈕點擊處理完成');
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  查看儀表板
-                </Button>
+            ))}
+          </div>
+          <div className="text-center text-sm text-gray-600">
+            {currentStep === 1 && '連接 Facebook 廣告帳戶'}
+            {currentStep === 2 && '選擇廣告帳戶'}
+            {currentStep === 3 && '載入儀表板數據'}
+          </div>
+        </div>
+
+        {/* 步驟 1: Facebook 連接 - 完全照抄 fbaudit */}
+        {currentStep === 1 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Facebook className="w-5 h-5" />
+                連接 Facebook 廣告帳戶
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!isConnected ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-6">
+                    請先連接您的 Facebook 廣告帳戶以開始使用儀表板功能
+                  </p>
+                  <FacebookLoginButton />
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                  <p className="text-green-600 font-medium mb-4">Facebook 已連接成功！</p>
+                  <Button onClick={() => setCurrentStep(2)}>
+                    下一步：選擇廣告帳戶
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 步驟 2: 選擇廣告帳戶 - 完全照抄 fbaudit */}
+        {currentStep === 2 && isConnected && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                選擇廣告帳戶
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {accountsLoading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                  <p className="text-gray-600">載入廣告帳號中...</p>
+                </div>
+              ) : accounts && accounts.length > 0 ? (
+                <div className="space-y-4">
+                  <FacebookAccountSelector 
+                    onAccountSelected={(accountId: string) => {
+                      setSelectedAccount(accountId);
+                      const account = accounts.find((a: any) => a.id === accountId);
+                      console.log('選擇廣告帳號:', accountId, account?.name || 'Unknown');
+                    }}
+                    accounts={accounts}
+                    isLoading={accountsLoading}
+                    useExternalData={true}
+                  />
+                  
+                  {selectedAccount && (
+                    <div className="text-center pt-4">
+                      <Button onClick={() => setCurrentStep(3)}>
+                        下一步：載入儀表板
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertTriangle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
+                  <p className="text-yellow-600 font-medium">找不到廣告帳戶</p>
+                  <p className="text-gray-600 text-sm">請確認您的 Facebook 權限設定</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 步驟 3: 載入儀表板 */}
+        {currentStep === 3 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                載入儀表板數據
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-6">準備載入您的 Meta 廣告儀表板</p>
+                  <Button 
+                    onClick={() => setShowDashboard(true)}
+                    disabled={!canStartDashboard}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    開始載入儀表板
+                  </Button>
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
       <Footer />
     </div>
