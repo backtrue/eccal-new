@@ -1,5 +1,11 @@
 import OpenAI from 'openai';
 import { fbAuditTerms } from './businessTermsDictionary';
+import type { 
+  SelectMetaAdAccountType, 
+  SelectMetaAdInsightType,
+  InsertMetaAdAccountType,
+  InsertMetaAdInsightType 
+} from '@shared/schema';
 
 export interface MetaAccountData {
   accountId: string;
@@ -26,6 +32,60 @@ export interface MetaAccountData {
     clicks: number;
     spend: number;
   }>;
+}
+
+// Meta 廣告儀表板專用數據結構
+export interface MetaDashboardInsight {
+  // 廣告層級資訊
+  campaignId?: string;
+  campaignName?: string;
+  adsetId?: string;
+  adsetName?: string;
+  adId?: string;
+  adName?: string;
+  
+  // 時間和維度
+  dateStart: Date;
+  dateEnd: Date;
+  level: 'account' | 'campaign' | 'adset' | 'ad';
+  
+  // 核心指標
+  impressions: number;
+  reach: number;
+  spend: number;
+  linkClicks: number;
+  ctr: number;
+  cpc: number;
+  
+  // 業務類型指標
+  viewContent: number;
+  addToCart: number;
+  purchase: number;
+  purchaseValue: number;
+  messaging: number;
+  leads: number;
+  
+  // 計算指標
+  atcRate: number; // AddToCart/ViewContent %
+  pfRate: number;  // Purchase/AddToCart %
+  roas: number;    // Return on Ad Spend
+  costPerPurchase: number;
+  costPerMessaging: number;
+  costPerLead: number;
+  
+  currency: string;
+  rawData?: any;
+}
+
+// Meta 廣告帳戶數據同步結果
+export interface MetaSyncResult {
+  success: boolean;
+  recordsProcessed: number;
+  recordsInserted: number;
+  recordsUpdated: number;
+  errors: string[];
+  apiCalls: number;
+  processingTime: number;
 }
 
 export interface AccountDiagnosisData {
@@ -64,7 +124,211 @@ export class MetaAccountService {
   }
 
   /**
-   * 獲取 Facebook 廣告帳戶數據 (帳戶級別分析)
+   * 獲取多層級 Meta 廣告數據 (支援 campaign, adset, ad 層級)
+   */
+  async getMetaInsightsData(
+    accessToken: string, 
+    adAccountId: string, 
+    options: {
+      level: 'account' | 'campaign' | 'adset' | 'ad';
+      dateRange: { since: string; until: string };
+      businessType: 'ecommerce' | 'consultation' | 'lead_generation';
+      limit?: number;
+    }
+  ): Promise<MetaDashboardInsight[]> {
+    try {
+      console.log(`[META-DASHBOARD] 獲取 ${options.level} 層級數據: ${adAccountId}`);
+      
+      const formattedAccountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
+      
+      // 根據業務類型選擇需要的指標
+      const baseFields = 'impressions,reach,spend,inline_link_clicks,cpc,ctr,actions,action_values';
+      const businessFields = this.getBusinessTypeFields(options.businessType);
+      const fields = `${baseFields},${businessFields}`;
+      
+      let url: string;
+      let level: string;
+      
+      if (options.level === 'account') {
+        url = `${this.baseUrl}/${formattedAccountId}/insights`;
+        level = 'account';
+      } else {
+        url = `${this.baseUrl}/${formattedAccountId}/insights`;
+        level = options.level;
+      }
+      
+      const params = new URLSearchParams({
+        access_token: accessToken,
+        time_range: JSON.stringify({ since: options.dateRange.since, until: options.dateRange.until }),
+        fields,
+        level,
+        limit: (options.limit || 100).toString()
+      });
+      
+      const response = await fetch(`${url}?${params}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(`Facebook API 請求失敗: ${response.status} - ${errorData?.error?.message}`);
+      }
+      
+      const data = await response.json();
+      const insights = data.data || [];
+      
+      return insights.map((insight: any) => this.transformToMetaDashboardInsight(
+        insight, 
+        options.level, 
+        options.dateRange,
+        options.businessType
+      ));
+      
+    } catch (error) {
+      console.error('獲取 Meta Insights 數據錯誤:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 根據業務類型獲取所需字段
+   */
+  private getBusinessTypeFields(businessType: string): string {
+    switch (businessType) {
+      case 'ecommerce':
+        return 'purchase_roas,cost_per_action_type';
+      case 'consultation':
+        return 'messaging_conversation_started_7d';
+      case 'lead_generation':
+        return 'cost_per_lead';
+      default:
+        return '';
+    }
+  }
+  
+  /**
+   * 轉換 Facebook API 數據為儀表板數據格式
+   */
+  private transformToMetaDashboardInsight(
+    insight: any, 
+    level: string, 
+    dateRange: { since: string; until: string },
+    businessType: string
+  ): MetaDashboardInsight {
+    const actions = insight.actions || [];
+    const actionValues = insight.action_values || [];
+    
+    // 提取轉換數據
+    const viewContent = this.extractActionValue(actions, 'view_content');
+    const addToCart = this.extractActionValue(actions, 'add_to_cart');
+    const purchase = this.extractActionValue(actions, 'purchase');
+    const messaging = this.extractActionValue(actions, 'messaging_conversation_started_7d');
+    const leads = this.extractActionValue(actions, 'lead');
+    
+    const purchaseValue = this.extractActionValue(actionValues, 'purchase');
+    const spend = parseFloat(insight.spend || '0');
+    
+    // 計算指標
+    const atcRate = viewContent > 0 ? (addToCart / viewContent) * 100 : 0;
+    const pfRate = addToCart > 0 ? (purchase / addToCart) * 100 : 0;
+    const roas = spend > 0 ? purchaseValue / spend : 0;
+    const costPerPurchase = purchase > 0 ? spend / purchase : 0;
+    const costPerMessaging = messaging > 0 ? spend / messaging : 0;
+    const costPerLead = leads > 0 ? spend / leads : 0;
+    
+    return {
+      campaignId: insight.campaign_id,
+      campaignName: insight.campaign_name,
+      adsetId: insight.adset_id,
+      adsetName: insight.adset_name,
+      adId: insight.ad_id,
+      adName: insight.ad_name,
+      
+      dateStart: new Date(dateRange.since),
+      dateEnd: new Date(dateRange.until),
+      level: level as any,
+      
+      impressions: parseInt(insight.impressions || '0'),
+      reach: parseInt(insight.reach || '0'),
+      spend,
+      linkClicks: parseInt(insight.inline_link_clicks || '0'),
+      ctr: parseFloat(insight.ctr || '0'),
+      cpc: parseFloat(insight.cpc || '0'),
+      
+      viewContent,
+      addToCart,
+      purchase,
+      purchaseValue,
+      messaging,
+      leads,
+      
+      atcRate: parseFloat(atcRate.toFixed(4)),
+      pfRate: parseFloat(pfRate.toFixed(4)),
+      roas: parseFloat(roas.toFixed(4)),
+      costPerPurchase: parseFloat(costPerPurchase.toFixed(2)),
+      costPerMessaging: parseFloat(costPerMessaging.toFixed(2)),
+      costPerLead: parseFloat(costPerLead.toFixed(2)),
+      
+      currency: insight.currency || 'TWD',
+      rawData: insight
+    };
+  }
+
+  /**
+   * 同步 Meta 廣告帳戶基本資料
+   */
+  async syncMetaAdAccount(
+    userId: string,
+    accessToken: string, 
+    adAccountId: string,
+    businessType: 'ecommerce' | 'consultation' | 'lead_generation'
+  ): Promise<SelectMetaAdAccountType> {
+    try {
+      const formattedAccountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
+      
+      // 獲取廣告帳戶基本資訊
+      const accountUrl = `${this.baseUrl}/${formattedAccountId}`;
+      const accountParams = new URLSearchParams({
+        access_token: accessToken,
+        fields: 'name,account_status,currency,timezone_name'
+      });
+      
+      const response = await fetch(`${accountUrl}?${accountParams}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(`Facebook API 請求失敗: ${response.status} - ${errorData?.error?.message}`);
+      }
+      
+      const accountData = await response.json();
+      
+      // 計算token過期時間 (假設60天有效期)
+      const tokenExpires = new Date();
+      tokenExpires.setDate(tokenExpires.getDate() + 60);
+      
+      return {
+        id: '', // 會由資料庫自動生成
+        userId,
+        metaAccountId: formattedAccountId,
+        accountName: accountData.name || '廣告帳戶',
+        currency: accountData.currency || 'TWD',
+        timezone: accountData.timezone_name || 'Asia/Taipei',
+        accountStatus: accountData.account_status || 'ACTIVE',
+        businessType,
+        accessToken, // 在實際儲存時應該加密
+        tokenExpires,
+        isActive: true,
+        lastSyncAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+    } catch (error) {
+      console.error('同步 Meta 廣告帳戶錯誤:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 獲取 Facebook 廣告帳戶數據 (帳戶級別分析) - 保持向後相容
    */
   async getAdAccountData(accessToken: string, adAccountId: string): Promise<MetaAccountData> {
     try {
@@ -196,6 +460,111 @@ export class MetaAccountService {
     } catch (error) {
       console.error('獲取 Meta 廣告帳戶數據錯誤:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 批量同步廣告數據到資料庫
+   */
+  async batchSyncInsightsData(
+    accountId: string,
+    insights: MetaDashboardInsight[],
+    storage: any // IStorage 介面
+  ): Promise<MetaSyncResult> {
+    const startTime = Date.now();
+    let recordsProcessed = 0;
+    let recordsInserted = 0;
+    let recordsUpdated = 0;
+    const errors: string[] = [];
+    
+    try {
+      for (const insight of insights) {
+        try {
+          const insightData: InsertMetaAdInsightType = {
+            accountId,
+            campaignId: insight.campaignId,
+            campaignName: insight.campaignName,
+            adsetId: insight.adsetId,
+            adsetName: insight.adsetName,
+            adId: insight.adId,
+            adName: insight.adName,
+            
+            dateStart: insight.dateStart,
+            dateEnd: insight.dateEnd,
+            level: insight.level,
+            
+            impressions: insight.impressions,
+            reach: insight.reach,
+            spend: insight.spend.toString(),
+            linkClicks: insight.linkClicks,
+            ctr: insight.ctr.toString(),
+            cpc: insight.cpc.toString(),
+            
+            viewContent: insight.viewContent,
+            addToCart: insight.addToCart,
+            purchase: insight.purchase,
+            purchaseValue: insight.purchaseValue.toString(),
+            costPerPurchase: insight.costPerPurchase.toString(),
+            roas: insight.roas.toString(),
+            
+            messaging: insight.messaging,
+            costPerMessaging: insight.costPerMessaging.toString(),
+            
+            leads: insight.leads,
+            costPerLead: insight.costPerLead.toString(),
+            
+            atcRate: insight.atcRate.toString(),
+            pfRate: insight.pfRate.toString(),
+            
+            currency: insight.currency,
+            rawData: insight.rawData
+          };
+          
+          // 使用 upsert 邏輯避免重複數據
+          const result = await storage.upsertMetaAdInsight(insightData);
+          
+          if (result.isNew) {
+            recordsInserted++;
+          } else {
+            recordsUpdated++;
+          }
+          recordsProcessed++;
+          
+        } catch (error) {
+          const errorMsg = `同步單筆數據失敗: ${error instanceof Error ? error.message : '未知錯誤'}`;
+          errors.push(errorMsg);
+          console.error(errorMsg, { insight });
+        }
+      }
+      
+      const processingTime = Date.now() - startTime;
+      
+      console.log(`[META-SYNC] 完成批量同步: 處理 ${recordsProcessed} 筆, 新增 ${recordsInserted} 筆, 更新 ${recordsUpdated} 筆`);
+      
+      return {
+        success: errors.length === 0,
+        recordsProcessed,
+        recordsInserted,
+        recordsUpdated,
+        errors,
+        apiCalls: 1, // 實際API調用次數應該從呼叫端計算
+        processingTime
+      };
+      
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      const errorMsg = `批量同步失敗: ${error instanceof Error ? error.message : '未知錯誤'}`;
+      console.error(errorMsg);
+      
+      return {
+        success: false,
+        recordsProcessed,
+        recordsInserted,
+        recordsUpdated,
+        errors: [errorMsg, ...errors],
+        apiCalls: 1,
+        processingTime
+      };
     }
   }
 
