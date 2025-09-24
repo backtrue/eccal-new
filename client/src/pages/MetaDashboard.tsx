@@ -278,6 +278,14 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
 
   // 獲取認證狀態 (照抄 fbaudit 的做法)
   const isConnected = user?.hasFacebookAuth;
+  
+  // 調試信息
+  console.log('🔍 Meta Dashboard 調試信息:');
+  console.log('🔍 isAuthenticated:', isAuthenticated);
+  console.log('🔍 user:', user);
+  console.log('🔍 user?.hasFacebookAuth:', user?.hasFacebookAuth);
+  console.log('🔍 isConnected:', isConnected);
+  console.log('🔍 showDashboard:', showDashboard);
 
   // 如果用戶未登入，顯示登入界面
   if (!isAuthenticated) {
