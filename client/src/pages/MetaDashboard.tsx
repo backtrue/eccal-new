@@ -314,8 +314,8 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     );
   }
 
-  // 如果需要 Facebook 認證
-  if (!isAuthenticated || !user?.hasFacebookAuth || (dashboardError && (dashboardError as any)?.response?.data?.needsFacebookAuth)) {
+  // 如果需要 Facebook 認證  
+  if (!user?.hasFacebookAuth) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         <NavigationBar locale={locale} />
