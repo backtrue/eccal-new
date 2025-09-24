@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/hooks/useAuth";
 import NavigationBar from '@/components/NavigationBar';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -332,13 +332,15 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                 </div>
               ) : accounts && accounts.length > 0 ? (
                 <div className="space-y-4">
-                  <FacebookAccountSelector
-                    accounts={accounts}
-                    onAccountSelected={(accountId: string) => {
+                  <FacebookAccountSelector 
+                    onAccountSelected={(accountId) => {
                       setSelectedAccount(accountId);
-                      trackAccountSelection(accountId, selectedPlan);
+                      const account = accounts.find((a: any) => a.id === accountId);
+                      trackAccountSelection(accountId, account?.name || 'Unknown');
                     }}
+                    accounts={accounts}
                     isLoading={accountsLoading}
+                    useExternalData={true}
                   />
                   
                   {selectedAccount && (
