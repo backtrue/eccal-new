@@ -10,8 +10,12 @@ export function useFbAuditAccounts(enabled = true) {
     gcTime: 10 * 60 * 1000, // 10 分鐘
     select: (data: any) => data?.data || [], // 提取 API 回應中的 data 欄位
     retry: (failureCount, error: any) => {
-      // 如果是 token 失效錯誤，不要重試
+      // 如果是 token 失效錯誤或 Facebook API 錯誤，不要重試
       if (error?.status === 401 && error?.data?.errorType === 'TOKEN_EXPIRED') {
+        return false;
+      }
+      // 如果是 500 錯誤且可能是 Facebook token 失效，也不要重試
+      if (error?.status === 500) {
         return false;
       }
       return failureCount < 3;
