@@ -337,14 +337,14 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="w-5 h-5" />
-                選擇廣告帳戶
+                {t.fbAuditStep2}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {accountsLoading ? (
                 <div className="text-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                  <p className="text-gray-600">載入廣告帳戶中...</p>
+                  <p className="text-gray-600">載入廣告帳號中...</p>
                 </div>
               ) : accounts && accounts.length > 0 ? (
                 <div className="space-y-4">
@@ -362,7 +362,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                   {selectedAccount && (
                     <div className="text-center pt-4">
                       <Button onClick={() => setCurrentStep(3)}>
-                        {t.nextSelectBudgetPlan || '下一步：選擇分析計劃'}
+                        {t.nextSelectBudgetPlan}
                       </Button>
                     </div>
                   )}
@@ -370,8 +370,8 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
               ) : (
                 <div className="text-center py-8">
                   <AlertTriangle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
-                  <p className="text-yellow-600 font-medium">未找到廣告帳戶</p>
-                  <p className="text-gray-600 text-sm">請確保您的 Facebook 帳戶有廣告帳戶存取權限</p>
+                  <p className="text-yellow-600 font-medium">{t.noAccountsFound}</p>
+                  <p className="text-gray-600 text-sm">{t.confirmFbPermissions}</p>
                 </div>
               )}
             </CardContent>

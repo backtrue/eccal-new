@@ -109,35 +109,33 @@ export const jwtUtils = {
 export async function jwtMiddleware(req: Request, res: Response, next: NextFunction) {
   const token = jwtUtils.extractTokenFromRequest(req);
   
+  console.log('JWT middleware: token present:', !!token);
+  
   if (token) {
     const jwtUser = jwtUtils.verifyToken(token);
+    console.log('JWT middleware: token verified:', !!jwtUser);
     if (jwtUser) {
       // 從資料庫重新載入最新的用戶資料（包括 Facebook access token）
       try {
         const { storage } = await import('./storage');
         const fullUser = await storage.getUser(jwtUser.id);
         if (fullUser) {
-          // 靜默載入用戶，只在調試時記錄
-          if (process.env.NODE_ENV === 'development') {
-            console.log('JWT middleware: User loaded from database:', fullUser.email);
-          }
+          console.log('JWT middleware: User loaded from database:', fullUser.email);
           (req as any).user = fullUser;
           (req as any).isAuthenticated = () => true;
         } else {
-          // 如果資料庫中找不到用戶，使用 JWT 中的基本資料（靜默處理）
+          console.log('JWT middleware: User not found in database, using JWT data');
           (req as any).user = jwtUser;
           (req as any).isAuthenticated = () => true;
         }
       } catch (error) {
-        // 靜默處理錯誤，只在調試時記錄
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error loading user from database:', error);
-        }
-        // 發生錯誤時，使用 JWT 中的基本資料
+        console.error('JWT middleware: Error loading user from database:', error);
         (req as any).user = jwtUser;
         (req as any).isAuthenticated = () => true;
       }
     }
+  } else {
+    console.log('JWT middleware: No token found');
   }
 
   next();
