@@ -34,7 +34,17 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
 
   // 檢測 Facebook token 失效錯誤
   const hasFacebookTokenError = accountsError && 
-    (accountsError as any)?.status === 500;
+    ((accountsError as any)?.status === 401 || (accountsError as any)?.status === 500);
+  
+  // 詳細錯誤日誌
+  if (accountsError) {
+    console.log('Facebook accounts error detected:', {
+      status: (accountsError as any)?.status,
+      message: (accountsError as any)?.message,
+      data: (accountsError as any)?.data,
+      hasFacebookTokenError
+    });
+  }
 
 
   if (!isAuthenticated) {

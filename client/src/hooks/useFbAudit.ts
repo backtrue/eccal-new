@@ -10,12 +10,21 @@ export function useFbAuditAccounts(enabled = true) {
     gcTime: 10 * 60 * 1000, // 10 分鐘
     select: (data: any) => data?.data || [], // 提取 API 回應中的 data 欄位
     retry: (failureCount, error: any) => {
-      // 如果是 token 失效錯誤或 Facebook API 錯誤，不要重試
-      if (error?.status === 401 && error?.data?.errorType === 'TOKEN_EXPIRED') {
+      console.log('useFbAuditAccounts retry check:', { 
+        failureCount, 
+        errorStatus: error?.status, 
+        errorMessage: error?.message,
+        errorData: error?.data 
+      });
+      
+      // 如果是 token 失效錯誤，不要重試
+      if (error?.status === 401) {
+        console.log('Detected 401 error - token expired, not retrying');
         return false;
       }
-      // 如果是 500 錯誤且可能是 Facebook token 失效，也不要重試
+      // 如果是 500 錯誤，也不要重試（可能是 Facebook API 問題）
       if (error?.status === 500) {
+        console.log('Detected 500 error - server error, not retrying');
         return false;
       }
       return failureCount < 3;
