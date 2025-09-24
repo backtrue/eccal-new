@@ -66,7 +66,7 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
   const [businessType, setBusinessType] = useState<string>('ecommerce');
   const [needsAuth, setNeedsAuth] = useState(false);
 
-  // 獲取 Meta 儀表板統計數據
+  // 獲取 Meta 儀表板統計數據 - 使用自定義 queryFn 來正確處理 401 錯誤
   const { 
     data: dashboardData, 
     isLoading: dashboardLoading, 
@@ -74,6 +74,28 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
     refetch: refetchDashboard
   } = useQuery<{ success: boolean; data: MetaDashboardData }>({ 
     queryKey: ['/api/meta/dashboard-stats'],
+    queryFn: async () => {
+      const res = await fetch('/api/meta/dashboard-stats', {
+        credentials: 'include'
+      });
+      
+      // 對於 401 錯誤，創建一個特殊的錯誤對象來保持狀態信息
+      if (res.status === 401) {
+        const errorObj = new Error('Authentication required');
+        (errorObj as any).response = {
+          status: 401,
+          data: await res.json().catch(() => ({ error: 'Authentication required' }))
+        };
+        throw errorObj;
+      }
+      
+      if (!res.ok) {
+        const text = await res.text() || res.statusText;
+        throw new Error(`${res.status}: ${text}`);
+      }
+      
+      return await res.json();
+    },
     retry: false
   });
 
@@ -184,9 +206,20 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
   // 錯誤狀態 - 根據不同錯誤類型處理
   if (dashboardError || (!dashboardLoading && !data)) {
     const status = (dashboardError as any)?.response?.status;
+    const errorMessage = (dashboardError as any)?.message;
+    const responseData = (dashboardError as any)?.response?.data;
     
-    // 401 未認證：顯示登入提示
-    if (status === 401) {
+    // 調試信息 - 在開發環境下打印錯誤詳情
+    console.log('Dashboard Error Debug:', {
+      hasError: !!dashboardError,
+      status,
+      errorMessage,
+      responseData,
+      fullError: dashboardError
+    });
+    
+    // 檢查多種 401 未認證的可能情況
+    if (status === 401 || errorMessage?.includes('Unauthorized') || errorMessage?.includes('Authentication required')) {
       return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
           <div className="max-w-4xl mx-auto">
