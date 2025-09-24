@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
+import FacebookLoginButton from '@/components/FacebookLoginButton';
 import type { Locale } from '@/lib/i18n';
 
 interface MetaDashboardData {
@@ -341,14 +342,9 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
               </AlertDescription>
             </Alert>
             
-            <Button 
-              onClick={handleConnectFacebook}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              size="lg"
-              data-testid="connect-facebook-button"
-            >
-              連接 Facebook 廣告帳戶
-            </Button>
+            <FacebookLoginButton 
+              className="bg-blue-600 hover:bg-blue-700 text-white !text-base px-8 py-3"
+            />
             </div>
           </div>
         </div>
