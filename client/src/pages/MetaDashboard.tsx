@@ -33,17 +33,14 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   } = useFbAuditAccounts(shouldLoadAccounts);
 
   // 檢測 Facebook token 失效錯誤
-  const hasFacebookTokenError = accountsError && 
-    ((accountsError as any)?.status === 401 || (accountsError as any)?.status === 500);
-  
-  // 詳細錯誤日誌
-  if (accountsError) {
-    console.log('Facebook accounts error detected:', {
-      status: (accountsError as any)?.status,
-      message: (accountsError as any)?.message,
-      data: (accountsError as any)?.data,
-      hasFacebookTokenError
-    });
+  const hasFacebookTokenError = Boolean(accountsError && 
+    ((accountsError as any)?.message?.includes('500') || 
+     (accountsError as any)?.message?.includes('401') ||
+     (accountsError as any)?.message?.includes('TOKEN_EXPIRED')));
+
+  // 當檢測到 Facebook 帳戶載入錯誤且用戶有認證時，強制回到步驟 1 重新授權
+  if (hasFacebookTokenError && isAuthenticated && currentStep === 2) {
+    console.log('Facebook token expired - redirecting to step 1 for re-authorization');
   }
 
 
@@ -108,11 +105,21 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!isConnected ? (
+              {!isConnected || hasFacebookTokenError ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-600 mb-6">
-                    請授權您的 Facebook 廣告帳戶存取權限
-                  </p>
+                  {hasFacebookTokenError ? (
+                    <>
+                      <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+                      <p className="text-red-600 font-medium mb-4">Facebook 授權已過期</p>
+                      <p className="text-gray-600 text-sm mb-6">
+                        您的 Facebook 授權已失效，請重新連接以繼續使用
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-gray-600 mb-6">
+                      請授權您的 Facebook 廣告帳戶存取權限
+                    </p>
+                  )}
                   <FacebookLoginButton />
                 </div>
               ) : (
@@ -129,7 +136,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
         )}
 
         {/* 步驟 2: 廣告帳戶選擇 */}
-        {currentStep === 2 && isConnected && (
+        {currentStep === 2 && isConnected && !hasFacebookTokenError && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -138,16 +145,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {hasFacebookTokenError ? (
-                <div className="text-center py-8">
-                  <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <p className="text-red-600 font-medium mb-4">Facebook 授權已過期</p>
-                  <p className="text-gray-600 text-sm mb-6">
-                    您的 Facebook 授權已失效，請重新連接以繼續使用
-                  </p>
-                  <FacebookLoginButton />
-                </div>
-              ) : accountsLoading ? (
+              {accountsLoading ? (
                 <div className="text-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                   <p className="text-gray-600">載入廣告帳號中...</p>
