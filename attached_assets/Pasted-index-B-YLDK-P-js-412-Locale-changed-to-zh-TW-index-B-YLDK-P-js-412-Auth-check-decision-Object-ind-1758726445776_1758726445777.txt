@@ -1,0 +1,35 @@
+index-B_YLDK-P.js:412 Locale changed to: zh-TW
+index-B_YLDK-P.js:412 Auth check decision: Object
+index-B_YLDK-P.js:412 Auth check skipped - not needed for current page
+multi-tabs.js:5075 Injected CSS loaded successfully
+contentScript.bundle.js:6 🚧 👷 key 'required_field_warning' not found in localizedStrings for language zh 🚧
+contentScript.bundle.js:6 🚧 👷 key 'required_field_warning' not found in localizedStrings for language zh 🚧
+api/meta/dashboard:1   Failed to load resource: the server responded with a status of 401 ()
+meta-dashboard:1  Access to fetch at 'https://www.facebook.com/v23.0/dialog/oauth?client_id=563468970653749&redirect_uri=https%3A%2F%2Feccal.thinkwithblack.com%2Fapi%2Fdiagnosis%2Ffacebook-callback&scope=ads_read,ads_management&response_type=code&state=102598988575056957509|meta-dashboard&auth_type=rerequest&display=popup' (redirected from 'https://eccal.thinkwithblack.com/api/diagnosis/facebook-auth-url') from origin 'https://eccal.thinkwithblack.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+www.facebook.com/v23.0/dialog/oauth?client_id=563468970653749&redirect_uri=https%3A%2F%2Feccal.thinkwithblack.com%2Fapi%2Fdiagnosis%2Ffacebook-callback&scope=ads_read,ads_management&response_type=code&state=102598988575056957509|meta-dashboard&auth_type=rerequest&display=popup:1   Failed to load resource: net::ERR_FAILED
+index-B_YLDK-P.js:543  Facebook 連接失敗: TypeError: Failed to fetch
+    at h (index-B_YLDK-P.js:543:29062)
+    at Object.KC (index-B_YLDK-P.js:37:9855)
+    at QC (index-B_YLDK-P.js:37:10009)
+    at ZC (index-B_YLDK-P.js:37:10066)
+    at b0 (index-B_YLDK-P.js:37:31446)
+    at nb (index-B_YLDK-P.js:37:31863)
+    at index-B_YLDK-P.js:37:36776
+    at gx (index-B_YLDK-P.js:40:36935)
+    at Aj (index-B_YLDK-P.js:37:8991)
+    at im (index-B_YLDK-P.js:37:33150)
+h @ index-B_YLDK-P.js:543
+meta-dashboard:1  Access to fetch at 'https://www.facebook.com/v23.0/dialog/oauth?client_id=563468970653749&redirect_uri=https%3A%2F%2Feccal.thinkwithblack.com%2Fapi%2Fdiagnosis%2Ffacebook-callback&scope=ads_read,ads_management&response_type=code&state=102598988575056957509|meta-dashboard&auth_type=rerequest&display=popup' (redirected from 'https://eccal.thinkwithblack.com/api/diagnosis/facebook-auth-url') from origin 'https://eccal.thinkwithblack.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+www.facebook.com/v23.0/dialog/oauth?client_id=563468970653749&redirect_uri=https%3A%2F%2Feccal.thinkwithblack.com%2Fapi%2Fdiagnosis%2Ffacebook-callback&scope=ads_read,ads_management&response_type=code&state=102598988575056957509|meta-dashboard&auth_type=rerequest&display=popup:1   Failed to load resource: net::ERR_FAILED
+index-B_YLDK-P.js:543  Facebook 連接失敗: TypeError: Failed to fetch
+    at h (index-B_YLDK-P.js:543:29062)
+    at Object.KC (index-B_YLDK-P.js:37:9855)
+    at QC (index-B_YLDK-P.js:37:10009)
+    at ZC (index-B_YLDK-P.js:37:10066)
+    at b0 (index-B_YLDK-P.js:37:31446)
+    at nb (index-B_YLDK-P.js:37:31863)
+    at index-B_YLDK-P.js:37:36776
+    at gx (index-B_YLDK-P.js:40:36935)
+    at Aj (index-B_YLDK-P.js:37:8991)
+    at im (index-B_YLDK-P.js:37:33150)
+h @ index-B_YLDK-P.js:543

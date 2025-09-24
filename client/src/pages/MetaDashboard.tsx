@@ -304,7 +304,7 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
       });
       const data = await response.json();
       
-      if (data.authUrl) {
+      if (data.success && data.authUrl) {
         // 在新窗口中打開 Facebook 授權
         const popup = window.open(data.authUrl, 'facebook-auth', 'width=600,height=700');
         
@@ -315,11 +315,12 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
             // 重新載入數據
             setTimeout(() => {
               refetchDashboard();
+              setNeedsAuth(false); // 清除需要認證狀態
             }, 1000);
           }
         }, 1000);
       } else {
-        console.error('無法獲取 Facebook 授權 URL');
+        console.error('無法獲取 Facebook 授權 URL:', data);
       }
     } catch (error) {
       console.error('Facebook 連接失敗:', error);

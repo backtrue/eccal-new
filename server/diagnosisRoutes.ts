@@ -76,8 +76,12 @@ export function setupDiagnosisRoutes(app: Express) {
       console.log('🔍 Facebook OAuth URL 生成完成，包含隱私政策顯示參數');
       console.log('Privacy Policy URL: https://thinkwithblack.com/privacy');
 
-      // 直接重定向到 Facebook OAuth 頁面
-      res.redirect(authUrl);
+      // 返回 JSON 回應，讓前端處理彈窗
+      res.json({
+        success: true,
+        authUrl: authUrl,
+        redirectUri
+      });
     } catch (error) {
       console.error('生成 Facebook 授權 URL 錯誤:', error);
       res.status(500).json({
