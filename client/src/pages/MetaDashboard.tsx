@@ -267,6 +267,17 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
     retry: false
   });
 
+  // 檢查 URL 參數中的認證成功標記
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('facebook_auth_success') && refetchDashboard) {
+      // Facebook 認證成功，清除 URL 參數並重新載入數據
+      window.history.replaceState({}, '', '/meta-dashboard');
+      setNeedsAuth(false);
+      refetchDashboard();
+    }
+  }, [refetchDashboard]);
+
   // 獲取業務指標
   const { 
     data: businessData, 
@@ -326,6 +337,11 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
       console.error('Facebook 連接失敗:', error);
     }
   };
+
+  // 如果用戶未登入，顯示登入界面
+  if (!isAuthenticated) {
+    return <LoginInterface />;
+  }
 
   // 如果需要 Facebook 認證
   if (needsAuth || (dashboardError && (dashboardError as any)?.response?.data?.needsFacebookAuth)) {
