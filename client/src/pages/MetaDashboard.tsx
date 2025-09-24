@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useFbAuditAccounts } from '@/hooks/useFbAudit';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import NavigationBar from '@/components/NavigationBar';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,26 +11,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
+  Loader2, 
+  Shield, 
+  Target, 
   TrendingUp, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle,
+  Facebook,
+  BarChart3,
+  Lightbulb,
   DollarSign, 
   Eye, 
   MousePointer, 
   ShoppingCart, 
   Users, 
-  Target,
-  AlertCircle,
-  AlertTriangle,
-  BarChart3,
-  PieChart,
-  Facebook,
-  Loader2,
-  CheckCircle
+  PieChart
 } from 'lucide-react';
-import { useLocation } from 'wouter';
-import { useAuth } from '@/hooks/useAuth';
-import FacebookLoginButton from '@/components/FacebookLoginButton';
+import { useFbAuditAccounts, useFbAuditPlans, useFbAuditIndustries, useFbAuditCheck } from '@/hooks/useFbAudit';
+import { useFbAuditStream } from '@/hooks/useFbAuditStream';
+import { NPSRating } from '@/components/NPSRating';
 import FacebookAccountSelector from '@/components/FacebookAccountSelector';
+import FacebookLoginButton from '@/components/FacebookLoginButton';
 import type { Locale } from '@/lib/i18n';
+import { getTranslations } from '@/lib/i18n';
+import { usePageViewTracking, useFbAuditTracking } from '@/hooks/useBehaviorTracking';
 
 interface MetaDashboardData {
   account: {
