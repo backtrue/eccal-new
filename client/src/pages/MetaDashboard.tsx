@@ -353,19 +353,13 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                       setSelectedAccount(accountId);
                       const account = accounts.find((a: any) => a.id === accountId);
                       trackAccountSelection(accountId, account?.name || 'Unknown');
+                      setCurrentStep(3); // 自動推進到步驟 3
                     }}
                     accounts={accounts}
                     isLoading={accountsLoading}
                     useExternalData={true}
                   />
                   
-                  {selectedAccount && (
-                    <div className="text-center pt-4">
-                      <Button onClick={() => setCurrentStep(3)}>
-                        下一步：選擇分析計劃
-                      </Button>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -404,6 +398,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                       setSelectedPlan(value);
                       const plan = plans.find((p: any) => p.id === value);
                       trackPlanSelection(value, plan?.planName || 'Unknown');
+                      setCurrentStep(4); // 自動推進到步驟 4
                     }
                   }}>
                     <SelectTrigger>
@@ -421,13 +416,6 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                     </SelectContent>
                   </Select>
                   
-                  {selectedPlan && (
-                    <div className="text-center pt-4">
-                      <Button onClick={() => setCurrentStep(4)}>
-                        下一步：選擇行業類型
-                      </Button>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -459,7 +447,10 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Select value={selectedIndustry} onValueChange={setSelectedIndustry}>
+                <Select value={selectedIndustry} onValueChange={(value) => {
+                  setSelectedIndustry(value);
+                  // 步驟 4 選擇完成後留在當前步驟，等待用戶手動開始分析
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="選擇您的行業" />
                   </SelectTrigger>
