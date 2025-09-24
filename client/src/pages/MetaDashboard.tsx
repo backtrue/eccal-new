@@ -179,8 +179,10 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
     );
   }
 
+  const data = dashboardData?.data;
+  
   // 錯誤狀態 - 根據不同錯誤類型處理
-  if (dashboardError) {
+  if (dashboardError || (!dashboardLoading && !data)) {
     const status = (dashboardError as any)?.response?.status;
     
     // 401 未認證：顯示登入提示
@@ -231,6 +233,11 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
             <AlertCircle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800 dark:text-red-300">
               載入 Meta 廣告數據時發生錯誤。請檢查您的網路連接或稍後再試。
+              {dashboardError && (
+                <div className="mt-2 text-sm">
+                  錯誤詳情：{(dashboardError as any)?.message || '未知錯誤'}
+                </div>
+              )}
             </AlertDescription>
           </Alert>
           
@@ -242,7 +249,7 @@ export default function MetaDashboard({ locale = 'zh-TW' }: { locale?: string })
     );
   }
 
-  const data = dashboardData?.data;
+  // 如果沒有數據且沒有錯誤，則返回空白（正在加載）
   if (!data) return null;
 
   const formatCurrency = (amount: number) => {
