@@ -414,7 +414,13 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                 <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
                 <p className="text-green-600 font-medium mb-4">Facebook 已連接成功！</p>
                 <Button 
-                  onClick={() => setShowDashboard(true)}
+                  onClick={() => {
+                    console.log('🔵 查看儀表板按鈕被點擊了！');
+                    console.log('🔵 當前 showDashboard 狀態:', showDashboard);
+                    console.log('🔵 設置 showDashboard 為 true');
+                    setShowDashboard(true);
+                    console.log('🔵 按鈕點擊處理完成');
+                  }}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   查看儀表板
