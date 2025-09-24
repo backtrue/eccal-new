@@ -129,6 +129,8 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   };
 
   const isConnected = user?.hasFacebookAuth;
+  const hasPlans = plans && plans.length > 0;
+  const canStartAudit = selectedAccount && selectedPlan && selectedIndustry;
 
   // 如果用戶未登入，顯示登入提示
   if (!isAuthenticated || !user) {
