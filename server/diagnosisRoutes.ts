@@ -368,7 +368,7 @@ export function setupDiagnosisRoutes(app: Express) {
         }
 
         // 檢查來源並重定向到正確的頁面
-        const stateParams = state?.split('|') || [];
+        const stateParams = (req.query.state as string)?.split('|') || [];
         const origin = stateParams[1] || 'fbaudit';
         
         if (origin === 'meta-dashboard') {

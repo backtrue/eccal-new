@@ -107,7 +107,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const currentPath = window.location.pathname;
-    const isProtectedPage = ['/dashboard', '/campaign-planner', '/bdmin'].some(path => 
+    const isProtectedPage = ['/dashboard', '/campaign-planner', '/bdmin', '/meta-dashboard'].some(path => 
       currentPath.includes(path)
     );
     const isCalculatorPage = currentPath === '/calculator' || currentPath.startsWith('/calculator/');
