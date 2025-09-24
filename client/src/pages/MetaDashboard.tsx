@@ -239,7 +239,6 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, checkAuth } = useAuth();
   const [businessType, setBusinessType] = useState<string>('ecommerce');
-  const [needsAuth, setNeedsAuth] = useState(false);
 
   // 獲取 Meta 儀表板統計數據 - 只在已認證且有 Facebook 連接時載入
   const { 
@@ -249,7 +248,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     refetch: refetchDashboard
   } = useQuery<{ success: boolean; data: MetaDashboardData }>({ 
     queryKey: ['/api/meta/dashboard'],
-    enabled: isAuthenticated && user?.metaAccessToken,  // 只在已認證且有 Meta token 時載入
+    enabled: isAuthenticated && user?.hasFacebookAuth,  // 只在已認證且有 Facebook 授權時載入
     retry: false
   });
 
@@ -259,7 +258,6 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     if (urlParams.has('facebook_auth_success') && refetchDashboard) {
       // Facebook 認證成功，清除 URL 參數並重新載入數據
       window.history.replaceState({}, '', '/meta-dashboard');
-      setNeedsAuth(false);
       refetchDashboard();
     }
   }, [refetchDashboard]);
@@ -270,31 +268,9 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     isLoading: businessLoading
   } = useQuery<{ success: boolean; data: BusinessMetrics }>({ 
     queryKey: ['/api/meta/business-metrics', businessType],
-    enabled: !!dashboardData?.success && !needsAuth
+    enabled: !!dashboardData?.success && isAuthenticated && user?.hasFacebookAuth
   });
 
-  // 根據認證狀態設置需要認證標記
-  useEffect(() => {
-    // 如果未認證，顯示登入界面
-    if (!isAuthenticated) {
-      setNeedsAuth(false); // 會由 isAuthenticated 檢查處理
-      return;
-    }
-    
-    // 如果已認證但沒有 Facebook 連接，需要連接 Facebook
-    if (isAuthenticated && !user?.metaAccessToken) {
-      setNeedsAuth(true);
-      return;
-    }
-    
-    // 如果有錯誤且包含認證相關訊息，設為需要重新認證
-    if (dashboardError) {
-      const errorMessage = dashboardError.message;
-      if (errorMessage.includes('401') || errorMessage.includes('Authentication required') || errorMessage.includes('access token')) {
-        setNeedsAuth(true);
-      }
-    }
-  }, [isAuthenticated, user?.metaAccessToken, dashboardError]);
 
   // 連接 Facebook 廣告帳戶
   const handleConnectFacebook = async () => {
@@ -315,7 +291,6 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
             // 重新載入數據
             setTimeout(() => {
               refetchDashboard();
-              setNeedsAuth(false); // 清除需要認證狀態
             }, 1000);
           }
         }, 1000);
@@ -339,7 +314,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   }
 
   // 如果需要 Facebook 認證
-  if (needsAuth || (dashboardError && (dashboardError as any)?.response?.data?.needsFacebookAuth)) {
+  if (!isAuthenticated || !user?.hasFacebookAuth || (dashboardError && (dashboardError as any)?.response?.data?.needsFacebookAuth)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         <NavigationBar locale={locale} />
