@@ -75,7 +75,7 @@ function LoginInterface() {
   const handleGoogleLogin = () => {
     setIsGoogleLoading(true);
     // Google 登入重定向
-    window.location.href = '/api/login';
+    window.location.href = '/api/auth/google';
   };
 
   const handleFacebookConnect = () => {
