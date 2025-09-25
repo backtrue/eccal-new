@@ -278,7 +278,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        NT$ {(dashboardStats as any).totalSpend?.toLocaleString() || '0'}
+                        NT$ {(dashboardStats as any)?.data?.overview?.totalSpend?.toLocaleString() || '0'}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         過去 30 天
@@ -293,7 +293,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {(dashboardStats as any).impressions?.toLocaleString() || '0'}
+                        {(dashboardStats as any)?.data?.overview?.totalImpressions?.toLocaleString() || '0'}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         過去 30 天
@@ -308,7 +308,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {(dashboardStats as any).clicks?.toLocaleString() || '0'}
+                        {(dashboardStats as any)?.data?.overview?.totalClicks?.toLocaleString() || '0'}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         過去 30 天
@@ -323,7 +323,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {(dashboardStats as any).ctr ? `${((dashboardStats as any).ctr * 100).toFixed(2)}%` : '0%'}
+                        {(dashboardStats as any)?.data?.metrics?.ctr ? `${((dashboardStats as any)?.data?.metrics?.ctr).toFixed(2)}%` : '0%'}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         點擊率
@@ -342,19 +342,19 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm text-gray-600">帳戶名稱</p>
-                          <p className="font-medium">{(dashboardStats as any).accountName || '載入中...'}</p>
+                          <p className="font-medium">{(dashboardStats as any)?.data?.account?.name || '載入中...'}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">帳戶狀態</p>
-                          <p className="font-medium">{(dashboardStats as any).accountStatus || '載入中...'}</p>
+                          <p className="font-medium">正常</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">平均每日花費</p>
-                          <p className="font-medium">NT$ {(dashboardStats as any).avgDailySpend?.toLocaleString() || '0'}</p>
+                          <p className="font-medium">NT$ {((dashboardStats as any)?.data?.overview?.totalSpend / 30)?.toFixed(0) || '0'}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">平均點擊成本</p>
-                          <p className="font-medium">NT$ {(dashboardStats as any).avgCpc?.toFixed(2) || '0'}</p>
+                          <p className="font-medium">NT$ {(dashboardStats as any)?.data?.metrics?.cpc?.toFixed(2) || '0'}</p>
                         </div>
                       </div>
                     </div>
