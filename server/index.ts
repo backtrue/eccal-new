@@ -4,7 +4,6 @@ import passport from 'passport';
 import { registerRoutes } from './routes';
 import { setupVite, serveStatic } from './vite';
 import { setupJWTGoogleAuth, jwtMiddleware } from './jwtAuth';
-import { tokenMaintenance } from './tokenMaintenance';
 
 // -------------------- 1. 基礎設定 --------------------
 const app = express();
@@ -2211,9 +2210,7 @@ setupJWTGoogleAuth(app);
     console.log(`Server bound to ${HOST}:${PORT} for deployment compatibility`);
     console.log(`Health check available at: http://${HOST}:${PORT}/health`);
     
-    // 啟動自動 token 維護服務
-    tokenMaintenance.start();
-    console.log('🤖 自動 token 維護服務已啟動 - 永遠不再需要手動處理過期問題！');
+    // Meta token 防過期：使用長期 token 交換，無需背景維護服務
   });
   
   // 伺服器錯誤處理
