@@ -1,0 +1,128 @@
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+name: '三風',
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+roas: '6.04'
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+},
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+{
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+id: '29d4a0ed-d011-43a8-985d-4e4dfe498279',
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+name: '成效攻略計劃',
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+roas: '13.05'
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+},
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+{
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+id: 'e896192a-6fc2-48bf-8e0b-75efe9936dd9',
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+name: '11月預算',
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+roas: '5.65'
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+},
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+{
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+id: '7c7a3532-d94e-4430-b85f-f95bbb2653d9',
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+name: '10月預算',
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+roas: '5.65'
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+}
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+]
+2025-09-26 00:11:33.34
+f60ecaa4
+User
+}
+2025-09-26 00:11:33.44
+f60ecaa4
+User
+Facebook API 錯誤詳情: {"error":{"message":"Error validating access token: The session has been invalidated because the user changed their password or Facebook has changed the session for security reasons.","type":"OAuthException","code":190,"error_subcode":460,"fbtrace_id":"ADL66ipg8c1HPqNGkz9J7vf"}}
+2025-09-26 00:11:33.44
+f60ecaa4
+User
+Error fetching ad accounts: Error: Facebook API error: 400 - {"error":{"message":"Error validating access token: The session has been invalidated because the user changed their password or Facebook has changed the session for security reasons.","type":"OAuthException","code":190,"error_subcode":460,"fbtrace_id":"ADL66ipg8c1HPqNGkz9J7vf"}}
+2025-09-26 00:11:33.44
+f60ecaa4
+User
+at FbAuditService.getAdAccounts (file:///home/runner/workspace/dist/index.js:7533:17)
+2025-09-26 00:11:33.44
+f60ecaa4
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-09-26 00:11:33.44
+f60ecaa4
+User
+at async file:///home/runner/workspace/dist/index.js:9643:24
+2025-09-26 00:11:33.44
+f60ecaa4
+User
+Error fetching ad accounts: Error: Facebook API error: 400 - {"error":{"message":"Error validating access token: The session has been invalidated because the user changed their password or Facebook has changed the session for security reasons.","type":"OAuthException","code":190,"error_subcode":460,"fbtrace_id":"ADL66ipg8c1HPqNGkz9J7vf"}}
+2025-09-26 00:11:33.44
+f60ecaa4
+User
+at FbAuditService.getAdAccounts (file:///home/runner/workspace/dist/index.js:7533:17)
+2025-09-26 00:11:33.44
+f60ecaa4
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-09-26 00:11:33.44
+f60ecaa4
+User
+at async file:///home/runner/workspace/dist/index.js:9643:24
+2025-09-26 00:11:39.06
+f60ecaa4
+User
+JWT middleware: token present: true
+2025-09-26 00:11:39.06
+f60ecaa4
+User
+JWT middleware: token verified: true
+2025-09-26 00:11:39.10
+f60ecaa4
+User
+JWT middleware: User loaded from database: backtrue@gmail.com
