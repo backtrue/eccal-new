@@ -152,7 +152,8 @@ export default function FbAudit({ locale }: FbAuditProps) {
     );
   };
 
-  const isConnected = user?.hasFacebookAuth;
+  // 修復邏輯衝突：如果檢測到 Facebook token 錯誤，則視為未連接
+  const isConnected = user?.hasFacebookAuth && !hasFacebookTokenError;
   const hasPlans = plans && plans.length > 0;
   const canStartAudit = selectedAccount && selectedPlan && selectedIndustry;
 
