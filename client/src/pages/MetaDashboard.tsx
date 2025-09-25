@@ -49,9 +49,8 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   // 保存廣告帳戶選擇到資料庫
   const saveAdAccountMutation = useMutation({
     mutationFn: async (adAccountId: string) => {
-      return await apiRequest(`/api/diagnosis/set-ad-account`, {
-        method: 'POST',
-        body: { adAccountId }
+      return await apiRequest('POST', '/api/diagnosis/set-ad-account', { 
+        adAccountId 
       });
     },
     onSuccess: () => {
