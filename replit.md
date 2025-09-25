@@ -8,6 +8,14 @@ This is a full-stack web application, "報數據" (Report Data), designed to hel
 
 Preferred communication style: Simple, everyday language.
 
+**🚨 CRITICAL DEBUGGING RULE 🚨**
+**當用戶回報任何 BUG 或問題時，永遠只針對生產環境進行調查和修復：**
+- 生產環境: `eccal.thinkwithblack.com`  
+- 永遠不檢查開發環境 `localhost:5000`
+- 所有 API 測試都用生產環境 URL
+- 所有問題分析都基於生產環境狀態
+- 這是絕對不可違反的規則
+
 ## System Architecture
 
 ### Frontend
