@@ -249,7 +249,9 @@ export function setupDiagnosisRoutes(app: Express) {
   // Facebook OAuth 回調處理
   app.get('/api/diagnosis/facebook-callback', async (req, res) => {
     try {
-      const { code, state: userId, error } = req.query;
+      const { code, state, error } = req.query;
+      // 解析 state 參數：格式為 "userId|origin"
+      const [userId, origin] = String(state || '').split('|');
 
       console.log('Facebook OAuth 回調:', { 
         code: code ? 'present' : 'missing', 
@@ -365,15 +367,15 @@ export function setupDiagnosisRoutes(app: Express) {
           });
           
           await storage.updateMetaTokens(
-            userId as string, 
-            tokenData.access_token,
+            userId, 
+            finalAccessToken,
             null
           );
           
           console.log('Facebook token 更新完成:', userId);
           
           // 驗證 token 是否真的保存成功並重新生成 JWT
-          const updatedUser = await storage.getUser(userId as string);
+          const updatedUser = await storage.getUser(userId);
           console.log('驗證用戶資料更新:', {
             userId: updatedUser?.id,
             hasMetaToken: !!updatedUser?.metaAccessToken,
