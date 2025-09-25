@@ -37,8 +37,8 @@ export function setupDiagnosisRoutes(app: Express) {
     }
   });
 
-  // Facebook OAuth 授權 URL - 提前設置，避免被其他中間件攔截
-  app.get('/api/diagnosis/facebook-auth-url', (req: any, res) => {
+  // Facebook OAuth 授權 URL - 需要 JWT 認證保護
+  app.get('/api/diagnosis/facebook-auth-url', requireJWTAuth, (req: any, res) => {
     try {
       const appId = process.env.FACEBOOK_APP_ID;
 
@@ -51,10 +51,10 @@ export function setupDiagnosisRoutes(app: Express) {
       }
 
       const redirectUri = `https://${req.get('host')}/api/diagnosis/facebook-callback`;
-      // 對於未認證用戶，使用臨時狀態，並添加來源信息
+      // 認證用戶的狀態信息，包含來源頁面
       const referer = req.get('Referer') || '';
       const origin = referer.includes('/meta-dashboard') ? 'meta-dashboard' : 'fbaudit';
-      const userId = req.user?.id || 'anonymous';
+      const userId = req.user.id; // 由於有 requireJWTAuth，req.user 保證存在
       const state = `${userId}|${origin}`;
 
       console.log('生成 Facebook OAuth URL:', {
@@ -253,9 +253,16 @@ export function setupDiagnosisRoutes(app: Express) {
       // 解析 state 參數：格式為 "userId|origin"
       const [userId, origin] = String(state || '').split('|');
 
+      // 防禦性檢查：拒絕 anonymous 用戶或無效 userId
+      if (!userId || userId === 'anonymous' || userId.length < 5) {
+        console.error('Facebook OAuth callback rejected: invalid or anonymous userId', { userId });
+        return res.redirect('/fbaudit?error=oauth_callback_failed&reason=invalid_user');
+      }
+
       console.log('Facebook OAuth 回調:', { 
         code: code ? 'present' : 'missing', 
-        userId, 
+        userId: userId.substring(0, 8) + '***', // 遮蔽 userId 以保護隱私
+        origin,
         error,
         fullQuery: req.query 
       });
