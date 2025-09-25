@@ -2,6 +2,7 @@ import express from 'express';
 import { requireJWTAuth } from './jwtAuth';
 import { metaAccountService, type MetaDashboardInsight } from './metaAccountService';
 import OpenAI from 'openai';
+import { storage } from './storage';
 
 const router = express.Router();
 
@@ -383,5 +384,70 @@ function generateBusinessMetrics(businessType: string) {
       return baseMetrics;
   }
 }
+
+// 保存業務類型端點
+router.post('/business-type', requireJWTAuth, async (req: any, res) => {
+  try {
+    const user = req.user;
+    const { businessType } = req.body;
+    
+    // 驗證業務類型格式
+    if (!businessType || !['ecommerce', 'consultation', 'lead_generation'].includes(businessType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid business type. Must be ecommerce, consultation, or lead_generation'
+      });
+    }
+
+    // 更新用戶的業務類型設定
+    await storage.updateUser(user.id, {
+      metaBusinessType: businessType
+    });
+
+    res.json({
+      success: true,
+      message: 'Business type saved successfully',
+      businessType
+    });
+
+  } catch (error) {
+    console.error('Save business type error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to save business type',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// 獲取業務類型端點
+router.get('/business-type', requireJWTAuth, async (req: any, res) => {
+  try {
+    const user = req.user;
+    
+    // 獲取用戶資訊包含業務類型
+    const userInfo = await storage.getUserById(user.id);
+    
+    if (!userInfo) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      businessType: userInfo.metaBusinessType || 'ecommerce' // 預設為電商
+    });
+
+  } catch (error) {
+    console.error('Get business type error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get business type',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
 
 export default router;
