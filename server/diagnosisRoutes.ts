@@ -1131,6 +1131,48 @@ export function setupDiagnosisRoutes(app: Express) {
       res.status(500).json({ error: 'Meta 授權失敗' });
     }
   });
+
+  // 保存選中的廣告帳戶到資料庫
+  app.post('/api/diagnosis/set-ad-account', requireJWTAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { adAccountId } = req.body;
+
+      console.log(`[SET-AD-ACCOUNT] 用戶 ${userId} 選擇廣告帳戶: ${adAccountId}`);
+
+      if (!adAccountId) {
+        return res.status(400).json({ error: '請提供廣告帳戶 ID' });
+      }
+
+      // 獲取用戶現有的 Meta token
+      const user = await storage.getUser(userId);
+      if (!user?.metaAccessToken) {
+        return res.status(400).json({ 
+          error: '尚未連接 Facebook，請先完成 Facebook 認證',
+          needsFacebookAuth: true 
+        });
+      }
+
+      // 更新用戶的廣告帳戶ID
+      const updatedUser = await storage.updateMetaTokens(
+        userId, 
+        user.metaAccessToken, 
+        adAccountId
+      );
+
+      console.log(`[SET-AD-ACCOUNT] 廣告帳戶保存成功: 用戶=${userId}, 帳戶=${adAccountId}`);
+
+      res.json({
+        success: true,
+        message: '廣告帳戶設定成功',
+        user: updatedUser,
+        adAccountId
+      });
+    } catch (error) {
+      console.error('[SET-AD-ACCOUNT] 設定廣告帳戶錯誤:', error);
+      res.status(500).json({ error: '設定廣告帳戶失敗' });
+    }
+  });
   
   // Meta 廣告儀表板路由 - 基於現有診斷功能擴展
   

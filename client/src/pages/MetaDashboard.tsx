@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Facebook, CheckCircle, Loader2, Target, AlertTriangle, TrendingUp, DollarSign, Users, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import NavigationBar from '@/components/NavigationBar';
 import Footer from '@/components/Footer';
 import FacebookLoginButton from '@/components/FacebookLoginButton';
@@ -19,6 +20,7 @@ interface MetaDashboardProps {
 export default function MetaDashboard({ locale }: MetaDashboardProps) {
   const t = getTranslations(locale);
   const { user, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedAccount, setSelectedAccount] = useState<string>("");
 
@@ -44,6 +46,25 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     console.log('Facebook token expired - redirecting to step 1 for re-authorization');
   }
 
+  // 保存廣告帳戶選擇到資料庫
+  const saveAdAccountMutation = useMutation({
+    mutationFn: async (adAccountId: string) => {
+      return await apiRequest(`/api/diagnosis/set-ad-account`, {
+        method: 'POST',
+        body: { adAccountId }
+      });
+    },
+    onSuccess: () => {
+      // 使認證狀態失效，強制重新載入用戶資料
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/check'] });
+      // 進入儀表板
+      setCurrentStep(3);
+    },
+    onError: (error) => {
+      console.error('保存廣告帳戶失敗:', error);
+    }
+  });
+
   // 載入 Meta 廣告儀表板數據
   const { 
     data: dashboardStats, 
@@ -53,6 +74,13 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     queryKey: ['/api/meta/dashboard-stats'],
     enabled: currentStep === 3 && !!selectedAccount
   });
+
+  // 處理進入儀表板
+  const handleEnterDashboard = () => {
+    if (selectedAccount) {
+      saveAdAccountMutation.mutate(selectedAccount);
+    }
+  };
 
 
   if (!isAuthenticated) {
@@ -174,8 +202,18 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                   
                   {selectedAccount && (
                     <div className="text-center pt-4">
-                      <Button onClick={() => setCurrentStep(3)}>
-                        進入儀表板
+                      <Button 
+                        onClick={handleEnterDashboard}
+                        disabled={saveAdAccountMutation.isPending}
+                      >
+                        {saveAdAccountMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            保存中...
+                          </>
+                        ) : (
+                          '進入儀表板'
+                        )}
                       </Button>
                     </div>
                   )}
