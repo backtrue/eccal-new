@@ -76,12 +76,9 @@ export function setupDiagnosisRoutes(app: Express) {
       console.log('🔍 Facebook OAuth URL 生成完成，包含隱私政策顯示參數');
       console.log('Privacy Policy URL: https://thinkwithblack.com/privacy');
 
-      // 返回 JSON 回應，讓前端處理彈窗
-      res.json({
-        success: true,
-        authUrl: authUrl,
-        redirectUri
-      });
+      // 直接重定向到 Facebook OAuth
+      console.log('Redirecting to Facebook OAuth:', authUrl.substring(0, 100) + '...');
+      res.redirect(authUrl);
     } catch (error) {
       console.error('生成 Facebook 授權 URL 錯誤:', error);
       res.status(500).json({
@@ -297,11 +294,36 @@ export function setupDiagnosisRoutes(app: Express) {
       });
 
       if (tokenData.access_token) {
+        // 立即將短期 token 交換為長期 token (60天)
+        console.log('開始交換長期 Facebook token...');
+        
+        let finalAccessToken = tokenData.access_token;
+        
+        try {
+          const longLivedTokenUrl = `https://graph.facebook.com/v23.0/oauth/access_token?` +
+            `grant_type=fb_exchange_token&` +
+            `client_id=${process.env.FACEBOOK_APP_ID}&` +
+            `client_secret=${process.env.FACEBOOK_APP_SECRET}&` +
+            `fb_exchange_token=${tokenData.access_token}`;
+          
+          const longLivedResponse = await fetch(longLivedTokenUrl);
+          const longLivedData = await longLivedResponse.json();
+          
+          if (longLivedData.access_token) {
+            finalAccessToken = longLivedData.access_token;
+            console.log('成功獲取長期 Facebook token，有效期:', longLivedData.expires_in, '秒');
+          } else {
+            console.log('無法獲取長期 token，使用短期 token:', longLivedData);
+          }
+        } catch (exchangeError) {
+          console.error('交換長期 token 失敗，使用短期 token:', exchangeError);
+        }
+
         // 對於未認證的用戶，需要創建 JWT 認證
         if (userId === 'anonymous') {
-          // 先獲取用戶資訊
+          // 先獲取用戶資訊 (使用長期 token)
           const userInfoResponse = await fetch(
-            `https://graph.facebook.com/v23.0/me?fields=id,name,email&access_token=${tokenData.access_token}`
+            `https://graph.facebook.com/v23.0/me?fields=id,name,email&access_token=${finalAccessToken}`
           );
           const userInfo = await userInfoResponse.json();
           
@@ -311,14 +333,14 @@ export function setupDiagnosisRoutes(app: Express) {
             email: userInfo.email 
           });
 
-          // 創建或更新用戶
+          // 創建或更新用戶 (使用長期 token)
           const user = await storage.upsertUser({
             id: userInfo.id, // 使用 Facebook ID 作為用戶 ID
             email: userInfo.email || `${userInfo.id}@facebook.com`,
             firstName: userInfo.name?.split(' ')[0] || 'Facebook',
             lastName: userInfo.name?.split(' ').slice(1).join(' ') || 'User',
             profileImageUrl: `https://graph.facebook.com/${userInfo.id}/picture?type=large`,
-            metaAccessToken: tokenData.access_token,
+            metaAccessToken: finalAccessToken,
             metaAdAccountId: null
           });
 
