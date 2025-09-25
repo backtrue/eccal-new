@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireJWTAuth } from './jwtAuth';
 import { metaAccountService, type MetaDashboardInsight } from './metaAccountService';
+import OpenAI from 'openai';
 
 const router = express.Router();
 
@@ -182,10 +183,11 @@ router.get('/business-metrics', requireJWTAuth, async (req: any, res) => {
   }
 });
 
-// AI 分析端點
-router.get('/ai-analysis', requireJWTAuth, async (req: any, res) => {
+// GPT-4.1-mini 智能分析端點
+router.post('/ai-analysis', requireJWTAuth, async (req: any, res) => {
   try {
     const user = req.user;
+    const { dashboardData, businessType, level, dateRange } = req.body;
     
     // 檢查用戶是否有 Facebook 連接
     if (!user.metaAccessToken || !user.metaAdAccountId) {
@@ -196,46 +198,96 @@ router.get('/ai-analysis', requireJWTAuth, async (req: any, res) => {
       });
     }
 
-    // 模擬 AI 分析結果
-    const aiAnalysis = {
-      summary: "您的廣告帳戶整體表現良好，建議優化轉換率和降低成本。",
-      recommendations: [
+    if (!dashboardData) {
+      return res.status(400).json({
+        success: false,
+        error: 'Dashboard data is required for analysis'
+      });
+    }
+
+    console.log('Generating GPT analysis for:', { businessType, level, dateRange });
+
+    // 構建 GPT 分析提示
+    const prompt = `作為 Meta 廣告專家，請分析以下廣告帳戶數據並提供專業建議：
+
+業務類型: ${businessType === 'ecommerce' ? '電商' : businessType === 'consultation' ? '線上諮詢' : '名單收集'}
+分析維度: ${level === 'account' ? '廣告帳戶' : level === 'campaign' ? '行銷活動' : level === 'adset' ? '廣告組合' : '廣告'}
+時間範圍: ${dateRange?.since || '過去30天'} 至 ${dateRange?.until || '今日'}
+
+廣告數據:
+- 總花費: $${dashboardData.overview?.totalSpend || 0}
+- 曝光數: ${dashboardData.overview?.totalImpressions?.toLocaleString() || 0}
+- 觸及數: ${dashboardData.overview?.totalReach?.toLocaleString() || 0}
+- 連結點擊數: ${dashboardData.overview?.totalClicks?.toLocaleString() || 0}
+- 連結 CTR: ${dashboardData.metrics?.ctr?.toFixed(2) || 0}%
+- 連結點擊成本: $${dashboardData.metrics?.cpc?.toFixed(2) || 0}
+
+${businessType === 'ecommerce' ? `
+電商轉換數據:
+- ViewContent: ${dashboardData.overview?.totalViewContent?.toLocaleString() || 0}
+- AddToCart: ${dashboardData.overview?.totalAddToCart?.toLocaleString() || 0}
+- Purchase: ${dashboardData.overview?.totalPurchase?.toLocaleString() || 0}
+- ATC% (加購率): ${dashboardData.metrics?.atcRate?.toFixed(1) || 0}%
+- PF% (完成率): ${dashboardData.metrics?.pfRate?.toFixed(1) || 0}%
+- ROAS: ${dashboardData.metrics?.roas?.toFixed(2) || 0}
+- 購買成本: $${dashboardData.metrics?.costPerPurchase?.toFixed(2) || 0}
+- 購買價值: $${dashboardData.overview?.totalPurchaseValue?.toLocaleString() || 0}
+` : businessType === 'consultation' ? `
+諮詢互動數據:
+- 訊息對話開始次數: ${dashboardData.overview?.totalMessaging?.toLocaleString() || 0}
+- 每次對話成本: $${dashboardData.metrics?.costPerMessaging?.toFixed(2) || 0}
+` : `
+名單收集數據:
+- 潛在顧客數: ${dashboardData.overview?.totalLeads?.toLocaleString() || 0}
+- 潛客取得成本: $${dashboardData.metrics?.costPerLead?.toFixed(2) || 0}
+`}
+
+請以JSON格式提供分析結果，包含:
+1. summary: 整體表現總結 (100字以內，繁體中文)
+2. recommendations: 3-5個具體改善建議，每個包含 {type, title, description, priority, impact}
+3. insights: 2-3個關鍵洞察，每個包含 {metric, trend, message}
+
+請使用繁體中文回應，提供專業且可執行的建議。`;
+
+    // 初始化 OpenAI 客戶端
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    // 調用 GPT-4.1-mini 分析
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
         {
-          type: "optimization",
-          title: "優化目標受眾",
-          description: "建議縮小目標受眾範圍以提高轉換率",
-          priority: "high",
-          impact: "medium"
+          role: "system",
+          content: "你是專業的 Meta 廣告分析專家，擅長提供數據驅動的廣告優化建議。請以JSON格式回應，使用繁體中文。"
         },
         {
-          type: "budget",
-          title: "調整預算分配",
-          description: "將更多預算分配給高表現的廣告組",
-          priority: "medium",
-          impact: "high"
-        },
-        {
-          type: "creative",
-          title: "更新廣告素材",
-          description: "測試新的廣告圖片和文案以提高點擊率",
-          priority: "medium",
-          impact: "medium"
+          role: "user",
+          content: prompt
         }
       ],
-      insights: [
-        {
-          metric: "roas",
-          trend: "improving",
-          message: "投資回報率在過去7天中提升了15%"
-        },
-        {
-          metric: "cpm",
-          trend: "stable",
-          message: "千次曝光成本保持穩定"
-        }
-      ],
-      generatedAt: new Date().toISOString()
-    };
+      max_tokens: 1500,
+      temperature: 0.7
+    });
+
+    const aiResponse = completion.choices[0]?.message?.content;
+    let aiAnalysis;
+
+    try {
+      // 嘗試解析JSON回應
+      aiAnalysis = JSON.parse(aiResponse || '{}');
+      aiAnalysis.generatedAt = new Date().toISOString();
+    } catch (parseError) {
+      // 如果JSON解析失敗，返回基本格式
+      console.error('Failed to parse GPT response:', parseError);
+      aiAnalysis = {
+        summary: aiResponse || "無法生成分析結果",
+        recommendations: [],
+        insights: [],
+        generatedAt: new Date().toISOString()
+      };
+    }
 
     res.json({
       success: true,

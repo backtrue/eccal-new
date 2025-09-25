@@ -69,6 +69,15 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   // 儀表板配置狀態
   const [businessType, setBusinessType] = useState<'ecommerce' | 'consultation' | 'lead_generation'>('ecommerce');
   const [level, setLevel] = useState<'account' | 'campaign' | 'adset' | 'ad'>('account');
+  const [dateRange, setDateRange] = useState({
+    since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    until: new Date().toISOString().split('T')[0]
+  });
+
+  // GPT 分析狀態
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
   
   // 載入 Meta 廣告儀表板數據
   const { 
@@ -76,7 +85,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     isLoading: statsLoading, 
     error: statsError 
   } = useQuery({
-    queryKey: [`/api/meta/dashboard?businessType=${businessType}&level=${level}`],
+    queryKey: [`/api/meta/dashboard?businessType=${businessType}&level=${level}&since=${dateRange.since}&until=${dateRange.until}`],
     enabled: currentStep === 3 && !!selectedAccount
   });
 
@@ -84,6 +93,29 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   const handleEnterDashboard = () => {
     if (selectedAccount) {
       saveAdAccountMutation.mutate(selectedAccount);
+    }
+  };
+
+  // 處理GPT分析
+  const handleGptAnalysis = async () => {
+    if (!dashboardStats?.data) return;
+
+    setIsAnalyzing(true);
+    try {
+      const response = await apiRequest('POST', '/api/meta/ai-analysis', {
+        dashboardData: dashboardStats.data,
+        businessType,
+        level,
+        dateRange
+      });
+      
+      setAnalysisResult(response.data);
+      setShowAnalysis(true);
+    } catch (error) {
+      console.error('GPT 分析失敗:', error);
+      // 可以添加錯誤提示
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -246,7 +278,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
                   {/* 業務類型選擇 */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-600">業務類型</label>
@@ -293,18 +325,89 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                     </Select>
                   </div>
 
+                  {/* 開始日期 */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-600">開始日期</label>
+                    <input 
+                      type="date" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+                      value={dateRange.since}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, since: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* 結束日期 */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-600">結束日期</label>
+                    <input 
+                      type="date" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+                      value={dateRange.until}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, until: e.target.value }))}
+                    />
+                  </div>
+
                   {/* 帳戶資訊 */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-600">已選擇帳戶</label>
-                    <div className="p-2 bg-gray-50 rounded-md text-sm">
+                    <div className="p-2 bg-gray-50 rounded-md text-sm truncate" title={selectedAccount}>
                       {selectedAccount}
                     </div>
                   </div>
 
                   {/* GPT 分析按鈕 */}
-                  <Button className="h-10" variant="outline">
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    GPT 分析
+                  <Button 
+                    className="h-10" 
+                    variant="outline"
+                    onClick={handleGptAnalysis}
+                    disabled={isAnalyzing || !dashboardStats}
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        分析中...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        GPT 分析
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* 時間範圍快捷選項 */}
+                <div className="flex gap-2 mt-4 pt-4 border-t">
+                  <span className="text-sm text-gray-600 mr-2">快捷時間：</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setDateRange({
+                      since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                      until: new Date().toISOString().split('T')[0]
+                    })}
+                  >
+                    近 7 天
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setDateRange({
+                      since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                      until: new Date().toISOString().split('T')[0]
+                    })}
+                  >
+                    近 30 天
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setDateRange({
+                      since: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                      until: new Date().toISOString().split('T')[0]
+                    })}
+                  >
+                    近 90 天
                   </Button>
                 </div>
               </CardContent>
@@ -540,6 +643,99 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                     </Card>
                   </TabsContent>
                 </Tabs>
+
+                {/* GPT 智能分析結果 */}
+                {showAnalysis && analysisResult && (
+                  <Card className="border-blue-200 bg-blue-50/50">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 text-blue-600" />
+                          GPT-4.1-mini 智能分析
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setShowAnalysis(false)}
+                        >
+                          ✕
+                        </Button>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* 分析總結 */}
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-2">📊 整體分析</h4>
+                        <p className="text-gray-700 bg-white rounded-lg p-4 border">
+                          {analysisResult.summary}
+                        </p>
+                      </div>
+
+                      {/* 改善建議 */}
+                      {analysisResult.recommendations && analysisResult.recommendations.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-3">💡 改善建議</h4>
+                          <div className="space-y-3">
+                            {analysisResult.recommendations.map((rec: any, index: number) => (
+                              <div key={index} className="bg-white rounded-lg p-4 border">
+                                <div className="flex items-start justify-between mb-2">
+                                  <h5 className="font-medium text-gray-900">{rec.title}</h5>
+                                  <div className="flex gap-2">
+                                    <span className={`px-2 py-1 text-xs rounded-full ${
+                                      rec.priority === 'high' ? 'bg-red-100 text-red-700' :
+                                      rec.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                      'bg-green-100 text-green-700'
+                                    }`}>
+                                      {rec.priority === 'high' ? '高優先級' : rec.priority === 'medium' ? '中優先級' : '低優先級'}
+                                    </span>
+                                    <span className={`px-2 py-1 text-xs rounded-full ${
+                                      rec.impact === 'high' ? 'bg-blue-100 text-blue-700' :
+                                      rec.impact === 'medium' ? 'bg-indigo-100 text-indigo-700' :
+                                      'bg-gray-100 text-gray-700'
+                                    }`}>
+                                      {rec.impact === 'high' ? '高影響' : rec.impact === 'medium' ? '中影響' : '低影響'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <p className="text-gray-600 text-sm">{rec.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 關鍵洞察 */}
+                      {analysisResult.insights && analysisResult.insights.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-3">🔍 關鍵洞察</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {analysisResult.insights.map((insight: any, index: number) => (
+                              <div key={index} className="bg-white rounded-lg p-4 border">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="font-medium text-gray-900 capitalize">{insight.metric}</span>
+                                  <span className={`px-2 py-1 text-xs rounded-full ${
+                                    insight.trend === 'improving' ? 'bg-green-100 text-green-700' :
+                                    insight.trend === 'stable' ? 'bg-blue-100 text-blue-700' :
+                                    'bg-red-100 text-red-700'
+                                  }`}>
+                                    {insight.trend === 'improving' ? '改善中' : 
+                                     insight.trend === 'stable' ? '穩定' : '下降'}
+                                  </span>
+                                </div>
+                                <p className="text-gray-600 text-sm">{insight.message}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 生成時間 */}
+                      <div className="text-xs text-gray-500 text-center pt-4 border-t">
+                        分析生成時間：{new Date(analysisResult.generatedAt).toLocaleString('zh-TW')}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* 廣告帳戶詳細資訊 */}
                 <Card>
