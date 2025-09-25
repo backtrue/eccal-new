@@ -53,11 +53,27 @@ export default function FbAudit({ locale }: FbAuditProps) {
 
   // 只有在用戶已認證且有 Facebook access token 時才載入帳戶
   const shouldLoadAccounts = Boolean(isAuthenticated && user?.hasFacebookAuth);
-  const { data: accounts, isLoading: accountsLoading } = useFbAuditAccounts(shouldLoadAccounts);
+  const { data: accounts, isLoading: accountsLoading, error: accountsError } = useFbAuditAccounts(shouldLoadAccounts);
   const { data: plans, isLoading: plansLoading, refetch: refetchPlans } = useFbAuditPlans(isAuthenticated, false);
   const { data: industries } = useFbAuditIndustries();
   const checkMutation = useFbAuditCheck();
   const streamAudit = useFbAuditStream();
+
+  // 檢測 Facebook token 失效錯誤
+  const hasFacebookTokenError = Boolean(accountsError && 
+    ((accountsError as any)?.message?.includes('500') || 
+     (accountsError as any)?.message?.includes('401') ||
+     (accountsError as any)?.message?.includes('TOKEN_EXPIRED')));
+
+  console.log('前端狀態檢查:', {
+    isAuthenticated,
+    hasFacebookAuth: user?.hasFacebookAuth,
+    shouldLoadAccounts,
+    accountsLoading,
+    accountsError: accountsError ? String(accountsError) : null,
+    hasFacebookTokenError,
+    accountsData: accounts
+  });
 
   // 處理從計算機頁面返回的情況
   useEffect(() => {
@@ -497,8 +513,24 @@ export default function FbAudit({ locale }: FbAuditProps) {
           </Card>
         )}
 
+        {/* Facebook Token 過期錯誤提示 */}
+        {hasFacebookTokenError && (
+          <Alert className="mb-6 border-orange-200 bg-orange-50">
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">
+              <div className="space-y-2">
+                <p className="font-medium">Facebook 連接已失效</p>
+                <p className="text-sm">您的 Facebook 權限已過期或被撤銷，請重新連接您的 Facebook 帳戶。</p>
+                <div className="pt-2">
+                  <FacebookLoginButton className="w-auto" />
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* {t.selectAdAccountStep} */}
-        {currentStep === 2 && isConnected && (
+        {currentStep === 2 && isConnected && !hasFacebookTokenError && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

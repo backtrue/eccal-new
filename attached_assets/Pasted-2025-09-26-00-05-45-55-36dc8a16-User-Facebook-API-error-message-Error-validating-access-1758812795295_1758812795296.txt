@@ -1,0 +1,48 @@
+2025-09-26 00:05:45.55
+36dc8a16
+User
+Facebook API 錯誤詳情: {"error":{"message":"Error validating access token: The session has been invalidated because the user changed their password or Facebook has changed the session for security reasons.","type":"OAuthException","code":190,"error_subcode":460,"fbtrace_id":"AJBk9K6d0NSIsvyNu0TOLwy"}}
+2025-09-26 00:05:45.56
+36dc8a16
+User
+Error fetching ad accounts: Error: Facebook API error: 400 - {"error":{"message":"Error validating access token: The session has been invalidated because the user changed their password or Facebook has changed the session for security reasons.","type":"OAuthException","code":190,"error_subcode":460,"fbtrace_id":"AJBk9K6d0NSIsvyNu0TOLwy"}}
+2025-09-26 00:05:45.56
+36dc8a16
+User
+at FbAuditService.getAdAccounts (file:///home/runner/workspace/dist/index.js:7533:17)
+2025-09-26 00:05:45.56
+36dc8a16
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-09-26 00:05:45.56
+36dc8a16
+User
+at async file:///home/runner/workspace/dist/index.js:9643:24
+2025-09-26 00:05:45.56
+36dc8a16
+User
+Error fetching ad accounts: Error: Facebook API error: 400 - {"error":{"message":"Error validating access token: The session has been invalidated because the user changed their password or Facebook has changed the session for security reasons.","type":"OAuthException","code":190,"error_subcode":460,"fbtrace_id":"AJBk9K6d0NSIsvyNu0TOLwy"}}
+2025-09-26 00:05:45.56
+36dc8a16
+User
+at FbAuditService.getAdAccounts (file:///home/runner/workspace/dist/index.js:7533:17)
+2025-09-26 00:05:45.56
+36dc8a16
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-09-26 00:05:45.56
+36dc8a16
+User
+at async file:///home/runner/workspace/dist/index.js:9643:24
+2025-09-26 00:05:50.94
+36dc8a16
+User
+JWT middleware: token present: true
+2025-09-26 00:05:50.94
+36dc8a16
+User
+JWT middleware: token verified: true
+2025-09-26 00:05:50.97
+36dc8a16
+User
+JWT middleware: User loaded from database: backtrue@gmail.com
