@@ -1,0 +1,29 @@
+index-BRlefgll.js:538 前端狀態檢查: Object
+index-BRlefgll.js:407 Locale changed to: zh-TW
+index-BRlefgll.js:407 Auth check decision: Object
+index-BRlefgll.js:407 Auth check triggered
+index-BRlefgll.js:407 AuthContext: Starting auth check...
+index-BRlefgll.js:538 前端狀態檢查: Object
+multi-tabs.js:5075 Injected CSS loaded successfully
+contentScript.bundle.js:6 🚧 👷 key 'required_field_warning' not found in localizedStrings for language zh 🚧
+contentScript.bundle.js:6 🚧 👷 key 'required_field_warning' not found in localizedStrings for language zh 🚧
+index-BRlefgll.js:407 AuthContext: Auth response status: 200
+index-BRlefgll.js:407 AuthContext: Auth data received: Object
+index-BRlefgll.js:407 Auth check successful: backtrue@gmail.com
+index-BRlefgll.js:538 前端狀態檢查: Object
+index-BRlefgll.js:538 前端狀態檢查: Object
+index-BRlefgll.js:407 Locale changed to: zh-TW
+index-BRlefgll.js:538 前端狀態檢查: Object
+index-BRlefgll.js:538 前端狀態檢查: ObjecthasData: falseisLoading: falsemutationStatus: "idle"showResults: false[[Prototype]]: Object
+index-BRlefgll.js:537 useFbAuditPlans - Raw API response: Object
+index-BRlefgll.js:537 useFbAuditPlans - Processed plans: Array(6)
+index-BRlefgll.js:537 useFbAuditPlans - Raw API response: Object
+index-BRlefgll.js:537 useFbAuditPlans - Processed plans: Array(6)
+index-BRlefgll.js:538 前端狀態檢查: Object
+index-BRlefgll.js:538 前端狀態檢查: Object
+js?id=G-T2PJR9T5EN:175 擷取 無法載入:POST "https://www.google-analytics.com/g/collect?v=2&tid=G-T2PJR9T5EN&gtm=45je59n2v9112902271za200zd9112902271&_p=1758819507192&gcd=13l3l3l3l1l1&npa=0&dma=0&cid=1745286630.1746879770&ul=zh-tw&sr=1512x982&uaa=arm&uab=64&uafvl=Chromium%3B140.0.7339.133%7CNot%253DA%253FBrand%3B24.0.0.0%7CMicrosoft%2520Edge%3B140.0.3485.66&uamb=0&uam=&uap=macOS&uapv=15.6.1&uaw=0&are=1&frm=0&pscdl=noapi&_eu=AAAAAAQ&_s=1&tag_exp=101509157~102015666~103116026~103200004~103233427~104527907~104528500~104684208~104684211~104948813~115480709~115616986&sid=1758812733&sct=268&seg=1&dl=https%3A%2F%2Feccal.thinkwithblack.com%2Ffbaudit%3Ferror%3Doauth_callback_failed&dr=https%3A%2F%2Fwww.facebook.com%2F&dt=%E5%BB%A3%E5%91%8A%E9%A0%90%E7%AE%97%E6%80%8E%E9%BA%BC%E6%8A%93%EF%BD%9C%E5%A0%B1%E6%95%B8%E6%93%9A%E4%BE%86%E5%91%8A%E8%A8%B4%E4%BD%A0FB%2C%20IG%E5%BB%A3%E5%91%8A%E9%A0%90%E7%AE%97%E6%B5%81%E9%87%8F%E8%A6%81%E5%A4%9A%E5%B0%91&en=page_view&_ee=1&tfd=7439"。
+$c @ js?id=G-T2PJR9T5EN:175
+cl @ js?id=G-T2PJR9T5EN:326
+vN @ js?id=G-T2PJR9T5EN:799
+k.flush @ js?id=G-T2PJR9T5EN:806
+(匿名) @ js?id=G-T2PJR9T5EN:804

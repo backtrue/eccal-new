@@ -122,8 +122,8 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
 
   // 當載入保存的業務類型時，自動設置到狀態
   useEffect(() => {
-    if (savedBusinessType?.businessType && savedBusinessType.businessType !== businessType) {
-      setBusinessType(savedBusinessType.businessType as 'ecommerce' | 'consultation' | 'lead_generation');
+    if ((savedBusinessType as any)?.businessType && (savedBusinessType as any).businessType !== businessType) {
+      setBusinessType((savedBusinessType as any).businessType as 'ecommerce' | 'consultation' | 'lead_generation');
     }
   }, [savedBusinessType]);
 
@@ -134,20 +134,22 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     saveBusinessTypeMutation.mutate(newBusinessType);
   };
 
+
   // 處理GPT分析
   const handleGptAnalysis = async () => {
-    if (!dashboardStats?.data) return;
+    if (!(dashboardStats as any)?.data) return;
 
     setIsAnalyzing(true);
     try {
       const response = await apiRequest('POST', '/api/meta/ai-analysis', {
-        dashboardData: dashboardStats.data,
+        dashboardData: (dashboardStats as any).data,
         businessType,
         level,
         dateRange
       });
       
-      setAnalysisResult(response.data);
+      const result = await response.json();
+      setAnalysisResult(result.data);
       setShowAnalysis(true);
     } catch (error) {
       console.error('GPT 分析失敗:', error);
