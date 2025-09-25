@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Facebook, CheckCircle, Loader2, Target, AlertTriangle } from 'lucide-react';
+import { Facebook, CheckCircle, Loader2, Target, AlertTriangle, TrendingUp, DollarSign, Users, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
 import NavigationBar from '@/components/NavigationBar';
 import Footer from '@/components/Footer';
 import FacebookLoginButton from '@/components/FacebookLoginButton';
@@ -42,6 +43,16 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   if (hasFacebookTokenError && isAuthenticated && currentStep === 2) {
     console.log('Facebook token expired - redirecting to step 1 for re-authorization');
   }
+
+  // 載入 Meta 廣告儀表板數據
+  const { 
+    data: dashboardStats, 
+    isLoading: statsLoading, 
+    error: statsError 
+  } = useQuery({
+    queryKey: ['/api/meta/dashboard-stats'],
+    enabled: currentStep === 3 && !!selectedAccount
+  });
 
 
   if (!isAuthenticated) {
@@ -182,21 +193,156 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
 
         {/* 步驟 3: 儀表板 */}
         {currentStep === 3 && selectedAccount && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>廣告帳戶儀表板</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <p className="text-gray-600 mb-4">
-                  已選擇廣告帳戶: {selectedAccount}
-                </p>
-                <p className="text-green-600 font-medium">
-                  Meta 廣告儀表板準備就緒！
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            {/* 帳戶資訊 */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <p className="text-gray-600">已選擇廣告帳戶</p>
+                  <p className="font-medium text-lg">{selectedAccount}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 載入狀態 */}
+            {statsLoading && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center py-8">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                    <p className="text-gray-600">正在載入廣告數據...</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 錯誤狀態 */}
+            {statsError && (
+              <Card className="border-red-200">
+                <CardContent className="pt-6">
+                  <div className="text-center py-8">
+                    <AlertTriangle className="w-8 h-8 text-red-600 mx-auto mb-4" />
+                    <p className="text-red-600 font-medium mb-2">載入廣告數據失敗</p>
+                    <p className="text-gray-600 text-sm">請稍後再試或檢查您的 Facebook 權限</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 廣告數據儀表板 */}
+            {dashboardStats && (
+              <>
+                {/* 關鍵指標卡片 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">總花費</CardTitle>
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        NT$ {(dashboardStats as any).totalSpend?.toLocaleString() || '0'}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        過去 30 天
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">曝光次數</CardTitle>
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {(dashboardStats as any).impressions?.toLocaleString() || '0'}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        過去 30 天
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">點擊次數</CardTitle>
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {(dashboardStats as any).clicks?.toLocaleString() || '0'}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        過去 30 天
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">點擊率</CardTitle>
+                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {(dashboardStats as any).ctr ? `${((dashboardStats as any).ctr * 100).toFixed(2)}%` : '0%'}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        點擊率
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* 廣告帳戶詳細資訊 */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>廣告帳戶詳細資訊</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">帳戶名稱</p>
+                          <p className="font-medium">{(dashboardStats as any).accountName || '載入中...'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">帳戶狀態</p>
+                          <p className="font-medium">{(dashboardStats as any).accountStatus || '載入中...'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">平均每日花費</p>
+                          <p className="font-medium">NT$ {(dashboardStats as any).avgDailySpend?.toLocaleString() || '0'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">平均點擊成本</p>
+                          <p className="font-medium">NT$ {(dashboardStats as any).avgCpc?.toFixed(2) || '0'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {/* 如果沒有數據且沒有載入錯誤，顯示準備就緒狀態 */}
+            {!statsLoading && !statsError && !dashboardStats && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                    <p className="text-green-600 font-medium">
+                      Meta 廣告儀表板準備就緒！
+                    </p>
+                    <p className="text-gray-600 text-sm mt-2">
+                      正在連接您的廣告數據...
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         )}
       </div>
       <Footer />
