@@ -400,7 +400,8 @@ router.post('/business-type', requireJWTAuth, async (req: any, res) => {
     }
 
     // 更新用戶的業務類型設定
-    await storage.updateUser(user.id, {
+    await storage.upsertUser({
+      id: user.id,
       metaBusinessType: businessType
     });
 

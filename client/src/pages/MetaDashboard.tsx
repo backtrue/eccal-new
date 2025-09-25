@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Facebook, CheckCircle, Loader2, Target, AlertTriangle, TrendingUp, DollarSign, Users, BarChart3, ShoppingCart, MessageSquare, UserPlus, Calendar, Filter, Sparkles } from 'lucide-react';
@@ -78,7 +78,31 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
+
+  // 保存業務類型的mutation
+  const saveBusinessTypeMutation = useMutation({
+    mutationFn: (newBusinessType: string) => apiRequest('POST', '/api/meta/business-type', { businessType: newBusinessType }),
+    onSuccess: () => {
+      // 成功保存後重新獲取dashboard數據
+      queryClient.invalidateQueries({
+        queryKey: ['/api/meta/dashboard']
+      });
+    },
+    onError: (error) => {
+      console.error('保存業務類型失敗:', error);
+    }
+  });
   
+  // 載入用戶保存的業務類型
+  const { 
+    data: savedBusinessType, 
+    isLoading: businessTypeLoading 
+  } = useQuery({
+    queryKey: ['/api/meta/business-type'],
+    enabled: currentStep === 3 && !!selectedAccount,
+    staleTime: 5 * 60 * 1000 // 5分鐘緩存
+  });
+
   // 載入 Meta 廣告儀表板數據
   const { 
     data: dashboardStats, 
@@ -94,6 +118,20 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     if (selectedAccount) {
       saveAdAccountMutation.mutate(selectedAccount);
     }
+  };
+
+  // 當載入保存的業務類型時，自動設置到狀態
+  useEffect(() => {
+    if (savedBusinessType?.businessType && savedBusinessType.businessType !== businessType) {
+      setBusinessType(savedBusinessType.businessType as 'ecommerce' | 'consultation' | 'lead_generation');
+    }
+  }, [savedBusinessType]);
+
+  // 處理業務類型變更
+  const handleBusinessTypeChange = (newBusinessType: 'ecommerce' | 'consultation' | 'lead_generation') => {
+    setBusinessType(newBusinessType);
+    // 自動保存到後端
+    saveBusinessTypeMutation.mutate(newBusinessType);
   };
 
   // 處理GPT分析
@@ -281,8 +319,17 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
                   {/* 業務類型選擇 */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-600">業務類型</label>
-                    <Select value={businessType} onValueChange={(value: 'ecommerce' | 'consultation' | 'lead_generation') => setBusinessType(value)}>
+                    <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                      業務類型
+                      {saveBusinessTypeMutation.isPending && (
+                        <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
+                      )}
+                    </label>
+                    <Select 
+                      value={businessType} 
+                      onValueChange={handleBusinessTypeChange}
+                      disabled={businessTypeLoading || saveBusinessTypeMutation.isPending}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
