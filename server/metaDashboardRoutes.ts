@@ -131,7 +131,7 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
         purchaseValue: insight.purchaseValue,
         roas: insight.spend > 0 ? (insight.purchaseValue / insight.spend) : 0,
         atcRate: insight.viewContent > 0 ? (insight.addToCart / insight.viewContent * 100) : 0,
-        cvRate: insight.addToCart > 0 ? (insight.purchase / insight.addToCart * 100) : 0
+        pfRate: insight.addToCart > 0 ? (insight.purchase / insight.addToCart * 100) : 0
       }),
       
       ...(businessType === 'consultation' && {

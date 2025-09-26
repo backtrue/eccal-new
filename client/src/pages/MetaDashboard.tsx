@@ -608,7 +608,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                                   <th className="text-right p-2 font-medium">購買</th>
                                   <th className="text-right p-2 font-medium">ROAS</th>
                                   <th className="text-right p-2 font-medium">ATC%</th>
-                                  <th className="text-right p-2 font-medium">CV%</th>
+                                  <th className="text-right p-2 font-medium">PF%</th>
                                 </>
                               )}
                               
@@ -674,7 +674,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                                       {item.atcRate?.toFixed(1) || '0.0'}%
                                     </td>
                                     <td className="text-right p-2">
-                                      {item.cvRate?.toFixed(1) || '0.0'}%
+                                      {item.pfRate?.toFixed(1) || '0.0'}%
                                     </td>
                                   </>
                                 )}
