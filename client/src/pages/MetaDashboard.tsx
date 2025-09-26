@@ -130,7 +130,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     data: dashboardStats, 
     isLoading: statsLoading, 
     error: statsError 
-  } = useQuery({
+  } = useQuery<any>({
     queryKey: [`/api/meta/dashboard?businessType=${businessType}&level=${level}&since=${dateRange.since}&until=${dateRange.until}`],
     enabled: currentStep === 3 && !!selectedAccount
   });
@@ -508,7 +508,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
             </Card>
 
             {/* 載入狀態 */}
-            {statsLoading && (
+            {statsLoading ? (
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center py-8">
@@ -517,10 +517,10 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                   </div>
                 </CardContent>
               </Card>
-            )}
+            ) : null}
 
             {/* 錯誤狀態 */}
-            {statsError && (
+            {Boolean(statsError) ? (
               <Card className="border-red-200">
                 <CardContent className="pt-6">
                   <div className="text-center py-8">
@@ -530,10 +530,10 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                   </div>
                 </CardContent>
               </Card>
-            )}
+            ) : null}
 
             {/* 完整分類指標儀表板 */}
-            {dashboardStats && (
+            {Boolean(dashboardStats) ? (
               <>
                 {/* 共同核心指標 */}
                 <Card>
@@ -577,14 +577,14 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                 </Card>
 
                 {/* 🎯 新增：維度切換數據表格 */}
-                {level !== 'account' && (dashboardStats as any)?.data?.detailData && (dashboardStats as any)?.data?.detailData.length > 0 && (
+                {level !== 'account' && Boolean(dashboardStats?.data?.detailData) && dashboardStats.data.detailData.length > 0 ? (
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <BarChart3 className="w-5 h-5" />
                         {level === 'campaign' ? '行銷活動' : level === 'adset' ? '廣告組合' : '廣告'}明細數據 
                         <span className="text-sm font-normal text-gray-500">
-                          ({(dashboardStats as any)?.data?.totalItems || 0} 筆)
+                          ({dashboardStats?.data?.totalItems || 0} 筆)
                         </span>
                       </CardTitle>
                     </CardHeader>
@@ -630,7 +630,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                             </tr>
                           </thead>
                           <tbody>
-                            {((dashboardStats as any)?.data?.detailData || []).map((item: any, index: number) => (
+                            {(dashboardStats?.data?.detailData || []).map((item: any, index: number) => (
                               <tr 
                                 key={item.id || index} 
                                 className="border-b hover:bg-gray-50"
@@ -715,7 +715,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                       </div>
                     </CardContent>
                   </Card>
-                )}
+                ) : null}
 
                 {/* 業務類型專用指標 */}
                 <Tabs value={businessType} className="w-full">
@@ -990,10 +990,10 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                   </CardContent>
                 </Card>
               </>
-            )}
+            ) : null}
 
             {/* 如果沒有數據且沒有載入錯誤，顯示準備就緒狀態 */}
-            {!statsLoading && !statsError && !dashboardStats && (
+            {!statsLoading && !statsError && !dashboardStats ? (
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center py-8">
@@ -1007,7 +1007,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                   </div>
                 </CardContent>
               </Card>
-            )}
+            ) : null}
           </div>
         )}
       </div>
