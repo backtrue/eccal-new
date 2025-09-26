@@ -432,7 +432,7 @@ router.get('/business-type', requireJWTAuth, async (req: any, res) => {
     const user = req.user;
     
     // 獲取用戶資訊包含業務類型
-    const userInfo = await storage.getUserById(user.id);
+    const userInfo = await storage.getUser(user.id);
     
     if (!userInfo) {
       return res.status(404).json({
