@@ -1,0 +1,128 @@
+2025-09-27 01:54:47.79
+d735d77a
+User
+at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+2025-09-27 01:54:47.79
+d735d77a
+User
+at async DatabaseStorage.getUser (file:///home/runner/workspace/dist/index.js:1168:24)
+2025-09-27 01:54:47.79
+d735d77a
+User
+at async DatabaseStorage.upsertUser (file:///home/runner/workspace/dist/index.js:1178:44)
+2025-09-27 01:54:47.79
+d735d77a
+User
+at async Strategy._verify (file:///home/runner/workspace/dist/index.js:2283:20) {
+2025-09-27 01:54:47.79
+d735d77a
+User
+length: 119,
+2025-09-27 01:54:47.79
+d735d77a
+User
+severity: 'ERROR',
+2025-09-27 01:54:47.79
+d735d77a
+User
+code: '42703',
+2025-09-27 01:54:47.79
+d735d77a
+User
+detail: undefined,
+2025-09-27 01:54:47.79
+d735d77a
+User
+hint: undefined,
+2025-09-27 01:54:47.79
+d735d77a
+User
+position: '189',
+2025-09-27 01:54:47.79
+d735d77a
+User
+internalPosition: undefined,
+2025-09-27 01:54:47.79
+d735d77a
+User
+internalQuery: undefined,
+2025-09-27 01:54:47.79
+d735d77a
+User
+where: undefined,
+2025-09-27 01:54:47.79
+d735d77a
+User
+schema: undefined,
+2025-09-27 01:54:47.79
+d735d77a
+User
+table: undefined,
+2025-09-27 01:54:47.79
+d735d77a
+User
+column: undefined,
+2025-09-27 01:54:47.79
+d735d77a
+User
+dataType: undefined,
+2025-09-27 01:54:47.79
+d735d77a
+User
+constraint: undefined,
+2025-09-27 01:54:47.79
+d735d77a
+User
+file: 'parse_relation.c',
+2025-09-27 01:54:47.79
+d735d77a
+User
+line: '3722',
+2025-09-27 01:54:47.79
+d735d77a
+User
+routine: 'errorMissingColumn'
+2025-09-27 01:54:47.79
+d735d77a
+User
+},
+2025-09-27 01:54:47.79
+d735d77a
+User
+message: 'column "meta_business_type" does not exist',
+2025-09-27 01:54:47.79
+d735d77a
+User
+stack: 'error: column "meta_business_type" does not exist\n' +
+2025-09-27 01:54:47.79
+d735d77a
+User
+' at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74\n' +
+2025-09-27 01:54:47.79
+d735d77a
+User
+' at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n' +
+2025-09-27 01:54:47.79
+d735d77a
+User
+' at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)\n' +
+2025-09-27 01:54:47.79
+d735d77a
+User
+' at async DatabaseStorage.getUser (file:///home/runner/workspace/dist/index.js:1168:24)\n' +
+2025-09-27 01:54:47.79
+d735d77a
+User
+' at async DatabaseStorage.upsertUser (file:///home/runner/workspace/dist/index.js:1178:44)\n' +
+2025-09-27 01:54:47.79
+d735d77a
+User
+' at async Strategy._verify (file:///home/runner/workspace/dist/index.js:2283:20)'
+2025-09-27 01:54:47.79
+d735d77a
+User
+}
+2025-09-27 01:55:26.68
+8262a4f1
+System
+system: received signal terminated
