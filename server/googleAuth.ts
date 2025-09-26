@@ -155,12 +155,11 @@ export function setupGoogleAuth(app: Express) {
     const state = Buffer.from(JSON.stringify({ returnTo, language })).toString('base64');
 
     passport.authenticate('google', {
+      scope: ['profile', 'email', 'https://www.googleapis.com/auth/analytics.readonly'],
       accessType: 'offline',
       prompt: 'consent',
-      // Set Google OAuth language
-      hl: googleLanguage,
       state: state
-    })(req, res, next);
+    } as any)(req, res, next);
   });
 
   app.get('/api/auth/google/callback', (req, res, next) => {
@@ -212,6 +211,20 @@ export function setupGoogleAuth(app: Express) {
 
           // Temporarily disable Brevo sync due to IP whitelist issues
           console.log('Brevo sync disabled due to IP whitelist - user email:', user.email);
+
+          // 🔧 CRITICAL FIX: 生成 JWT Token（與 Facebook OAuth 一致）
+          const { jwtUtils } = await import('./jwtAuth');
+          const jwtToken = jwtUtils.generateToken(user);
+          
+          // 設置 JWT Cookie
+          res.cookie('auth_token', jwtToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+          });
+          
+          console.log('🔧 JWT token generated and set for Google OAuth user:', user.email);
 
           const baseUrl = getBaseUrl(req);
           
