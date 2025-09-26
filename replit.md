@@ -76,6 +76,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Stripe Lazy Loading Enhancement (2025-09-26) - ✅ COMPLETED
+- **Issue Resolution**: Fixed Stripe XHR requests running on non-payment pages
+  - **Root Cause**: Checkout and SubscriptionCheckout components were imported at module level in App.tsx
+  - **Solution**: Implemented React.lazy() dynamic imports with Suspense for Stripe-related pages
+  - **Impact**: Stripe SDK only loads when users actually visit payment pages (/checkout, /subscription-checkout)
+  - **Technical Implementation**: 
+    - Changed static imports to `lazy(() => import("./pages/checkout"))` pattern
+    - Added Suspense wrapper with loading spinner for lazy-loaded components
+    - Applied to all language routes (zh-TW, en, ja)
+  - **Result**: Eliminated unnecessary Stripe network requests on other pages (e.g., /meta-dashboard)
+  - **Performance**: Reduced initial bundle size and improved page load speed for non-payment flows
+
 ### Mass Authentication System Fix (2025-08-14) - CRITICAL ✅ COMPLETED
 - **Issue Resolution**: Fixed system-wide authentication bug affecting 97.11% of all users (336 out of 346 users)
   - **Scope Discovery**: What initially appeared as 4 problem users revealed a massive system-wide issue

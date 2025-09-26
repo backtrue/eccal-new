@@ -2,7 +2,7 @@ import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { useEffect, Component, type ReactNode } from "react";
+import { useEffect, Component, type ReactNode, lazy, Suspense } from "react";
 import { initGA } from "./lib/analytics";
 import { initMetaPixel } from "./lib/meta-pixel";
 import { useAnalytics } from "./hooks/use-analytics";
@@ -34,8 +34,6 @@ import Pricing from "./pages/pricing";
 import FbAuditHelp from "./pages/help/fbaudit-help";
 import CalculatorHelp from "./pages/help/calculator-help";
 import CampaignPlannerHelp from "./pages/help/campaign-planner-help";
-import Checkout from "./pages/checkout";
-import SubscriptionCheckout from "./pages/subscription-checkout";
 import PaymentSuccess from "./pages/payment-success";
 import About from "./pages/about";
 import Recruitment from "./pages/recruitment";
@@ -43,6 +41,10 @@ import RecruitmentEn from "./pages/recruitment-en";
 import RecruitmentJa from "./pages/recruitment-ja";
 import FacebookTestDemo from "./pages/facebook-test-demo";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
+
+// 🔧 Lazy load pages with Stripe to prevent unnecessary loading
+const Checkout = lazy(() => import("./pages/checkout"));
+const SubscriptionCheckout = lazy(() => import("./pages/subscription-checkout"));
 
 // Error Boundary Component
 class ErrorBoundary extends Component<
@@ -135,8 +137,20 @@ function Router() {
       <Route path="/fbaudit" component={() => <FbAudit locale="zh-TW" />} />
       <Route path="/meta-dashboard" component={() => <MetaDashboard locale="zh-TW" />} />
       <Route path="/pricing" component={() => <Pricing locale="zh-TW" />} />
-      <Route path="/checkout" component={() => <Checkout locale="zh-TW" />} />
-      <Route path="/subscription-checkout" component={() => <SubscriptionCheckout locale="zh-TW" />} />
+      <Route path="/checkout" component={() => (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>}>
+          <Checkout locale="zh-TW" />
+        </Suspense>
+      )} />
+      <Route path="/subscription-checkout" component={() => (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>}>
+          <SubscriptionCheckout locale="zh-TW" />
+        </Suspense>
+      )} />
       <Route path="/payment-success" component={() => <PaymentSuccess locale="zh-TW" />} />
       <Route path="/help/fbaudit" component={() => <FbAuditHelp locale="zh-TW" />} />
       <Route path="/help/calculator" component={() => <CalculatorHelp locale="zh-TW" />} />
@@ -168,8 +182,20 @@ function Router() {
       <Route path="/en/fbaudit" component={() => <FbAudit locale="en" />} />
       <Route path="/en/meta-dashboard" component={() => <MetaDashboard locale="en" />} />
       <Route path="/en/pricing" component={() => <Pricing locale="en" />} />
-      <Route path="/en/checkout" component={() => <Checkout locale="en" />} />
-      <Route path="/en/subscription-checkout" component={() => <SubscriptionCheckout locale="en" />} />
+      <Route path="/en/checkout" component={() => (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>}>
+          <Checkout locale="en" />
+        </Suspense>
+      )} />
+      <Route path="/en/subscription-checkout" component={() => (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>}>
+          <SubscriptionCheckout locale="en" />
+        </Suspense>
+      )} />
       <Route path="/en/payment-success" component={() => <PaymentSuccess locale="en" />} />
       <Route path="/en/help/fbaudit" component={() => <FbAuditHelp locale="en" />} />
       <Route path="/en/help/calculator" component={() => <CalculatorHelp locale="en" />} />
@@ -190,8 +216,20 @@ function Router() {
       <Route path="/jp/campaign-planner" component={() => <CampaignPlannerV2 locale="ja" />} />
       <Route path="/jp/fbaudit" component={() => <FbAudit locale="ja" />} />
       <Route path="/jp/pricing" component={() => <Pricing locale="ja" />} />
-      <Route path="/jp/checkout" component={() => <Checkout locale="ja" />} />
-      <Route path="/jp/subscription-checkout" component={() => <SubscriptionCheckout locale="ja" />} />
+      <Route path="/jp/checkout" component={() => (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>}>
+          <Checkout locale="ja" />
+        </Suspense>
+      )} />
+      <Route path="/jp/subscription-checkout" component={() => (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>}>
+          <SubscriptionCheckout locale="ja" />
+        </Suspense>
+      )} />
       <Route path="/jp/payment-success" component={() => <PaymentSuccess locale="ja" />} />
       <Route path="/jp/help/fbaudit" component={() => <FbAuditHelp locale="ja" />} />
       <Route path="/jp/help/calculator" component={() => <CalculatorHelp locale="ja" />} />
