@@ -91,6 +91,61 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
 
     // 帳戶基本信息已在上面獲取
 
+    // 🚀 依據維度整理詳細列表數據
+    const detailData = insights.map(insight => {
+      // 根據層級動態獲取 ID 和名稱
+      let id: string, name: string;
+      
+      switch (level) {
+        case 'campaign':
+          id = insight.campaignId || `campaign_${Date.now()}_${Math.random()}`;
+          name = insight.campaignName || `行銷活動 ${insight.campaignId?.slice(-8) || 'Unknown'}`;
+          break;
+        case 'adset':
+          id = insight.adsetId || `adset_${Date.now()}_${Math.random()}`;
+          name = insight.adsetName || `廣告組合 ${insight.adsetId?.slice(-8) || 'Unknown'}`;
+          break;
+        case 'ad':
+          id = insight.adId || `ad_${Date.now()}_${Math.random()}`;
+          name = insight.adName || `廣告 ${insight.adId?.slice(-8) || 'Unknown'}`;
+          break;
+        default: // account
+          id = `account_${Date.now()}_${Math.random()}`;
+          name = `廣告帳戶 ${user.metaAdAccountId}`;
+      }
+      
+      return {
+        id,
+        name,
+      spend: insight.spend,
+      impressions: insight.impressions,
+      linkClicks: insight.linkClicks,
+      ctr: insight.impressions > 0 ? (insight.linkClicks / insight.impressions * 100) : 0,
+      cpc: insight.linkClicks > 0 ? (insight.spend / insight.linkClicks) : 0,
+      
+      // 業務特定指標
+      ...(businessType === 'ecommerce' && {
+        viewContent: insight.viewContent,
+        addToCart: insight.addToCart,
+        purchase: insight.purchase,
+        purchaseValue: insight.purchaseValue,
+        roas: insight.spend > 0 ? (insight.purchaseValue / insight.spend) : 0,
+        atcRate: insight.viewContent > 0 ? (insight.addToCart / insight.viewContent * 100) : 0,
+        cvRate: insight.addToCart > 0 ? (insight.purchase / insight.addToCart * 100) : 0
+      }),
+      
+      ...(businessType === 'consultation' && {
+        messaging: insight.messaging,
+        costPerMessaging: insight.messaging > 0 ? (insight.spend / insight.messaging) : 0
+      }),
+      
+      ...(businessType === 'lead_generation' && {
+        leads: insight.leads,
+        costPerLead: insight.leads > 0 ? (insight.spend / insight.leads) : 0
+      })
+    };
+    }).sort((a, b) => b.spend - a.spend); // 按花費排序
+
     const dashboardData = {
       account: {
         id: user.metaAdAccountId,
@@ -103,6 +158,11 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
       dateRange: { since, until },
       overview: aggregated,
       metrics,
+      
+      // 🎯 新增：詳細列表數據
+      detailData,
+      totalItems: detailData.length,
+      
       topPerformingAds: accountData.topPerformingAds || [], // 返回頂級廣告數據
       lastUpdated: new Date().toISOString()
     };
@@ -233,12 +293,25 @@ ${businessType === 'ecommerce' ? `
 - 潛客取得成本: $${dashboardData.metrics?.costPerLead?.toFixed(2) || 0}
 `}
 
+**📊 詳細數據表格:**
+${dashboardData.detailData.map((item: any, index: number) => `
+${index + 1}. ${item.name}
+   - 花費: $${item.spend.toFixed(2)}
+   - 曝光: ${item.impressions.toLocaleString()}
+   - 點擊: ${item.linkClicks.toLocaleString()}
+   - CTR: ${item.ctr.toFixed(2)}%
+   - CPC: $${item.cpc.toFixed(2)}
+   ${businessType === 'ecommerce' ? `- 商品瀏覽: ${item.viewContent}, 加購: ${item.addToCart}, 購買: ${item.purchase}, ROAS: ${item.roas.toFixed(2)}` : ''}
+   ${businessType === 'consultation' ? `- 對話: ${item.messaging}, 對話成本: $${item.costPerMessaging.toFixed(2)}` : ''}
+   ${businessType === 'lead_generation' ? `- 潛客: ${item.leads}, 潛客成本: $${item.costPerLead.toFixed(2)}` : ''}
+`).join('')}
+
 請以純JSON格式回應（不要使用markdown代碼塊），包含:
 1. summary: 整體表現總結 (HTML格式，100字以內，繁體中文)
-2. recommendations: 3-5個具體改善建議，每個包含 {type, title, description, priority, impact}
-3. insights: 2-3個關鍵洞察，每個包含 {metric, trend, message}
+2. recommendations: 3-5個具體改善建議，每個包含 {type, title, description, priority, impact, targetItem}，其中 targetItem 為建議針對的具體項目名稱
+3. insights: 2-3個關鍵洞察，每個包含 {metric, trend, message, topPerformers}，其中 topPerformers 為表現最佳的項目列表
 
-⚠️ 重要：請直接回傳JSON物件，不要包裝在markdown代碼塊中，summary欄位使用HTML格式（如<strong>、<em>等標籤）增強視覺效果。`;
+⚠️ 重要：請直接回傳JSON物件，不要包裝在markdown代碼塊中，summary欄位使用HTML格式，建議要針對具體的${level === 'campaign' ? '行銷活動' : level === 'adset' ? '廣告組合' : '廣告'}提出。`;
 
     // 初始化 OpenAI 客戶端
     const openai = new OpenAI({
