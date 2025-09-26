@@ -34,6 +34,19 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
     const dateStart = new Date(since);
     const dateEnd = new Date(until);
     
+    // 獲取基本帳戶數據（無論是否使用緩存都需要）
+    let accountData: any;
+    try {
+      accountData = await metaAccountService.getAdAccountData(user.metaAccessToken, user.metaAdAccountId);
+    } catch (error) {
+      console.error('獲取帳戶數據失敗:', error);
+      accountData = {
+        accountName: `Account ${user.metaAdAccountId}`,
+        currency: 'USD',
+        topPerformingAds: []
+      };
+    }
+    
     // 1. 先檢查緩存是否有效
     let insights: MetaDashboardInsight[] = [];
     const cachedInsights = await storage.getCachedMetaInsights(
@@ -81,9 +94,6 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
     } else {
       // 緩存無效，調用 Facebook API
       console.log('❌ 緩存無效，調用 Facebook API...');
-      
-      // 獲取基本帳戶數據
-      const accountData = await metaAccountService.getAdAccountData(user.metaAccessToken, user.metaAdAccountId);
       
       // 🚀 獲取真實的轉換事件數據
       insights = await metaAccountService.getMetaInsightsData(
