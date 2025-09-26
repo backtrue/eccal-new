@@ -14,11 +14,18 @@ import Footer from "@/components/Footer";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
 import { getTranslations, type Locale } from "@/lib/i18n";
 
-// Load Stripe
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
-}
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+// 🔧 延遲載入 Stripe - 只在需要時才初始化
+let stripePromise: Promise<any> | null = null;
+
+const getStripe = () => {
+  if (!stripePromise) {
+    if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
+      throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
+    }
+    stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+  }
+  return stripePromise;
+};
 
 interface CheckoutProps {
   locale: Locale;
@@ -341,7 +348,7 @@ export default function Checkout({ locale }: CheckoutProps) {
               )}
             </CardHeader>
             <CardContent>
-              <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <Elements stripe={getStripe()} options={{ clientSecret }}>
                 <CheckoutForm locale={locale} planType={planType} amount={amount} />
               </Elements>
             </CardContent>
