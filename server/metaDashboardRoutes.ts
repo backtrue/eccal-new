@@ -28,25 +28,124 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
 
     console.log('Fetching dashboard insights:', { businessType, level, since, until });
 
-    // 🔥 使用真實的 Facebook Marketing API 數據，不再用模擬數據
-    console.log('獲取真實的 Meta Insights 數據...');
+    // 🚀 智能緩存系統 - 優先使用緩存數據，加速載入並節省 API 次數
+    console.log('檢查緩存數據...');
     
-    // 獲取基本帳戶數據
-    const accountData = await metaAccountService.getAdAccountData(user.metaAccessToken, user.metaAdAccountId);
+    const dateStart = new Date(since);
+    const dateEnd = new Date(until);
     
-    // 🚀 獲取真實的轉換事件數據
-    const insights = await metaAccountService.getMetaInsightsData(
-      user.metaAccessToken,
+    // 1. 先檢查緩存是否有效
+    let insights: MetaDashboardInsight[] = [];
+    const cachedInsights = await storage.getCachedMetaInsights(
+      user.id,
       user.metaAdAccountId,
-      {
-        level,
-        dateRange: { since, until },
-        businessType,
-        limit: 50
-      }
+      level,
+      businessType,
+      dateStart,
+      dateEnd
     );
+    
+    if (cachedInsights && cachedInsights.length > 0) {
+      // 使用緩存數據
+      console.log(`✅ 使用緩存數據 - ${cachedInsights.length} 筆記錄，避免 API 調用`);
+      insights = cachedInsights.map(cached => ({
+        campaignId: cached.campaignId || '',
+        campaignName: cached.campaignName || '',
+        adsetId: cached.adsetId || '',
+        adsetName: cached.adsetName || '',
+        adId: cached.adId || '',
+        adName: cached.adName || '',
+        
+        impressions: cached.impressions,
+        reach: cached.reach,
+        spend: Number(cached.spend),
+        linkClicks: cached.linkClicks,
+        
+        viewContent: cached.viewContent,
+        addToCart: cached.addToCart,
+        purchase: cached.purchase,
+        purchaseValue: Number(cached.purchaseValue),
+        messaging: cached.messaging,
+        leads: cached.leads,
+        
+        atcRate: Number(cached.atcRate),
+        pfRate: Number(cached.pfRate),
+        roas: Number(cached.roas),
+        costPerPurchase: Number(cached.costPerPurchase),
+        costPerMessaging: Number(cached.costPerMessaging),
+        costPerLead: Number(cached.costPerLead),
+        
+        currency: cached.currency,
+        rawData: cached.rawData
+      }));
+    } else {
+      // 緩存無效，調用 Facebook API
+      console.log('❌ 緩存無效，調用 Facebook API...');
+      
+      // 獲取基本帳戶數據
+      const accountData = await metaAccountService.getAdAccountData(user.metaAccessToken, user.metaAdAccountId);
+      
+      // 🚀 獲取真實的轉換事件數據
+      insights = await metaAccountService.getMetaInsightsData(
+        user.metaAccessToken,
+        user.metaAdAccountId,
+        {
+          level,
+          dateRange: { since, until },
+          businessType,
+          limit: 50
+        }
+      );
 
-    console.log(`獲取到 ${insights.length} 筆真實廣告數據`);
+      console.log(`📊 API 獲取到 ${insights.length} 筆真實廣告數據`);
+      
+      // 保存到緩存（4小時有效期）
+      if (insights.length > 0) {
+        const cacheData = insights.map(insight => ({
+          accountId: user.metaAdAccountId,
+          campaignId: insight.campaignId,
+          campaignName: insight.campaignName,
+          adsetId: insight.adsetId,
+          adsetName: insight.adsetName,
+          adId: insight.adId,
+          adName: insight.adName,
+          
+          dateStart,
+          dateEnd,
+          level,
+          
+          impressions: insight.impressions,
+          reach: insight.reach,
+          spend: insight.spend.toString(),
+          linkClicks: insight.linkClicks,
+          
+          viewContent: insight.viewContent,
+          addToCart: insight.addToCart,
+          purchase: insight.purchase,
+          purchaseValue: insight.purchaseValue.toString(),
+          messaging: insight.messaging,
+          leads: insight.leads,
+          
+          atcRate: insight.atcRate.toString(),
+          pfRate: insight.pfRate.toString(),
+          roas: insight.roas.toString(),
+          costPerPurchase: insight.costPerPurchase.toString(),
+          costPerMessaging: insight.costPerMessaging.toString(),
+          costPerLead: insight.costPerLead.toString(),
+          
+          currency: insight.currency,
+          rawData: insight.rawData
+        }));
+        
+        try {
+          await storage.saveCachedMetaInsights(cacheData, 4); // 4小時緩存
+          console.log('💾 數據已保存到緩存');
+        } catch (error) {
+          console.error('保存緩存失敗:', error);
+          // 不影響主要流程，繼續執行
+        }
+      }
+    }
 
     // 聚合真實的轉換數據
     const businessMetrics = insights.reduce((totals, insight) => {

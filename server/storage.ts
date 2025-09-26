@@ -1899,7 +1899,7 @@ export class DatabaseStorage implements IStorage {
         )
         .limit(1);
 
-      if (!cachedData) return false;
+      if (!cachedData || !cachedData.syncedAt) return false;
 
       // 檢查是否在4小時內同步過
       const cacheAge = Date.now() - cachedData.syncedAt.getTime();
