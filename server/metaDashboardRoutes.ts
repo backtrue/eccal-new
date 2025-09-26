@@ -28,62 +28,52 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
 
     console.log('Fetching dashboard insights:', { businessType, level, since, until });
 
-    // 獲取真實廣告帳戶數據
-    const accountData = await metaAccountService.getAdAccountData(user.metaAccessToken, user.metaAdAccountId);
-
-    // 基於真實數據構建完整的儀表板指標
-    // 添加業務類型相關的模擬數據（未來將被真實API替換）
-    const generateBusinessMetrics = (baseData: any, type: string) => {
-      const multiplier = Math.random() * 0.5 + 0.75; // 0.75-1.25倍隨機變化
-      
-      switch (type) {
-        case 'ecommerce':
-          return {
-            totalViewContent: Math.floor(baseData.impressions * 0.15 * multiplier),
-            totalAddToCart: Math.floor(baseData.impressions * 0.03 * multiplier),
-            totalPurchase: Math.floor(baseData.impressions * 0.008 * multiplier),
-            totalPurchaseValue: Math.floor((baseData.impressions * 0.008 * multiplier) * 75),
-            totalMessaging: 0,
-            totalLeads: 0,
-          };
-        case 'consultation':
-          return {
-            totalViewContent: 0,
-            totalAddToCart: 0,
-            totalPurchase: 0,
-            totalPurchaseValue: 0,
-            totalMessaging: Math.floor(baseData.clicks * 0.12 * multiplier),
-            totalLeads: 0,
-          };
-        case 'lead_generation':
-          return {
-            totalViewContent: 0,
-            totalAddToCart: 0,
-            totalPurchase: 0,
-            totalPurchaseValue: 0,
-            totalMessaging: 0,
-            totalLeads: Math.floor(baseData.clicks * 0.08 * multiplier),
-          };
-        default:
-          return {
-            totalViewContent: 0,
-            totalAddToCart: 0,
-            totalPurchase: 0,
-            totalPurchaseValue: 0,
-            totalMessaging: 0,
-            totalLeads: 0,
-          };
-      }
-    };
-
-    const businessMetrics = generateBusinessMetrics(accountData, businessType);
+    // 🔥 使用真實的 Facebook Marketing API 數據，不再用模擬數據
+    console.log('獲取真實的 Meta Insights 數據...');
     
-    // 聚合所有數據
+    // 獲取基本帳戶數據
+    const accountData = await metaAccountService.getAdAccountData(user.metaAccessToken, user.metaAdAccountId);
+    
+    // 🚀 獲取真實的轉換事件數據
+    const insights = await metaAccountService.getMetaInsightsData(
+      user.metaAccessToken,
+      user.metaAdAccountId,
+      {
+        level,
+        dateRange: { since, until },
+        businessType,
+        limit: 50
+      }
+    );
+
+    console.log(`獲取到 ${insights.length} 筆真實廣告數據`);
+
+    // 聚合真實的轉換數據
+    const businessMetrics = insights.reduce((totals, insight) => {
+      return {
+        totalViewContent: totals.totalViewContent + insight.viewContent,
+        totalAddToCart: totals.totalAddToCart + insight.addToCart,
+        totalPurchase: totals.totalPurchase + insight.purchase,
+        totalPurchaseValue: totals.totalPurchaseValue + insight.purchaseValue,
+        totalMessaging: totals.totalMessaging + insight.messaging,
+        totalLeads: totals.totalLeads + insight.leads,
+      };
+    }, {
+      totalViewContent: 0,
+      totalAddToCart: 0,
+      totalPurchase: 0,
+      totalPurchaseValue: 0,
+      totalMessaging: 0,
+      totalLeads: 0,
+    });
+
+    console.log('聚合後的真實轉換數據:', businessMetrics);
+    
+    // 🔥 聚合真實數據，而非基於帳戶層級估算
     const aggregated = {
-      totalSpend: accountData.spend || 0,
-      totalImpressions: accountData.impressions || 0,
-      totalReach: Math.floor((accountData.impressions || 0) * 0.8), // 估算觸及數
-      totalClicks: accountData.linkClicks || accountData.clicks || 0,
+      totalSpend: insights.reduce((sum, insight) => sum + insight.spend, 0),
+      totalImpressions: insights.reduce((sum, insight) => sum + insight.impressions, 0),
+      totalClicks: insights.reduce((sum, insight) => sum + insight.linkClicks, 0),
       ...businessMetrics
     };
 
