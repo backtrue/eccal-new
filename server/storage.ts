@@ -40,6 +40,14 @@ import {
   stripePayments,
   type StripePayment,
   type InsertStripePayment,
+  // Meta Advertising imports
+  metaAdAccounts,
+  metaAdInsights,
+  metaSyncLogs,
+  type SelectMetaAdAccountType,
+  type InsertMetaAdAccountType,
+  type SelectMetaAdInsightType,
+  type InsertMetaAdInsightType,
   // Other imports
   seoSettings,
   type SeoSetting,
@@ -126,6 +134,38 @@ export interface IStorage {
   getUserAdDiagnosisReports(userId: string): Promise<AdDiagnosisReport[]>;
   deleteAdDiagnosisReport(reportId: string, userId: string): Promise<boolean>;
   updateMetaTokens(userId: string, accessToken: string, adAccountId: string | null, adAccountName?: string | null): Promise<User>;
+  
+  // Meta Ad Data Cache operations - 智能緩存系統
+  getCachedMetaInsights(
+    userId: string, 
+    adAccountId: string, 
+    level: string, 
+    businessType: string, 
+    dateStart: Date, 
+    dateEnd: Date
+  ): Promise<SelectMetaAdInsightType[] | null>;
+  
+  saveCachedMetaInsights(
+    insights: InsertMetaAdInsightType[], 
+    expiresInHours?: number
+  ): Promise<SelectMetaAdInsightType[]>;
+  
+  deleteCachedMetaInsights(
+    userId: string, 
+    adAccountId: string, 
+    level?: string, 
+    dateStart?: Date, 
+    dateEnd?: Date
+  ): Promise<void>;
+  
+  isCacheValid(
+    userId: string, 
+    adAccountId: string, 
+    level: string, 
+    businessType: string, 
+    dateStart: Date, 
+    dateEnd: Date
+  ): Promise<boolean>;
 
   // New Campaign Planner operations
   createCampaignPlan(planData: InsertCampaignPlan): Promise<CampaignPlan>;
@@ -1736,6 +1776,140 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return user;
+  }
+
+  // Meta Ad Data Cache operations - 智能緩存系統實現
+  async getCachedMetaInsights(
+    userId: string, 
+    adAccountId: string, 
+    level: string, 
+    businessType: string, 
+    dateStart: Date, 
+    dateEnd: Date
+  ): Promise<SelectMetaAdInsightType[] | null> {
+    try {
+      // 檢查緩存是否存在且有效
+      const cachedInsights = await db
+        .select()
+        .from(metaAdInsights)
+        .where(
+          and(
+            eq(metaAdInsights.accountId, adAccountId),
+            eq(metaAdInsights.level, level),
+            eq(metaAdInsights.dateStart, dateStart),
+            eq(metaAdInsights.dateEnd, dateEnd),
+            gte(metaAdInsights.syncedAt, new Date(Date.now() - 4 * 60 * 60 * 1000)) // 4小時內有效
+          )
+        );
+
+      if (cachedInsights.length > 0) {
+        console.log(`✅ 使用緩存數據 - ${level} 層級, ${businessType} 業務, 共 ${cachedInsights.length} 筆記錄`);
+        return cachedInsights;
+      }
+
+      console.log(`❌ 緩存無效或不存在 - ${level} 層級, ${businessType} 業務`);
+      return null;
+    } catch (error) {
+      console.error('獲取緩存數據失敗:', error);
+      return null;
+    }
+  }
+
+  async saveCachedMetaInsights(
+    insights: InsertMetaAdInsightType[], 
+    expiresInHours: number = 4
+  ): Promise<SelectMetaAdInsightType[]> {
+    if (insights.length === 0) return [];
+
+    try {
+      // 先刪除舊的緩存數據（相同查詢條件）
+      const firstInsight = insights[0];
+      await db
+        .delete(metaAdInsights)
+        .where(
+          and(
+            eq(metaAdInsights.accountId, firstInsight.accountId),
+            eq(metaAdInsights.level, firstInsight.level),
+            eq(metaAdInsights.dateStart, firstInsight.dateStart),
+            eq(metaAdInsights.dateEnd, firstInsight.dateEnd)
+          )
+        );
+
+      // 插入新的緩存數據
+      const savedInsights = await db
+        .insert(metaAdInsights)
+        .values(insights.map(insight => ({
+          ...insight,
+          syncedAt: new Date(), // 標記同步時間
+        })))
+        .returning();
+
+      console.log(`💾 保存緩存數據成功 - ${insights.length} 筆記錄, 有效期 ${expiresInHours} 小時`);
+      return savedInsights;
+    } catch (error) {
+      console.error('保存緩存數據失敗:', error);
+      throw error;
+    }
+  }
+
+  async deleteCachedMetaInsights(
+    userId: string, 
+    adAccountId: string, 
+    level?: string, 
+    dateStart?: Date, 
+    dateEnd?: Date
+  ): Promise<void> {
+    try {
+      const conditions = [eq(metaAdInsights.accountId, adAccountId)];
+      
+      if (level) conditions.push(eq(metaAdInsights.level, level));
+      if (dateStart) conditions.push(eq(metaAdInsights.dateStart, dateStart));
+      if (dateEnd) conditions.push(eq(metaAdInsights.dateEnd, dateEnd));
+
+      await db
+        .delete(metaAdInsights)
+        .where(and(...conditions));
+
+      console.log(`🗑️ 刪除緩存數據成功 - 廣告帳戶: ${adAccountId}`);
+    } catch (error) {
+      console.error('刪除緩存數據失敗:', error);
+      throw error;
+    }
+  }
+
+  async isCacheValid(
+    userId: string, 
+    adAccountId: string, 
+    level: string, 
+    businessType: string, 
+    dateStart: Date, 
+    dateEnd: Date
+  ): Promise<boolean> {
+    try {
+      const [cachedData] = await db
+        .select({ syncedAt: metaAdInsights.syncedAt })
+        .from(metaAdInsights)
+        .where(
+          and(
+            eq(metaAdInsights.accountId, adAccountId),
+            eq(metaAdInsights.level, level),
+            eq(metaAdInsights.dateStart, dateStart),
+            eq(metaAdInsights.dateEnd, dateEnd)
+          )
+        )
+        .limit(1);
+
+      if (!cachedData) return false;
+
+      // 檢查是否在4小時內同步過
+      const cacheAge = Date.now() - cachedData.syncedAt.getTime();
+      const maxCacheAge = 4 * 60 * 60 * 1000; // 4小時
+
+      return cacheAge < maxCacheAge;
+    } catch (error) {
+      console.error('檢查緩存有效性失敗:', error);
+      return false;
+    }
   }
 
   // Diagnosis report operations
