@@ -25,6 +25,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedAccount, setSelectedAccount] = useState<string>("");
+  const [isRefreshingAuth, setIsRefreshingAuth] = useState(false);
 
   // 完全按照 fbaudit 的做法檢查連接狀態
   const isConnected = Boolean(isAuthenticated && user?.hasFacebookAuth);
@@ -78,6 +79,27 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
+
+  // 強制刷新認證狀態
+  const refreshAuthStatus = async () => {
+    setIsRefreshingAuth(true);
+    try {
+      console.log('🔄 強制刷新認證狀態中...');
+      
+      // 清除所有認證相關的查詢緩存
+      await queryClient.invalidateQueries({ queryKey: ['/api/auth/check'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/fbaudit/accounts'] });
+      
+      // 等待一段時間讓查詢重新執行
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('✅ 認證狀態已刷新');
+    } catch (error) {
+      console.error('❌ 刷新認證狀態失敗:', error);
+    } finally {
+      setIsRefreshingAuth(false);
+    }
+  };
 
   // 保存業務類型的mutation
   const saveBusinessTypeMutation = useMutation({
@@ -242,9 +264,32 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                 <div className="text-center py-8">
                   <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
                   <p className="text-green-600 font-medium mb-4">Facebook 已成功連接</p>
-                  <Button onClick={() => setCurrentStep(2)}>
-                    下一步：選擇廣告帳戶
-                  </Button>
+                  <div className="space-y-3">
+                    <Button onClick={() => setCurrentStep(2)}>
+                      下一步：選擇廣告帳戶
+                    </Button>
+                    <div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={refreshAuthStatus}
+                        disabled={isRefreshingAuth}
+                        className="text-xs"
+                      >
+                        {isRefreshingAuth ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                            檢查中...
+                          </>
+                        ) : (
+                          '🔄 重新檢查連接狀態'
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      如果連接有問題，請點擊「重新檢查連接狀態」
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>
