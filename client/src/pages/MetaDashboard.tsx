@@ -555,12 +555,6 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                         <p className="text-sm text-gray-600 mt-1">曝光數</p>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">
-                          {(dashboardStats as any)?.data?.overview?.totalReach?.toLocaleString() || '0'}
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1">觸及數</p>
-                      </div>
-                      <div className="text-center">
                         <div className="text-2xl font-bold text-orange-600">
                           {(dashboardStats as any)?.data?.overview?.totalClicks?.toLocaleString() || '0'}
                         </div>
@@ -577,12 +571,6 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                           ${(dashboardStats as any)?.data?.metrics?.cpc?.toFixed(2) || '0'}
                         </div>
                         <p className="text-sm text-gray-600 mt-1">連結點擊成本</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-gray-600">
-                          {((dashboardStats as any)?.data?.overview?.totalSpend / 30)?.toFixed(0) || '0'}
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1">每日預算</p>
                       </div>
                     </div>
                   </CardContent>
