@@ -233,12 +233,12 @@ ${businessType === 'ecommerce' ? `
 - 潛客取得成本: $${dashboardData.metrics?.costPerLead?.toFixed(2) || 0}
 `}
 
-請以JSON格式提供分析結果，包含:
-1. summary: 整體表現總結 (100字以內，繁體中文)
+請以純JSON格式回應（不要使用markdown代碼塊），包含:
+1. summary: 整體表現總結 (HTML格式，100字以內，繁體中文)
 2. recommendations: 3-5個具體改善建議，每個包含 {type, title, description, priority, impact}
 3. insights: 2-3個關鍵洞察，每個包含 {metric, trend, message}
 
-請使用繁體中文回應，提供專業且可執行的建議。`;
+⚠️ 重要：請直接回傳JSON物件，不要包裝在markdown代碼塊中，summary欄位使用HTML格式（如<strong>、<em>等標籤）增強視覺效果。`;
 
     // 初始化 OpenAI 客戶端
     const openai = new OpenAI({
@@ -266,12 +266,27 @@ ${businessType === 'ecommerce' ? `
     let aiAnalysis;
 
     try {
-      // 嘗試解析JSON回應
-      aiAnalysis = JSON.parse(aiResponse || '{}');
+      // 🔧 清理 GPT 回應中的 markdown 代碼塊標記
+      let cleanedResponse = aiResponse || '{}';
+      
+      // 移除 markdown 代碼塊標記
+      cleanedResponse = cleanedResponse
+        .replace(/```json\s*/gi, '')  // 移除開始標記
+        .replace(/```\s*$/gi, '')     // 移除結束標記
+        .trim();
+      
+      console.log('🔍 Cleaned GPT response:', cleanedResponse.substring(0, 200) + '...');
+      
+      // 嘗試解析清理後的JSON回應
+      aiAnalysis = JSON.parse(cleanedResponse);
       aiAnalysis.generatedAt = new Date().toISOString();
+      
+      console.log('✅ GPT JSON 解析成功');
     } catch (parseError) {
       // 如果JSON解析失敗，返回基本格式
-      console.error('Failed to parse GPT response:', parseError);
+      console.error('❌ Failed to parse GPT response:', parseError);
+      console.error('📄 Original response:', aiResponse?.substring(0, 500));
+      
       aiAnalysis = {
         summary: aiResponse || "無法生成分析結果",
         recommendations: [],

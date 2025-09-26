@@ -748,9 +748,10 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                       {/* 分析總結 */}
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-2">📊 整體分析</h4>
-                        <p className="text-gray-700 bg-white rounded-lg p-4 border">
-                          {analysisResult.summary}
-                        </p>
+                        <div 
+                          className="text-gray-700 bg-white rounded-lg p-4 border"
+                          dangerouslySetInnerHTML={{ __html: analysisResult.summary }}
+                        />
                       </div>
 
                       {/* 改善建議 */}
