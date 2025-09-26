@@ -576,6 +576,147 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                   </CardContent>
                 </Card>
 
+                {/* 🎯 新增：維度切換數據表格 */}
+                {level !== 'account' && (dashboardStats as any)?.data?.detailData && (dashboardStats as any)?.data?.detailData.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5" />
+                        {level === 'campaign' ? '行銷活動' : level === 'adset' ? '廣告組合' : '廣告'}明細數據 
+                        <span className="text-sm font-normal text-gray-500">
+                          ({(dashboardStats as any)?.data?.totalItems || 0} 筆)
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left p-2 font-medium">名稱</th>
+                              <th className="text-right p-2 font-medium">花費</th>
+                              <th className="text-right p-2 font-medium">曝光</th>
+                              <th className="text-right p-2 font-medium">點擊</th>
+                              <th className="text-right p-2 font-medium">CTR</th>
+                              <th className="text-right p-2 font-medium">CPC</th>
+                              
+                              {/* 電商專用列 */}
+                              {businessType === 'ecommerce' && (
+                                <>
+                                  <th className="text-right p-2 font-medium">瀏覽</th>
+                                  <th className="text-right p-2 font-medium">加購</th>
+                                  <th className="text-right p-2 font-medium">購買</th>
+                                  <th className="text-right p-2 font-medium">ROAS</th>
+                                  <th className="text-right p-2 font-medium">ATC%</th>
+                                  <th className="text-right p-2 font-medium">CV%</th>
+                                </>
+                              )}
+                              
+                              {/* 諮詢專用列 */}
+                              {businessType === 'consultation' && (
+                                <>
+                                  <th className="text-right p-2 font-medium">對話</th>
+                                  <th className="text-right p-2 font-medium">對話成本</th>
+                                </>
+                              )}
+                              
+                              {/* 名單收集專用列 */}
+                              {businessType === 'lead_generation' && (
+                                <>
+                                  <th className="text-right p-2 font-medium">潛客</th>
+                                  <th className="text-right p-2 font-medium">潛客成本</th>
+                                </>
+                              )}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {((dashboardStats as any)?.data?.detailData || []).map((item: any, index: number) => (
+                              <tr 
+                                key={item.id || index} 
+                                className="border-b hover:bg-gray-50"
+                                data-testid={`row-${level}-${index}`}
+                              >
+                                <td className="p-2 max-w-[200px] truncate" title={item.name}>
+                                  {item.name}
+                                </td>
+                                <td className="text-right p-2 font-medium text-blue-600">
+                                  ${item.spend?.toFixed(2) || '0.00'}
+                                </td>
+                                <td className="text-right p-2">
+                                  {item.impressions?.toLocaleString() || '0'}
+                                </td>
+                                <td className="text-right p-2">
+                                  {item.linkClicks?.toLocaleString() || '0'}
+                                </td>
+                                <td className="text-right p-2">
+                                  {item.ctr?.toFixed(2) || '0.00'}%
+                                </td>
+                                <td className="text-right p-2">
+                                  ${item.cpc?.toFixed(2) || '0.00'}
+                                </td>
+                                
+                                {/* 電商專用數據 */}
+                                {businessType === 'ecommerce' && (
+                                  <>
+                                    <td className="text-right p-2">
+                                      {item.viewContent?.toLocaleString() || '0'}
+                                    </td>
+                                    <td className="text-right p-2">
+                                      {item.addToCart?.toLocaleString() || '0'}
+                                    </td>
+                                    <td className="text-right p-2">
+                                      {item.purchase?.toLocaleString() || '0'}
+                                    </td>
+                                    <td className="text-right p-2 font-medium text-green-600">
+                                      {item.roas?.toFixed(2) || '0.00'}
+                                    </td>
+                                    <td className="text-right p-2">
+                                      {item.atcRate?.toFixed(1) || '0.0'}%
+                                    </td>
+                                    <td className="text-right p-2">
+                                      {item.cvRate?.toFixed(1) || '0.0'}%
+                                    </td>
+                                  </>
+                                )}
+                                
+                                {/* 諮詢專用數據 */}
+                                {businessType === 'consultation' && (
+                                  <>
+                                    <td className="text-right p-2">
+                                      {item.messaging?.toLocaleString() || '0'}
+                                    </td>
+                                    <td className="text-right p-2">
+                                      ${item.costPerMessaging?.toFixed(2) || '0.00'}
+                                    </td>
+                                  </>
+                                )}
+                                
+                                {/* 名單收集專用數據 */}
+                                {businessType === 'lead_generation' && (
+                                  <>
+                                    <td className="text-right p-2">
+                                      {item.leads?.toLocaleString() || '0'}
+                                    </td>
+                                    <td className="text-right p-2">
+                                      ${item.costPerLead?.toFixed(2) || '0.00'}
+                                    </td>
+                                  </>
+                                )}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      {/* 表格說明 */}
+                      <div className="mt-4 text-xs text-gray-500 flex items-center gap-4">
+                        <span>💡 提示：數據按花費降序排列</span>
+                        <span>🎯 切換「維度」可查看不同層級的詳細數據</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* 業務類型專用指標 */}
                 <Tabs value={businessType} className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
