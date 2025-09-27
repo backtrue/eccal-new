@@ -31,9 +31,6 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
     // 🚀 智能緩存系統 - 優先使用緩存數據，加速載入並節省 API 次數
     console.log('檢查緩存數據...');
     
-    const dateStart = new Date(since);
-    const dateEnd = new Date(until);
-    
     // 獲取基本帳戶數據（無論是否使用緩存都需要）
     let accountData: any;
     try {
@@ -46,6 +43,9 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
         topPerformingAds: []
       };
     }
+    
+    const dateStart = new Date(since);
+    const dateEnd = new Date(until);
     
     // 1. 先檢查緩存是否有效
     let insights: MetaDashboardInsight[] = [];
@@ -69,10 +69,19 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
         adId: cached.adId || '',
         adName: cached.adName || '',
         
+        // 時間和層級信息
+        dateStart: cached.dateStart,
+        dateEnd: cached.dateEnd,
+        level: cached.level as 'account' | 'campaign' | 'adset' | 'ad',
+        
         impressions: cached.impressions,
         reach: cached.reach,
         spend: Number(cached.spend),
         linkClicks: cached.linkClicks,
+        
+        // 計算基本指標
+        ctr: Number(cached.ctr) || (cached.impressions > 0 ? (cached.linkClicks / cached.impressions * 100) : 0),
+        cpc: Number(cached.cpc) || (cached.linkClicks > 0 ? (Number(cached.spend) / cached.linkClicks) : 0),
         
         viewContent: cached.viewContent,
         addToCart: cached.addToCart,
