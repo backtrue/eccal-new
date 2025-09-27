@@ -144,7 +144,25 @@ export class MetaAccountService {
       // 根據業務類型選擇需要的指標
       const baseFields = 'impressions,reach,spend,inline_link_clicks,cpc,ctr,actions,action_values';
       const businessFields = this.getBusinessTypeFields(options.businessType);
-      const fields = `${baseFields},${businessFields}`;
+      
+      // 🔥 關鍵修復：根據層級添加名稱欄位
+      let nameFields = '';
+      switch (options.level) {
+        case 'campaign':
+          nameFields = 'campaign_id,campaign_name';
+          break;
+        case 'adset':
+          nameFields = 'campaign_id,campaign_name,adset_id,adset_name';
+          break;
+        case 'ad':
+          nameFields = 'campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name';
+          break;
+        default: // account
+          nameFields = '';
+          break;
+      }
+      
+      const fields = [baseFields, businessFields, nameFields].filter(Boolean).join(',');
       
       let url: string;
       let level: string;
