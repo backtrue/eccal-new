@@ -118,6 +118,21 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
 
       console.log(`📊 API 獲取到 ${insights.length} 筆真實廣告數據`);
       
+      // 🔍 新增：詳細檢查數據品質
+      if (insights.length > 0) {
+        const sampleInsight = insights[0];
+        console.log(`🔍 數據品質檢查 (${level} 層級):`, {
+          有活動名稱: !!sampleInsight.campaignName,
+          有廣告組合名稱: !!sampleInsight.adsetName,
+          有廣告名稱: !!sampleInsight.adName,
+          樣本名稱: {
+            campaign: sampleInsight.campaignName || '未提供',
+            adset: sampleInsight.adsetName || '未提供',
+            ad: sampleInsight.adName || '未提供'
+          }
+        });
+      }
+      
       // 保存到緩存（4小時有效期）
       if (insights.length > 0) {
         const cacheData = insights.map(insight => ({
@@ -217,15 +232,15 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
       switch (level) {
         case 'campaign':
           id = insight.campaignId || `campaign_${Date.now()}_${Math.random()}`;
-          name = insight.campaignName || `行銷活動 ${insight.campaignId?.slice(-8) || 'Unknown'}`;
+          name = insight.campaignName || `[Campaign ID: ${insight.campaignId?.slice(-8) || 'Missing'}]`;
           break;
         case 'adset':
           id = insight.adsetId || `adset_${Date.now()}_${Math.random()}`;
-          name = insight.adsetName || `廣告組合 ${insight.adsetId?.slice(-8) || 'Unknown'}`;
+          name = insight.adsetName || `[AdSet ID: ${insight.adsetId?.slice(-8) || 'Missing'}]`;
           break;
         case 'ad':
           id = insight.adId || `ad_${Date.now()}_${Math.random()}`;
-          name = insight.adName || `廣告 ${insight.adId?.slice(-8) || 'Unknown'}`;
+          name = insight.adName || `[Ad ID: ${insight.adId?.slice(-8) || 'Missing'}]`;
           break;
         default: // account
           id = `account_${Date.now()}_${Math.random()}`;
