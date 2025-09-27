@@ -232,19 +232,19 @@ router.get('/dashboard', requireJWTAuth, async (req: any, res) => {
       switch (level) {
         case 'campaign':
           id = insight.campaignId || `campaign_${Date.now()}_${Math.random()}`;
-          name = insight.campaignName || `[Campaign ID: ${insight.campaignId?.slice(-8) || 'Missing'}]`;
+          name = insight.campaignName || `未命名行銷活動`;
           break;
         case 'adset':
           id = insight.adsetId || `adset_${Date.now()}_${Math.random()}`;
-          name = insight.adsetName || `[AdSet ID: ${insight.adsetId?.slice(-8) || 'Missing'}]`;
+          name = insight.adsetName || `未命名廣告組合`;
           break;
         case 'ad':
           id = insight.adId || `ad_${Date.now()}_${Math.random()}`;
-          name = insight.adName || `[Ad ID: ${insight.adId?.slice(-8) || 'Missing'}]`;
+          name = insight.adName || `未命名廣告`;
           break;
         default: // account
           id = `account_${Date.now()}_${Math.random()}`;
-          name = `廣告帳戶 ${user.metaAdAccountId}`;
+          name = `廣告帳戶總覽`;
       }
       
       return {
