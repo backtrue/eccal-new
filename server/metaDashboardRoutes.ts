@@ -486,9 +486,9 @@ ${level === 'campaign' ? `
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    // 調用 GPT-4.1-mini 分析
+    // 調用 GPT-4.1 分析
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1",
       messages: [
         {
           role: "system",
