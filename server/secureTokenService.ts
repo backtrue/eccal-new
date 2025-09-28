@@ -15,7 +15,7 @@ interface TokenData {
 class SecureTokenService {
   private tokenCache: Map<string, TokenData> = new Map();
   private readonly CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
-  private readonly cleanupInterval: NodeJS.Timer;
+  private readonly cleanupInterval: NodeJS.Timeout;
 
   constructor() {
     // 定期清理過期快取
@@ -89,7 +89,9 @@ class SecureTokenService {
     const now = new Date();
     let cleanedCount = 0;
     
-    for (const [key, tokenData] of this.tokenCache.entries()) {
+    // Convert iterator to array to avoid TypeScript iteration issues
+    const entries = Array.from(this.tokenCache.entries());
+    for (const [key, tokenData] of entries) {
       if (tokenData.expiresAt && tokenData.expiresAt < now) {
         this.tokenCache.delete(key);
         cleanedCount++;

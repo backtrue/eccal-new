@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { storage } from './storage';
-import { createSafeOAuth2Client, sanitizeGoogleApiResponse, safeGoogleApiCall } from './googleOAuthHelper';
+import { createSecureOAuth2Client, sanitizeGoogleApiResponse, safeGoogleApiCall } from './googleOAuthHelper';
+import { secureTokenService } from './secureTokenService';
 
 export interface AnalyticsData {
   averageOrderValue: number;
@@ -20,16 +21,12 @@ export class GoogleAnalyticsService {
   async getEcommerceData(userId: string, propertyId: string): Promise<AnalyticsData | null> {
     try {
       const user = await storage.getUser(userId);
-      if (!user || !user.googleAccessToken) {
-        throw new Error('User not found or no access token');
+      if (!user) {
+        throw new Error('User not found');
       }
 
-      // Set up OAuth2 client with user's access token using safe helper
-      const oauth2Client = createSafeOAuth2Client({
-        access_token: user.googleAccessToken,
-        refresh_token: user.googleRefreshToken,
-        expiry_date: user.tokenExpiresAt,
-      });
+      // Set up OAuth2 client using secure token service
+      const oauth2Client = await createSecureOAuth2Client(userId);
 
       // Use Google Analytics Data API (GA4)
       const analyticsData = google.analyticsdata('v1beta');
@@ -191,24 +188,22 @@ export class GoogleAnalyticsService {
 
   private async refreshAccessToken(userId: string): Promise<void> {
     try {
-      const user = await storage.getUser(userId);
-      if (!user || !user.googleRefreshToken) {
-        throw new Error('No refresh token available');
+      // 使用安全 token 服務進行 token 刷新
+      const oauth2Client = await createSecureOAuth2Client(userId);
+      
+      // 檢查是否有有效的 refresh token
+      if (!await secureTokenService.hasValidToken(userId, 'google')) {
+        throw new Error('No valid tokens available for refresh');
       }
 
-      // Use safe OAuth2 client for token refresh
-      const refreshClient = createSafeOAuth2Client({
-        refresh_token: user.googleRefreshToken,
-        expiry_date: user.tokenExpiresAt,
-      });
-
-      const { credentials } = await refreshClient.refreshAccessToken();
+      const { credentials } = await oauth2Client.refreshAccessToken();
       
       if (credentials.access_token) {
-        await storage.upsertUser({
-          ...user,
-          googleAccessToken: credentials.access_token,
-          tokenExpiresAt: credentials.expiry_date ? 
+        // 更新安全 token 儲存
+        await secureTokenService.storeToken(userId, 'google', {
+          accessToken: credentials.access_token,
+          refreshToken: credentials.refresh_token || undefined,
+          expiresAt: credentials.expiry_date ? 
             new Date(Math.min(credentials.expiry_date, 2147483647)) : // 32-bit safe max
             new Date(Date.now() + 3600000),
         });
@@ -223,32 +218,30 @@ export class GoogleAnalyticsService {
     console.log(`[GA-DEBUG] Fetching Analytics properties for user: ${userId}`);
     try {
       const user = await storage.getUser(userId);
-      if (!user || !user.googleAccessToken) {
-        throw new Error('User not found or no access token');
+      if (!user) {
+        throw new Error('User not found');
       }
 
-      console.log(`[GA-DEBUG] User ${userId} - Token info:`, {
-        hasAccessToken: !!user.googleAccessToken,
-        hasRefreshToken: !!user.googleRefreshToken,
-        tokenExpiresAt: user.tokenExpiresAt,
+      // 檢查是否有有效的 token
+      const hasValidToken = await secureTokenService.hasValidToken(userId, 'google');
+      if (!hasValidToken) {
+        throw new Error('No valid Google OAuth token found');
+      }
+
+      console.log(`[GA-DEBUG] User ${userId} - Secure token available:`, {
+        hasValidToken,
         userEmail: user.email,
-        userName: user.username
+        userName: user.name
       });
 
       // Try to refresh token first to ensure it's valid
       console.log(`[GA-DEBUG] Refreshing token for user: ${userId}`);
       await this.refreshAccessToken(userId);
       
-      // Get updated credentials after refresh
-      const updatedUser = await storage.getUser(userId);
       console.log(`[GA-DEBUG] Token refreshed for user: ${userId}`);
       
-      // Use safe OAuth2 client for API calls
-      const oauth2Client = createSafeOAuth2Client({
-        access_token: updatedUser?.googleAccessToken,
-        refresh_token: updatedUser?.googleRefreshToken,
-        expiry_date: updatedUser?.tokenExpiresAt,
-      });
+      // Use secure OAuth2 client for API calls
+      const oauth2Client = await createSecureOAuth2Client(userId);
 
       const analyticsAdmin = google.analyticsadmin('v1beta');
       

@@ -1,8 +1,48 @@
 import { google } from 'googleapis';
+import { secureTokenService } from './secureTokenService';
 
 /**
- * Helper function to create safe OAuth2 client with 32-bit integer protection
+ * NEW: Create OAuth2 client using secure token service
+ * Replaces database token storage with secure in-memory storage
+ */
+export async function createSecureOAuth2Client(userId: string): Promise<any> {
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
+
+  // Get tokens from secure storage instead of database
+  const tokenData = await secureTokenService.getToken(userId, 'google');
+  
+  if (tokenData) {
+    const safeCredentials: any = {
+      access_token: tokenData.accessToken,
+      refresh_token: tokenData.refreshToken,
+    };
+
+    // Handle expiry_date with 32-bit safety
+    if (tokenData.expiresAt) {
+      const expiryValue = tokenData.expiresAt.getTime();
+      // Cap at 32-bit signed integer maximum (2147483647)
+      safeCredentials.expiry_date = Math.min(expiryValue, 2147483647);
+    } else {
+      // Default to 1 hour from now, but still within 32-bit range
+      safeCredentials.expiry_date = Math.min(Date.now() + 3600000, 2147483647);
+    }
+
+    oauth2Client.setCredentials(safeCredentials);
+    console.log(`✅ OAuth2 client created for user ${userId} with secure tokens`);
+  } else {
+    console.log(`⚠️ No secure tokens found for user ${userId}`);
+  }
+
+  return oauth2Client;
+}
+
+/**
+ * LEGACY: Helper function to create safe OAuth2 client with 32-bit integer protection
  * This prevents TimeoutOverflowWarning errors when Google returns large expiry values
+ * @deprecated Use createSecureOAuth2Client instead
  */
 export function createSafeOAuth2Client(credentials?: {
   access_token?: string | null;
