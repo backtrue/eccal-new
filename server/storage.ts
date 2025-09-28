@@ -345,19 +345,21 @@ export class DatabaseStorage implements IStorage {
         .onConflictDoUpdate({
           target: users.id,
           set: {
-            // 只更新 token 相關資訊，不覆蓋用戶基本資料
-            googleAccessToken: userData.googleAccessToken,
-            googleRefreshToken: userData.googleRefreshToken,
-            tokenExpiresAt: userData.tokenExpiresAt,
+            // 只更新基本資訊，token 已移至安全存儲
+            email: userData.email,
+            name: userData.name,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            profileImageUrl: userData.profileImageUrl,
             lastLoginAt: new Date(),
             updatedAt: new Date(),
           },
         })
         .returning();
     } catch (error: any) {
-      // 如果是 email 唯一性衝突，直接使用現有用戶並更新 token
+      // 如果是 email 唯一性衝突，直接使用現有用戶並更新基本資訊
       if (error?.code === '23505' && error?.constraint === 'users_email_key') {
-        console.log('Email 衝突detected，更新現有用戶 token:', {
+        console.log('Email 衝突detected，更新現有用戶資訊:', {
           email: userData.email,
           action: 'updating_existing_user'
         });
@@ -365,9 +367,10 @@ export class DatabaseStorage implements IStorage {
         [user] = await db
           .update(users)
           .set({
-            googleAccessToken: userData.googleAccessToken,
-            googleRefreshToken: userData.googleRefreshToken,
-            tokenExpiresAt: userData.tokenExpiresAt,
+            name: userData.name,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            profileImageUrl: userData.profileImageUrl,
             lastLoginAt: new Date(),
             updatedAt: new Date(),
           })
@@ -392,7 +395,7 @@ export class DatabaseStorage implements IStorage {
         timestamp: new Date().toISOString(),
         userId: user.id,
         email: user.email,
-        tokenExpiresAt: user.tokenExpiresAt,
+        lastLoginAt: user.lastLoginAt,
         operation: isNewUser ? 'CREATE' : 'UPDATE'
       });
     }
@@ -1759,13 +1762,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateMetaTokens(userId: string, accessToken: string, adAccountId: string | null, adAccountName?: string | null): Promise<User> {
-    const updateData: Partial<User> = {
-      metaAccessToken: accessToken,
-    };
+    const updateData: Partial<User> = {};
 
     if (adAccountId) {
       updateData.metaAdAccountId = adAccountId;
     }
+
+    // Note: metaAccessToken moved to secure storage, no longer stored in users table
 
     // Note: adAccountName is not stored in database schema
     // Only storing the account ID for now
