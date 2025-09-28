@@ -1528,11 +1528,8 @@ app.get('/api/auth/google-sso/callback', async (req, res) => {
         firstName: userData.given_name || null,
         lastName: userData.family_name || null,
         profileImageUrl: userData.picture || null,
-        googleAccessToken: tokenData.access_token,
-        googleRefreshToken: tokenData.refresh_token || null,
-        tokenExpiresAt: tokenData.expires_in ? 
-          new Date(Date.now() + tokenData.expires_in * 1000) : 
-          new Date(Date.now() + 3600000),
+        googleId: userData.sub, // Store Google user ID instead of tokens
+        // Note: OAuth tokens are now stored securely via secureTokenService
         service: stateData.service || 'unknown',
         credits: 30, // 新用戶獲得 30 點數
         lastLoginAt: new Date(),
@@ -1550,11 +1547,8 @@ app.get('/api/auth/google-sso/callback', async (req, res) => {
           firstName: userData.given_name || user[0].firstName,
           lastName: userData.family_name || user[0].lastName,
           profileImageUrl: userData.picture || user[0].profileImageUrl,
-          googleAccessToken: tokenData.access_token,
-          googleRefreshToken: tokenData.refresh_token || user[0].googleRefreshToken,
-          tokenExpiresAt: tokenData.expires_in ? 
-            new Date(Date.now() + tokenData.expires_in * 1000) : 
-            new Date(Date.now() + 3600000),
+          googleId: userData.sub, // Store Google user ID instead of tokens
+          // Note: OAuth tokens are now stored securely via secureTokenService
           lastLoginAt: new Date()
         })
         .where(eq(users.id, userId));
@@ -1575,6 +1569,19 @@ app.get('/api/auth/google-sso/callback', async (req, res) => {
       membershipLevel: finalUser.membershipLevel,
       credits: finalUser.credits
     });
+
+    // 安全地儲存 OAuth tokens
+    if (tokenData.access_token) {
+      const { secureTokenService } = await import('./secureTokenService');
+      await secureTokenService.storeToken(userId, 'google', {
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token || undefined,
+        expiresAt: tokenData.expires_in ? 
+          new Date(Date.now() + tokenData.expires_in * 1000) : 
+          new Date(Date.now() + 3600000),
+      });
+      console.log(`✅ OAuth tokens securely stored for user ${userId}`);
+    }
     
     // 生成 JWT token
     const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
