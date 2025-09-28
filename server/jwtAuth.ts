@@ -151,43 +151,22 @@ export async function jwtMiddleware(req: Request, res: Response, next: NextFunct
   next();
 }
 
-// 自動修復過期 token 的中間件
+// 自動修復過期 token 的中間件 (現在由 secureTokenService 處理)
 async function autoFixExpiredTokens(req: Request, res: Response, next: NextFunction) {
   try {
     const user = (req as any).user;
     if (user && user.email) {
-      // 檢查 token 是否即將過期或已過期 (少於2小時)
-      const tokenExpiresAt = user.tokenExpiresAt ? new Date(user.tokenExpiresAt) : null;
-      const now = new Date();
-      const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+      // Token 現在由 secureTokenService 管理，自動清理過期的 token
+      const { secureTokenService } = await import('./secureTokenService');
+      const hasValidToken = await secureTokenService.hasValidToken(user.id, 'google');
       
-      if (!tokenExpiresAt || tokenExpiresAt < twoHoursFromNow) {
-        console.log(`[AUTO-FIX] 自動修復即將過期的 token: ${user.email}`);
-        
-        // 自動延長 token 24小時
-        const { storage } = await import('./storage');
-        const newTokenExpiry = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        
-        const { db } = await import('./db');
-        const { users } = await import('../shared/schema');
-        const { eq } = await import('drizzle-orm');
-        
-        await db
-          .update(users)
-          .set({
-            tokenExpiresAt: newTokenExpiry,
-            updatedAt: now
-          })
-          .where(eq(users.email, user.email));
-        
-        // 更新記憶體中的用戶資料
-        user.tokenExpiresAt = newTokenExpiry;
-        
-        console.log(`[AUTO-FIX] 成功延長 ${user.email} 的 token 至: ${newTokenExpiry}`);
+      if (!hasValidToken) {
+        console.log(`[AUTO-FIX] No valid token found for user: ${user.email}`);
+        // Token 會在用戶下次登入時自動重新獲取
       }
     }
   } catch (error) {
-    console.error('[AUTO-FIX] Token 自動修復失敗:', error);
+    console.error('[AUTO-FIX] Token 檢查失敗:', error);
   }
   
   next();
@@ -238,19 +217,26 @@ export function setupJWTGoogleAuth(app: Express) {
         name: profile.name?.givenName + ' ' + profile.name?.familyName
       });
 
-      // 設置更長的 token 過期時間 (24小時)，避免頻繁過期
-      const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24小時
-      
       const user = await storage.upsertUser({
         id: profile.id,
         email: profile.emails?.[0]?.value || null,
         firstName: profile.name?.givenName || null,
         lastName: profile.name?.familyName || null,
         profileImageUrl: profile.photos?.[0]?.value || null,
-        googleAccessToken: accessToken,
-        googleRefreshToken: refreshToken,
-        tokenExpiresAt: tokenExpiresAt,
+        googleId: profile.id, // Store Google user ID instead of tokens
+        // Note: OAuth tokens are now stored securely in secureTokenService
       });
+
+      // 安全地儲存 OAuth tokens 到記憶體快取
+      if (user && accessToken) {
+        const { secureTokenService } = await import('./secureTokenService');
+        await secureTokenService.storeToken(profile.id, 'google', {
+          accessToken,
+          refreshToken: refreshToken || undefined,
+          expiresAt: new Date(Date.now() + 3600000), // 1小時後過期
+        });
+        console.log(`✅ OAuth tokens securely stored for user ${profile.id}`);
+      }
 
       console.log('用戶 upsert 結果:', {
         success: !!user,
@@ -286,9 +272,7 @@ export function setupJWTGoogleAuth(app: Express) {
           userFound: !!user,
           userId: user?.id,
           userEmail: user?.email,
-          tokenExpiresAt: user?.tokenExpiresAt,
-          hasGoogleAccessToken: !!user?.googleAccessToken,
-          hasGoogleRefreshToken: !!user?.googleRefreshToken,
+          // OAuth tokens now managed securely by secureTokenService
           profileId: profile.id,
           profileEmail: profile.emails?.[0]?.value,
           membershipLevel: user?.membershipLevel,
@@ -302,7 +286,7 @@ export function setupJWTGoogleAuth(app: Express) {
           userCreated: !!user,
           userId: user?.id,
           userEmail: user?.email,
-          tokenExpiresAt: user?.tokenExpiresAt,
+          // Tokens now managed by secureTokenService
           timestamp: new Date().toISOString()
         });
       }
@@ -324,9 +308,8 @@ export function setupJWTGoogleAuth(app: Express) {
             firstName: profile.name?.givenName || null,
             lastName: profile.name?.familyName || null,
             profileImageUrl: profile.photos?.[0]?.value || null,
-            googleAccessToken: accessToken,
-            googleRefreshToken: refreshToken,
-            tokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            googleId: profile.id, // Store Google user ID instead of tokens
+            // Note: OAuth tokens are now stored securely in secureTokenService
           });
           
           console.log(`[AUTO-RECOVERY] 成功修復 ${userEmail} 的認證問題`);
@@ -365,26 +348,14 @@ export function setupJWTGoogleAuth(app: Express) {
           userId: id,
           userFound: !!user,
           email: user.email,
-          tokenExpiresAt: user.tokenExpiresAt,
-          isTokenExpired: user.tokenExpiresAt ? new Date(user.tokenExpiresAt) < new Date() : null,
-          hasGoogleAccessToken: !!user.googleAccessToken,
+          // OAuth tokens now managed by secureTokenService
           membershipLevel: user.membershipLevel,
           timestamp: new Date().toISOString()
         });
       }
       
-      // 檢查 token 是否過期
-      if (user && user.tokenExpiresAt && new Date(user.tokenExpiresAt) < new Date()) {
-        console.log('用戶 token 已過期:', {
-          userId: user.id,
-          email: user.email,
-          expiredAt: user.tokenExpiresAt
-        });
-        
-        // Token 過期時返回 null，強制重新認證
-        done(null, null);
-        return;
-      }
+      // Token validation now handled by secureTokenService
+      // User will be automatically re-authenticated if needed
       
       done(null, user || null);
     } catch (error) {
