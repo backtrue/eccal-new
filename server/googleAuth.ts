@@ -3,6 +3,7 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import session from "express-session";
 import type { Express } from "express";
 import { storage } from "./storage";
+import { secureTokenService } from "./secureTokenService";
 
 export function setupGoogleAuth(app: Express) {
   // Session 和 Passport 中間件已經在 server/index.ts 中設置
@@ -35,10 +36,19 @@ export function setupGoogleAuth(app: Express) {
         firstName: profile.name?.givenName || null,
         lastName: profile.name?.familyName || null,
         profileImageUrl: profile.photos?.[0]?.value || null,
-        googleAccessToken: accessToken,
-        googleRefreshToken: refreshToken,
-        tokenExpiresAt: new Date(Math.min(Date.now() + 3600000, 2147483647)), // 32-bit safe max
+        googleId: profile.id, // Store Google user ID instead of tokens
+        // Note: OAuth tokens are now stored securely in secureTokenService
       });
+
+      // 安全地儲存 OAuth tokens 到記憶體快取
+      if (user && accessToken) {
+        await secureTokenService.storeToken(profile.id, 'google', {
+          accessToken,
+          refreshToken: refreshToken || undefined,
+          expiresAt: new Date(Date.now() + 3600000), // 1小時後過期
+        });
+        console.log(`✅ OAuth tokens securely stored for user ${profile.id}`);
+      }
 
       return done(null, user || false);
     } catch (error) {
