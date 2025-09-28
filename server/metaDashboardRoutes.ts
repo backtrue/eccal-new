@@ -391,60 +391,95 @@ router.post('/ai-analysis', requireJWTAuth, async (req: any, res) => {
 
     console.log('Generating GPT analysis for:', { businessType, level, dateRange });
 
-    // 構建 GPT 分析提示
-    const prompt = `作為 Meta 廣告專家，請分析以下廣告帳戶數據並提供專業建議：
+    // 🎯 構建針對維度的 GPT 分析提示
+    const dimensionContext = {
+      'account': '請從廣告帳戶整體角度進行分析，重點關注帳戶層級的整體表現',
+      'campaign': '請專注分析各個行銷活動的表現差異，找出表現最佳和最差的行銷活動，並提供針對性的優化建議',
+      'adset': '請深入分析各廣告組合的表現，重點比較受眾設定、出價策略的效果差異',
+      'ad': '請仔細分析各個廣告素材的表現，找出高效廣告的共同特徵和低效廣告的問題點'
+    };
 
-業務類型: ${businessType === 'ecommerce' ? '電商' : businessType === 'consultation' ? '線上諮詢' : '名單收集'}
-分析維度: ${level === 'account' ? '廣告帳戶' : level === 'campaign' ? '行銷活動' : level === 'adset' ? '廣告組合' : '廣告'}
-時間範圍: ${dateRange?.since || '過去30天'} 至 ${dateRange?.until || '今日'}
+    const dimensionFocus = {
+      'account': '帳戶整體策略',
+      'campaign': '行銷活動',
+      'adset': '廣告組合',
+      'ad': '廣告素材'
+    };
 
-廣告數據:
+    const prompt = `🎯 **${dimensionContext[level as keyof typeof dimensionContext]}**
+
+作為 Meta 廣告專家，現在需要深入分析「${dimensionFocus[level as keyof typeof dimensionFocus]}」層級的數據：
+
+📋 **基本資訊:**
+- 業務類型: ${businessType === 'ecommerce' ? '電商' : businessType === 'consultation' ? '線上諮詢' : '名單收集'}
+- 分析維度: ${level === 'account' ? '廣告帳戶整體' : level === 'campaign' ? '行銷活動明細' : level === 'adset' ? '廣告組合明細' : '廣告素材明細'}
+- 分析項目數量: ${dashboardData.detailData?.length || 0} 個
+- 時間範圍: ${dateRange?.since || '過去30天'} 至 ${dateRange?.until || '今日'}
+
+📊 **整體匯總數據:**
 - 總花費: $${dashboardData.overview?.totalSpend || 0}
 - 曝光數: ${dashboardData.overview?.totalImpressions?.toLocaleString() || 0}
-- 觸及數: ${dashboardData.overview?.totalReach?.toLocaleString() || 0}
 - 連結點擊數: ${dashboardData.overview?.totalClicks?.toLocaleString() || 0}
-- 連結 CTR: ${dashboardData.metrics?.ctr?.toFixed(2) || 0}%
-- 連結點擊成本: $${dashboardData.metrics?.cpc?.toFixed(2) || 0}
+- 平均 CTR: ${dashboardData.metrics?.ctr?.toFixed(2) || 0}%
+- 平均 CPC: $${dashboardData.metrics?.cpc?.toFixed(2) || 0}
 
 ${businessType === 'ecommerce' ? `
-電商轉換數據:
+🛒 **電商轉換數據:**
 - ViewContent: ${dashboardData.overview?.totalViewContent?.toLocaleString() || 0}
 - AddToCart: ${dashboardData.overview?.totalAddToCart?.toLocaleString() || 0}
 - Purchase: ${dashboardData.overview?.totalPurchase?.toLocaleString() || 0}
-- ATC% (加購率): ${dashboardData.metrics?.atcRate?.toFixed(1) || 0}%
-- PF% (完成率): ${dashboardData.metrics?.pfRate?.toFixed(1) || 0}%
-- ROAS: ${dashboardData.metrics?.roas?.toFixed(2) || 0}
-- 購買成本: $${dashboardData.metrics?.costPerPurchase?.toFixed(2) || 0}
-- 購買價值: $${dashboardData.overview?.totalPurchaseValue?.toLocaleString() || 0}
+- 整體 ATC%: ${dashboardData.metrics?.atcRate?.toFixed(1) || 0}%
+- 整體 PF%: ${dashboardData.metrics?.pfRate?.toFixed(1) || 0}%
+- 整體 ROAS: ${dashboardData.metrics?.roas?.toFixed(2) || 0}
+- 平均購買成本: $${dashboardData.metrics?.costPerPurchase?.toFixed(2) || 0}
 ` : businessType === 'consultation' ? `
-諮詢互動數據:
-- 訊息對話開始次數: ${dashboardData.overview?.totalMessaging?.toLocaleString() || 0}
-- 每次對話成本: $${dashboardData.metrics?.costPerMessaging?.toFixed(2) || 0}
+💬 **諮詢互動數據:**
+- 訊息對話開始: ${dashboardData.overview?.totalMessaging?.toLocaleString() || 0}
+- 平均對話成本: $${dashboardData.metrics?.costPerMessaging?.toFixed(2) || 0}
 ` : `
-名單收集數據:
+📋 **名單收集數據:**
 - 潛在顧客數: ${dashboardData.overview?.totalLeads?.toLocaleString() || 0}
-- 潛客取得成本: $${dashboardData.metrics?.costPerLead?.toFixed(2) || 0}
+- 平均潛客成本: $${dashboardData.metrics?.costPerLead?.toFixed(2) || 0}
 `}
 
-**📊 詳細數據表格:**
+🔍 **${dimensionFocus[level as keyof typeof dimensionFocus]}明細表現排行:**
 ${dashboardData.detailData.map((item: any, index: number) => `
-${index + 1}. ${item.name}
-   - 花費: $${item.spend.toFixed(2)}
-   - 曝光: ${item.impressions.toLocaleString()}
-   - 點擊: ${item.linkClicks.toLocaleString()}
-   - CTR: ${item.ctr.toFixed(2)}%
-   - CPC: $${item.cpc.toFixed(2)}
-   ${businessType === 'ecommerce' ? `- 商品瀏覽: ${item.viewContent}, 加購: ${item.addToCart}, 購買: ${item.purchase}, ROAS: ${item.roas.toFixed(2)}` : ''}
-   ${businessType === 'consultation' ? `- 對話: ${item.messaging}, 對話成本: $${item.costPerMessaging.toFixed(2)}` : ''}
-   ${businessType === 'lead_generation' ? `- 潛客: ${item.leads}, 潛客成本: $${item.costPerLead.toFixed(2)}` : ''}
+${index + 1}. 📍 ${item.name}
+   💰 花費: $${item.spend.toFixed(2)} | 👁️ 曝光: ${item.impressions.toLocaleString()} | 🖱️ 點擊: ${item.linkClicks.toLocaleString()}
+   📊 CTR: ${item.ctr.toFixed(2)}% | 💵 CPC: $${item.cpc.toFixed(2)}
+   ${businessType === 'ecommerce' ? `🛒 瀏覽: ${item.viewContent} | 🛍️ 加購: ${item.addToCart} | 💳 購買: ${item.purchase} | 💎 ROAS: ${item.roas.toFixed(2)}` : ''}
+   ${businessType === 'consultation' ? `💬 對話: ${item.messaging} | 💰 對話成本: $${item.costPerMessaging.toFixed(2)}` : ''}
+   ${businessType === 'lead_generation' ? `📋 潛客: ${item.leads} | 💰 潛客成本: $${item.costPerLead.toFixed(2)}` : ''}
 `).join('')}
 
-請以純JSON格式回應（不要使用markdown代碼塊），包含:
-1. summary: 整體表現總結 (HTML格式，100字以內，繁體中文)
-2. recommendations: 3-5個具體改善建議，每個包含 {type, title, description, priority, impact, targetItem}，其中 targetItem 為建議針對的具體項目名稱
-3. insights: 2-3個關鍵洞察，每個包含 {metric, trend, message, topPerformers}，其中 topPerformers 為表現最佳的項目列表
+🎯 **分析要求:**
+${level === 'campaign' ? `
+- 找出表現最佳的 3 個行銷活動及其成功要素
+- 識別表現最差的行銷活動及改善方向
+- 分析不同行銷活動間的策略差異
+- 建議預算重新分配策略
+` : level === 'adset' ? `
+- 比較不同廣告組合的受眾表現
+- 分析出價策略對成效的影響
+- 找出最有效的受眾設定組合
+- 建議廣告組合的優化調整
+` : level === 'ad' ? `
+- 分析高效廣告素材的共同特徵
+- 找出低效廣告的問題點
+- 比較不同廣告格式的表現
+- 建議廣告創意優化方向
+` : `
+- 提供帳戶整體策略建議
+- 分析帳戶結構合理性
+- 評估整體投資回報
+`}
 
-⚠️ 重要：請直接回傳JSON物件，不要包裝在markdown代碼塊中，summary欄位使用HTML格式，建議要針對具體的${level === 'campaign' ? '行銷活動' : level === 'adset' ? '廣告組合' : '廣告'}提出。`;
+請以純JSON格式回應，包含:
+1. summary: 基於「${dimensionFocus[level as keyof typeof dimensionFocus]}」維度的整體分析總結 (HTML格式，120字以內)
+2. recommendations: 4-6個針對「${dimensionFocus[level as keyof typeof dimensionFocus]}」的具體建議，每個包含 {type, title, description, priority, impact, targetItem}
+3. insights: 3-4個基於「${dimensionFocus[level as keyof typeof dimensionFocus]}」數據的關鍵洞察，每個包含 {metric, trend, message, topPerformers}
+
+⚠️ 重要：分析必須緊扣「${dimensionFocus[level as keyof typeof dimensionFocus]}」維度，針對具體的${level === 'campaign' ? '行銷活動' : level === 'adset' ? '廣告組合' : level === 'ad' ? '廣告素材' : '帳戶策略'}提供可執行的建議。`;
 
     // 初始化 OpenAI 客戶端
     const openai = new OpenAI({
