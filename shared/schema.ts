@@ -32,11 +32,10 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  googleAccessToken: varchar("google_access_token"),
-  googleRefreshToken: varchar("google_refresh_token"),
-  tokenExpiresAt: timestamp("token_expires_at"),
-  // Meta/Facebook Ad Account Integration
-  metaAccessToken: varchar("meta_access_token"),
+  // OAuth tokens moved to secure storage - no longer stored in plain text
+  // Google OAuth info (non-sensitive metadata only)
+  googleId: varchar("google_id"), // Google user ID (public identifier)
+  // Meta/Facebook Ad Account Integration (non-sensitive metadata only)
   metaAdAccountId: varchar("meta_ad_account_id"),
   metaBusinessType: varchar("meta_business_type", { enum: ["ecommerce", "consultation", "lead_generation"] }).default("ecommerce"),
   membershipLevel: varchar("membership_level", { length: 15 }).default("free").notNull(), // "free", "pro", or "founders"
@@ -804,8 +803,8 @@ export const metaAdAccounts = pgTable("meta_ad_accounts", {
   timezone: varchar("timezone").notNull(),
   accountStatus: varchar("account_status").notNull(), // ACTIVE, DISABLED
   businessType: varchar("business_type", { length: 20 }).notNull(), // ecommerce, consultation, lead_generation
-  accessToken: text("access_token"), // 加密存儲的訪問令牌
-  tokenExpires: timestamp("token_expires"),
+  // accessToken moved to secure Replit Secrets - no longer stored in database
+  // tokenExpires moved to secure storage - managed by OAuth refresh logic
   isActive: boolean("is_active").default(true).notNull(),
   lastSyncAt: timestamp("last_sync_at"),
   createdAt: timestamp("created_at").defaultNow(),
