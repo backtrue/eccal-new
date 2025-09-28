@@ -36,3 +36,9 @@ coverage/
 # Temporary folders
 tmp/
 temp/
+
+# Database backups and sensitive data
+backups/
+*.sql
+*.csv
+database_backups/
