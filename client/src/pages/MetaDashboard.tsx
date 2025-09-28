@@ -874,7 +874,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                       <CardTitle className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-5 h-5 text-blue-600" />
-                          GPT-4.1-mini 智能分析
+                          GPT-4.1 三步驟智能分析
                         </div>
                         <Button 
                           variant="ghost" 
@@ -885,77 +885,240 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                         </Button>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* 分析總結 */}
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-2">📊 整體分析</h4>
-                        <div 
-                          className="text-gray-700 bg-white rounded-lg p-4 border"
-                          dangerouslySetInnerHTML={{ __html: analysisResult.summary }}
-                        />
-                      </div>
+                    <CardContent className="space-y-8">
+                      {/* 第一步：數據解讀 */}
+                      {analysisResult.dataInterpretation && (
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full text-sm font-bold">1</div>
+                            <h4 className="text-lg font-semibold text-blue-900">📊 數據解讀</h4>
+                          </div>
+                          
+                          {/* 整體總結 */}
+                          <div className="mb-6">
+                            <div 
+                              className="text-gray-700 bg-white rounded-lg p-4 border border-blue-100"
+                              dangerouslySetInnerHTML={{ __html: analysisResult.dataInterpretation.summary }}
+                            />
+                          </div>
 
-                      {/* 改善建議 */}
-                      {analysisResult.recommendations && analysisResult.recommendations.length > 0 && (
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-3">💡 改善建議</h4>
-                          <div className="space-y-3">
-                            {analysisResult.recommendations.map((rec: any, index: number) => (
-                              <div key={index} className="bg-white rounded-lg p-4 border">
-                                <div className="flex items-start justify-between mb-2">
-                                  <h5 className="font-medium text-gray-900">{rec.title}</h5>
-                                  <div className="flex gap-2">
-                                    <span className={`px-2 py-1 text-xs rounded-full ${
-                                      rec.priority === 'high' ? 'bg-red-100 text-red-700' :
-                                      rec.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                                      'bg-green-100 text-green-700'
-                                    }`}>
-                                      {rec.priority === 'high' ? '高優先級' : rec.priority === 'medium' ? '中優先級' : '低優先級'}
-                                    </span>
-                                    <span className={`px-2 py-1 text-xs rounded-full ${
-                                      rec.impact === 'high' ? 'bg-blue-100 text-blue-700' :
-                                      rec.impact === 'medium' ? 'bg-indigo-100 text-indigo-700' :
-                                      'bg-gray-100 text-gray-700'
-                                    }`}>
-                                      {rec.impact === 'high' ? '高影響' : rec.impact === 'medium' ? '中影響' : '低影響'}
-                                    </span>
+                          {/* 關鍵指標 */}
+                          {analysisResult.dataInterpretation.keyMetrics && analysisResult.dataInterpretation.keyMetrics.length > 0 && (
+                            <div className="mb-6">
+                              <h5 className="font-medium text-gray-800 mb-3">📈 關鍵指標解讀</h5>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {analysisResult.dataInterpretation.keyMetrics.map((metric: any, index: number) => (
+                                  <div key={index} className="bg-white rounded-lg p-4 border border-blue-100">
+                                    <div className="flex justify-between items-center mb-2">
+                                      <span className="font-medium text-gray-800">{metric.metric}</span>
+                                      <span className="text-blue-600 font-bold">{metric.value}</span>
+                                    </div>
+                                    <p className="text-gray-600 text-sm mb-1">{metric.interpretation}</p>
+                                    <p className="text-gray-500 text-xs">{metric.comparison}</p>
                                   </div>
-                                </div>
-                                <p className="text-gray-600 text-sm">{rec.description}</p>
+                                ))}
                               </div>
-                            ))}
+                            </div>
+                          )}
+
+                          {/* 表現排名 */}
+                          {analysisResult.dataInterpretation.performanceRanking && analysisResult.dataInterpretation.performanceRanking.length > 0 && (
+                            <div>
+                              <h5 className="font-medium text-gray-800 mb-3">🏆 表現排名</h5>
+                              <div className="space-y-2">
+                                {analysisResult.dataInterpretation.performanceRanking.map((item: any, index: number) => (
+                                  <div key={index} className="bg-white rounded-lg p-3 border border-blue-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <span className={`w-6 h-6 rounded-full text-white text-xs flex items-center justify-center font-bold ${
+                                        item.rank === 1 ? 'bg-yellow-500' : item.rank === 2 ? 'bg-gray-400' : item.rank === 3 ? 'bg-orange-400' : 'bg-gray-300'
+                                      }`}>
+                                        {item.rank}
+                                      </span>
+                                      <div>
+                                        <p className="font-medium text-gray-800">{item.name}</p>
+                                        <p className="text-gray-500 text-xs">{item.reason}</p>
+                                      </div>
+                                    </div>
+                                    <span className="text-blue-600 text-sm font-medium">{item.score}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 第二步：洞察發現 */}
+                      {analysisResult.insights && (
+                        <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg p-6 border border-emerald-200">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="flex items-center justify-center w-8 h-8 bg-emerald-600 text-white rounded-full text-sm font-bold">2</div>
+                            <h4 className="text-lg font-semibold text-emerald-900">💡 洞察發現</h4>
+                          </div>
+
+                          {/* 核心發現 */}
+                          {analysisResult.insights.discoveries && analysisResult.insights.discoveries.length > 0 && (
+                            <div className="mb-6">
+                              <h5 className="font-medium text-gray-800 mb-3">🔍 核心發現</h5>
+                              <div className="space-y-4">
+                                {analysisResult.insights.discoveries.map((discovery: any, index: number) => (
+                                  <div key={index} className="bg-white rounded-lg p-4 border border-emerald-100">
+                                    <h6 className="font-medium text-emerald-800 mb-2">{discovery.insight}</h6>
+                                    <p className="text-gray-700 text-sm mb-2">{discovery.finding}</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full">
+                                        影響：{discovery.impact}
+                                      </span>
+                                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                        證據：{discovery.evidence}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 機會與風險 */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* 機會點 */}
+                            {analysisResult.insights.opportunities && analysisResult.insights.opportunities.length > 0 && (
+                              <div>
+                                <h5 className="font-medium text-gray-800 mb-3">🚀 機會點</h5>
+                                <div className="space-y-3">
+                                  {analysisResult.insights.opportunities.map((opp: any, index: number) => (
+                                    <div key={index} className="bg-white rounded-lg p-3 border border-green-200">
+                                      <h6 className="font-medium text-green-800 text-sm mb-1">{opp.opportunity}</h6>
+                                      <p className="text-gray-600 text-xs mb-2">{opp.potential}</p>
+                                      <p className="text-gray-500 text-xs">{opp.reasoning}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 風險點 */}
+                            {analysisResult.insights.risks && analysisResult.insights.risks.length > 0 && (
+                              <div>
+                                <h5 className="font-medium text-gray-800 mb-3">⚠️ 風險點</h5>
+                                <div className="space-y-3">
+                                  {analysisResult.insights.risks.map((risk: any, index: number) => (
+                                    <div key={index} className="bg-white rounded-lg p-3 border border-orange-200">
+                                      <div className="flex items-center justify-between mb-1">
+                                        <h6 className="font-medium text-orange-800 text-sm">{risk.risk}</h6>
+                                        <span className={`px-2 py-1 text-xs rounded-full ${
+                                          risk.severity === 'high' ? 'bg-red-100 text-red-700' :
+                                          risk.severity === 'medium' ? 'bg-orange-100 text-orange-700' :
+                                          'bg-yellow-100 text-yellow-700'
+                                        }`}>
+                                          {risk.severity === 'high' ? '高' : risk.severity === 'medium' ? '中' : '低'}
+                                        </span>
+                                      </div>
+                                      <p className="text-gray-500 text-xs">{risk.mitigation}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
 
-                      {/* 關鍵洞察 */}
-                      {analysisResult.insights && analysisResult.insights.length > 0 && (
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-3">🔍 關鍵洞察</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {analysisResult.insights.map((insight: any, index: number) => (
-                              <div key={index} className="bg-white rounded-lg p-4 border">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="font-medium text-gray-900 capitalize">{insight.metric}</span>
-                                  <span className={`px-2 py-1 text-xs rounded-full ${
-                                    insight.trend === 'improving' ? 'bg-green-100 text-green-700' :
-                                    insight.trend === 'stable' ? 'bg-blue-100 text-blue-700' :
-                                    'bg-red-100 text-red-700'
-                                  }`}>
-                                    {insight.trend === 'improving' ? '改善中' : 
-                                     insight.trend === 'stable' ? '穩定' : '下降'}
-                                  </span>
-                                </div>
-                                <p className="text-gray-600 text-sm">{insight.message}</p>
+                      {/* 第三步：行動計劃 */}
+                      {analysisResult.actionPlan && (
+                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 border border-purple-200">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="flex items-center justify-center w-8 h-8 bg-purple-600 text-white rounded-full text-sm font-bold">3</div>
+                            <h4 className="text-lg font-semibold text-purple-900">🎯 行動計劃</h4>
+                          </div>
+
+                          {/* 立即行動 */}
+                          {analysisResult.actionPlan.immediateActions && analysisResult.actionPlan.immediateActions.length > 0 && (
+                            <div className="mb-6">
+                              <h5 className="font-medium text-gray-800 mb-3">⚡ 立即行動</h5>
+                              <div className="space-y-3">
+                                {analysisResult.actionPlan.immediateActions.map((action: any, index: number) => (
+                                  <div key={index} className="bg-white rounded-lg p-4 border border-purple-100">
+                                    <div className="flex items-start justify-between mb-2">
+                                      <h6 className="font-medium text-purple-800">{action.action}</h6>
+                                      <span className={`px-2 py-1 text-xs rounded-full ${
+                                        action.priority === 'high' ? 'bg-red-100 text-red-700' :
+                                        action.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-green-100 text-green-700'
+                                      }`}>
+                                        {action.priority === 'high' ? '高優先級' : action.priority === 'medium' ? '中優先級' : '低優先級'}
+                                      </span>
+                                    </div>
+                                    <p className="text-gray-600 text-sm mb-2">{action.description}</p>
+                                    <div className="flex flex-wrap gap-2 text-xs">
+                                      <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">目標：{action.target}</span>
+                                      <span className="px-2 py-1 bg-green-100 text-green-700 rounded">預期：{action.expectedImpact}</span>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
+                            </div>
+                          )}
+
+                          {/* 短期與中期策略 */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* 短期策略 */}
+                            {analysisResult.actionPlan.shortTermStrategy && analysisResult.actionPlan.shortTermStrategy.length > 0 && (
+                              <div>
+                                <h5 className="font-medium text-gray-800 mb-3">📅 短期策略 (1-4週)</h5>
+                                <div className="space-y-3">
+                                  {analysisResult.actionPlan.shortTermStrategy.map((strategy: any, index: number) => (
+                                    <div key={index} className="bg-white rounded-lg p-3 border border-purple-100">
+                                      <h6 className="font-medium text-purple-800 text-sm mb-1">{strategy.strategy}</h6>
+                                      <p className="text-gray-600 text-xs mb-2">{strategy.description}</p>
+                                      {strategy.steps && strategy.steps.length > 0 && (
+                                        <div className="mb-2">
+                                          <p className="text-gray-500 text-xs mb-1">執行步驟：</p>
+                                          <ul className="text-xs text-gray-500 list-disc list-inside space-y-1">
+                                            {strategy.steps.map((step: string, stepIndex: number) => (
+                                              <li key={stepIndex}>{step}</li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+                                      <span className="inline-block px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded">
+                                        KPI：{strategy.kpi}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 中期策略 */}
+                            {analysisResult.actionPlan.mediumTermStrategy && analysisResult.actionPlan.mediumTermStrategy.length > 0 && (
+                              <div>
+                                <h5 className="font-medium text-gray-800 mb-3">🗓️ 中期策略 (1-3個月)</h5>
+                                <div className="space-y-3">
+                                  {analysisResult.actionPlan.mediumTermStrategy.map((strategy: any, index: number) => (
+                                    <div key={index} className="bg-white rounded-lg p-3 border border-purple-100">
+                                      <h6 className="font-medium text-purple-800 text-sm mb-1">{strategy.strategy}</h6>
+                                      <p className="text-gray-600 text-xs mb-2">{strategy.description}</p>
+                                      <div className="flex flex-wrap gap-2 text-xs">
+                                        <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded">
+                                          投入：{strategy.investment}
+                                        </span>
+                                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
+                                          預期ROI：{strategy.roi}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
 
                       {/* 生成時間 */}
                       <div className="text-xs text-gray-500 text-center pt-4 border-t">
-                        分析生成時間：{new Date(analysisResult.generatedAt).toLocaleString('zh-TW')}
+                        分析生成時間：{new Date(analysisResult.generatedAt || Date.now()).toLocaleString('zh-TW')}
                       </div>
                     </CardContent>
                   </Card>
