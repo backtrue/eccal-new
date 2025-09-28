@@ -1,0 +1,93 @@
+~/workspace$ git push https://backtrue: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@github.co
+m/backtrue/eccal.git HEAD:main --force
+Enumerating objects: 1424, done.
+Counting objects: 100% (1424/1424), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (1232/1232), done.
+Writing objects: 100% (1373/1373), 1.88 MiB | 5.62 MiB/s, done.
+Total 1373 (delta 1170), reused 169 (delta 134), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (1170/1170), completed with 44 local objects.
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:      (?) This repository does not have Secret Scanning enabled, but is eligible. Enable Secret Scanning to view and manage detected secrets.
+remote:      Visit the repository settings page, https://github.com/backtrue/eccal/settings/security_analysis
+remote:     
+remote:     
+remote:       —— Google OAuth Access Token —————————————————————————
+remote:        locations:
+remote:          - commit: 7783b8d82b27c456d2a518867a850f207f652f6f
+remote:            path: backups/eccal_full_backup_2025-08-01T05-18-50.sql:4282
+remote:          - commit: 7783b8d82b27c456d2a518867a850f207f652f6f
+remote:            path: backups/eccal_full_backup_2025-08-01T05-18-50.sql:4551
+remote:          - commit: 7783b8d82b27c456d2a518867a850f207f652f6f
+remote:            path: backups/users_2025-08-01T05-18-50.csv:7
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/backtrue/eccal/security/secret-scanning/unblock-secret/33Kt4KVwSl56RgshWPVNPKgiyl5
+remote:     
+remote:     
+remote:       —— Google OAuth Refresh Token ————————————————————————
+remote:        locations:
+remote:          - commit: 7783b8d82b27c456d2a518867a850f207f652f6f
+remote:            path: backups/eccal_full_backup_2025-08-01T05-18-50.sql:4282
+remote:          - commit: 7783b8d82b27c456d2a518867a850f207f652f6f
+remote:            path: backups/eccal_full_backup_2025-08-01T05-18-50.sql:4551
+remote:          - commit: 7783b8d82b27c456d2a518867a850f207f652f6f
+remote:            path: backups/users_2025-08-01T05-18-50.csv:7
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/backtrue/eccal/security/secret-scanning/unblock-secret/33Kt4IAdgvDsnEQziORETvQmatL
+remote:     
+remote:     
+remote:       —— Google OAuth Access Token —————————————————————————
+remote:        locations:
+remote:          - commit: 7783b8d82b27c456d2a518867a850f207f652f6f
+remote:            path: backups/eccal_full_backup_2025-08-01T05-18-50.sql:4283
+remote:          - commit: 7783b8d82b27c456d2a518867a850f207f652f6f
+remote:            path: backups/eccal_full_backup_2025-08-01T05-18-50.sql:4552
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/backtrue/eccal/security/secret-scanning/unblock-secret/33Kt4HCyRrSE0sonNBTxec86bJX
+remote:     
+remote:     
+remote:       —— Google OAuth Refresh Token ————————————————————————
+remote:        locations:
+remote:          - commit: 7783b8d82b27c456d2a518867a850f207f652f6f
+remote:            path: backups/eccal_full_backup_2025-08-01T05-18-50.sql:4283
+remote:          - commit: 7783b8d82b27c456d2a518867a850f207f652f6f
+remote:            path: backups/eccal_full_backup_2025-08-01T05-18-50.sql:4552
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/backtrue/eccal/security/secret-scanning/unblock-secret/33Kt4Ixu3QjDzyUQlG2BkOvDka2
+remote:     
+remote:     
+remote:       —— Google OAuth Access Token —————————————————————————
+remote:        locations:
+remote:          - commit: 7783b8d82b27c456d2a518867a850f207f652f6f
+remote:            path: backups/eccal_full_backup_2025-08-01T05-18-50.sql:4284
+remote:          - commit: 7783b8d82b27c456d2a518867a850f207f652f6f
+remote:            path: backups/eccal_full_backup_2025-08-01T05-18-50.sql:4553
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/backtrue/eccal/security/secret-scanning/unblock-secret/33Kt4Fhm0YunoNSb5SmmoSxNU0O
+remote:     
+remote:     
+remote:     ——[ WARNING ]—————————————————————————————————————————
+remote:      490 more secrets detected. Remove each secret from your commit history to view more detections.
+remote:      https://docs.github.com/code-security/secret-scanning/using-advanced-secret-scanning-and-push-protection-features/excluding-folders-and-files-from-secret-scanning
+remote:     ——————————————————————————————————————————————————————
+remote: 
+remote: 
+To https://github.com/backtrue/eccal.git
+ ! [remote rejected] HEAD -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/backtrue/eccal.git'
