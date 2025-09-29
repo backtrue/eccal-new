@@ -2948,6 +2948,82 @@ echo "Bulk import completed!"`;
     }
   });
 
+  // Bulk email upgrade route - upgrade users by email addresses
+  app.post('/api/bdmin/users/bulk-email-upgrade', requireJWTAuth, async (req, res) => {
+    try {
+      const { emails, membershipLevel, duration } = req.body;
+      
+      if (!emails || !Array.isArray(emails) || emails.length === 0) {
+        return res.status(400).json({ error: 'Invalid emails array' });
+      }
+      
+      let membershipExpires = null;
+      if (membershipLevel === 'pro' && duration) {
+        membershipExpires = new Date();
+        membershipExpires.setDate(membershipExpires.getDate() + duration);
+      }
+      
+      let processed = 0;
+      let upgraded = 0;
+      const results = [];
+      
+      // Process each email individually
+      for (const email of emails) {
+        try {
+          processed++;
+          
+          // Find user by email
+          const userResult = await db
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.email, email.trim()))
+            .limit(1);
+          
+          if (userResult.length === 0) {
+            results.push({ email, success: false, error: '用戶不存在' });
+            continue;
+          }
+          
+          const user = userResult[0];
+          
+          // Check if user is already at the target membership level
+          if (user.membershipLevel === membershipLevel) {
+            results.push({ email, success: false, error: '用戶已經是該會員等級' });
+            continue;
+          }
+          
+          // Update user membership
+          await db.update(usersTable)
+            .set({ 
+              membershipLevel, 
+              membershipExpires,
+              updatedAt: new Date()
+            })
+            .where(eq(usersTable.id, user.id));
+          
+          upgraded++;
+          results.push({ email, success: true, message: '升級成功' });
+          
+        } catch (emailError) {
+          console.error(`Error processing email ${email}:`, emailError);
+          results.push({ email, success: false, error: '處理時發生錯誤' });
+        }
+      }
+      
+      console.log(`Bulk email upgrade completed: ${upgraded}/${processed} emails processed successfully`);
+      
+      res.json({ 
+        success: true, 
+        processed, 
+        upgraded, 
+        results 
+      });
+    } catch (error) {
+      console.error('Bulk email upgrade error:', error);
+      res.status(500).json({ error: 'Failed to process email upgrades' });
+    }
+  });
+
   app.post('/api/bdmin/users/bulk-credits', requireJWTAuth, async (req, res) => {
     try {
       const { userIds, amount } = req.body;
