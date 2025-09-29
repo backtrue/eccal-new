@@ -256,7 +256,8 @@ export function setupDiagnosisRoutes(app: Express) {
       // 防禦性檢查：拒絕 anonymous 用戶或無效 userId
       if (!userId || userId === 'anonymous' || userId.length < 5) {
         console.error('Facebook OAuth callback rejected: invalid or anonymous userId', { userId });
-        return res.redirect('/fbaudit?error=oauth_callback_failed&reason=invalid_user');
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        return res.redirect(`${baseUrl}/fbaudit?error=oauth_callback_failed&reason=invalid_user`);
       }
 
       console.log('Facebook OAuth 回調:', { 
@@ -269,12 +270,14 @@ export function setupDiagnosisRoutes(app: Express) {
 
       if (error) {
         console.error('Facebook OAuth 錯誤:', error);
-        return res.redirect('/fbaudit?error=facebook_auth_error');
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        return res.redirect(`${baseUrl}/fbaudit?error=facebook_auth_error`);
       }
 
       if (!code) {
         console.error('Facebook OAuth 缺少授權碼');
-        return res.redirect('/fbaudit?error=facebook_auth_denied');
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        return res.redirect(`${baseUrl}/fbaudit?error=facebook_auth_denied`);
       }
 
       // 交換 access token
@@ -405,20 +408,23 @@ export function setupDiagnosisRoutes(app: Express) {
         // 檢查來源並重定向到正確的頁面
         const stateParams = (req.query.state as string)?.split('|') || [];
         const origin = stateParams[1] || 'fbaudit';
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
         
         if (origin === 'meta-dashboard') {
-          res.redirect('/meta-dashboard?facebook_auth_success=true');
+          res.redirect(`${baseUrl}/meta-dashboard?facebook_auth_success=true`);
         } else {
-          res.redirect('/fbaudit?facebook_auth_success=true');
+          res.redirect(`${baseUrl}/fbaudit?facebook_auth_success=true`);
         }
       } else {
         console.error('Facebook token exchange failed:', tokenData);
-        res.redirect('/fbaudit?error=token_exchange_failed');
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        res.redirect(`${baseUrl}/fbaudit?error=token_exchange_failed`);
       }
 
     } catch (error) {
       console.error('Facebook OAuth callback error:', error);
-      res.redirect('/fbaudit?error=oauth_callback_failed');
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      res.redirect(`${baseUrl}/fbaudit?error=oauth_callback_failed`);
     }
   });
 
