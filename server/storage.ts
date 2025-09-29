@@ -1764,11 +1764,14 @@ export class DatabaseStorage implements IStorage {
   async updateMetaTokens(userId: string, accessToken: string, adAccountId: string | null, adAccountName?: string | null): Promise<User> {
     const updateData: Partial<User> = {};
 
+    // 總是保存 Facebook access token（前端認證依賴於此）
+    if (accessToken) {
+      updateData.metaAccessToken = accessToken;
+    }
+
     if (adAccountId) {
       updateData.metaAdAccountId = adAccountId;
     }
-
-    // Note: metaAccessToken moved to secure storage, no longer stored in users table
 
     // Note: adAccountName is not stored in database schema
     // Only storing the account ID for now
@@ -1783,6 +1786,7 @@ export class DatabaseStorage implements IStorage {
       return existingUser;
     }
 
+    console.log(`Updating user ${userId} with fields:`, Object.keys(updateData));
     const [user] = await db
       .update(users)
       .set(updateData)

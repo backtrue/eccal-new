@@ -1,0 +1,128 @@
+2025-09-29 14:37:50.76
+ce46e7c8
+User
+成功獲取長期 Facebook token，有效期: 5173276 秒
+2025-09-29 14:37:50.76
+ce46e7c8
+User
+開始更新現有用戶的 Facebook token: {
+2025-09-29 14:37:50.76
+ce46e7c8
+User
+userId: '102598988575056957509',
+2025-09-29 14:37:50.76
+ce46e7c8
+User
+tokenLength: 266,
+2025-09-29 14:37:50.76
+ce46e7c8
+User
+tokenPrefix: 'EAAIAeNfWeDUBPntxQZA...'
+2025-09-29 14:37:50.76
+ce46e7c8
+User
+}
+2025-09-29 14:37:50.76
+ce46e7c8
+User
+No fields to update, returning current user data
+2025-09-29 14:37:50.78
+ce46e7c8
+User
+Facebook token 更新完成: 102598988575056957509
+2025-09-29 14:37:50.80
+ce46e7c8
+User
+驗證用戶資料更新: {
+2025-09-29 14:37:50.80
+ce46e7c8
+User
+userId: '102598988575056957509',
+2025-09-29 14:37:50.80
+ce46e7c8
+User
+hasMetaToken: false,
+2025-09-29 14:37:50.80
+ce46e7c8
+User
+metaTokenPrefix: 'undefined...'
+2025-09-29 14:37:50.80
+ce46e7c8
+User
+}
+2025-09-29 14:37:50.81
+ce46e7c8
+User
+🔧 JWT 重新生成完成，包含新的 Facebook token
+2025-09-29 14:37:51.01
+ce46e7c8
+User
+JWT middleware: token present: true for /meta-dashboard?facebook_auth_success=true
+2025-09-29 14:37:51.01
+ce46e7c8
+User
+JWT middleware: token verified: true
+2025-09-29 14:37:51.03
+ce46e7c8
+User
+JWT middleware: User loaded from database: backtrue@gmail.com
+2025-09-29 14:37:51.28
+ce46e7c8
+User
+JWT middleware: token present: true for /assets/index-3CnEVl1z.css
+2025-09-29 14:37:51.28
+ce46e7c8
+User
+JWT middleware: token verified: true
+2025-09-29 14:37:51.30
+ce46e7c8
+User
+JWT middleware: token present: true for /assets/index-BWJXEWTa.js
+2025-09-29 14:37:51.30
+ce46e7c8
+User
+JWT middleware: token verified: true
+2025-09-29 14:37:51.30
+ce46e7c8
+User
+JWT middleware: User loaded from database: backtrue@gmail.com
+2025-09-29 14:37:51.32
+ce46e7c8
+User
+JWT middleware: User loaded from database: backtrue@gmail.com
+2025-09-29 14:37:51.56
+ce46e7c8
+User
+JWT middleware: token present: true for /api/auth/check
+2025-09-29 14:37:51.56
+ce46e7c8
+User
+JWT middleware: token verified: true
+2025-09-29 14:37:51.60
+ce46e7c8
+User
+JWT middleware: User loaded from database: backtrue@gmail.com
+2025-09-29 14:37:51.60
+ce46e7c8
+User
+JWT middleware: token present: true for /api/auth/check
+2025-09-29 14:37:51.60
+ce46e7c8
+User
+JWT middleware: token verified: true
+2025-09-29 14:37:51.62
+ce46e7c8
+User
+JWT middleware: User loaded from database: backtrue@gmail.com
+2025-09-29 14:37:51.62
+ce46e7c8
+User
+Auth check - token present: true
+2025-09-29 14:37:51.62
+ce46e7c8
+User
+JWT auth check successful: backtrue@gmail.com
+2025-09-29 14:38:06.93
+04122879
+System
+system: received signal terminated
