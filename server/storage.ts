@@ -1773,6 +1773,16 @@ export class DatabaseStorage implements IStorage {
     // Note: adAccountName is not stored in database schema
     // Only storing the account ID for now
 
+    // 如果沒有要更新的數據，直接返回當前用戶資料
+    if (Object.keys(updateData).length === 0) {
+      console.log('No fields to update, returning current user data');
+      const existingUser = await this.getUser(userId);
+      if (!existingUser) {
+        throw new Error(`User not found: ${userId}`);
+      }
+      return existingUser;
+    }
+
     const [user] = await db
       .update(users)
       .set(updateData)
