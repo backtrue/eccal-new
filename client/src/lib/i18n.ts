@@ -5,6 +5,7 @@ export interface TranslationData {
   // Navigation
   home: string;
   calculator: string;
+  dashboard: string;
   privacy: string;
   terms: string;
   
@@ -126,22 +127,14 @@ export interface TranslationData {
   upgradeSuccess: string;
   upgradeError: string;
   
-  // Calculator Page Additional
-  connectAccountTitle: string;
-  connectAccountDescription: string;
-  googleAnalytics: string;
-  facebookAds: string;
-  connected: string;
-  notConnected: string;
+  // Calculator Page Additional  
   targetRevenuePlaceholder: string;
   aovPlaceholder: string;
   conversionRatePlaceholder: string;
-  targetMonthlyRevenue: string;
   targetMonthlyRevenueUnit: string;
   averageOrderValueUnit: string;
   conversionRateUnit: string;
   calculateBudget: string;
-  calculationResults: string;
   monthlyRequiredOrders: string;
   
   // Checkout translations
@@ -266,7 +259,6 @@ export interface TranslationData {
   termsOfService: string;
   
   // Pricing Page
-  pricing: string;
   pricingTitle: string;
   pricingSubtitle: string;
   whyChoose: string;
@@ -367,8 +359,9 @@ const translations: Record<Locale, TranslationData> = {
   'zh-TW': {
     // Navigation
     home: '首頁',
-    calculator: '預算計算機',
-    campaignPlanner: '活動預算規劃器',
+    calculator: '成效規劃',
+    campaignPlanner: '預算規劃',
+    dashboard: '成效報表',
     privacy: '隱私政策',
     terms: '服務條款',
     
@@ -378,7 +371,7 @@ const translations: Record<Locale, TranslationData> = {
     login: '登入',
     
     // Calculator
-    calculatorTitle: '廣告預算怎麼抓｜報數據來告訴你FB, IG廣告預算流量要多少',
+    calculatorTitle: '成效規劃｜報數據來告訴你FB, IG廣告預算流量要多少',
     calculatorDescription: '根據您的目標營收、平均訂單價值和轉換率，計算所需的廣告預算',
     monthlyRevenue: '目標月營收',
     averageOrderValue: '平均訂單價值',
@@ -392,7 +385,7 @@ const translations: Record<Locale, TranslationData> = {
     dailyAdBudget: '日廣告預算',
     
     // Campaign Planner
-    campaignPlannerDescription: '專業的活動預算規劃工具，制定完整活動策略',
+    campaignPlannerDescription: '專業的預算規劃工具，制定完整活動策略',
     
     // Common
     loading: '載入中...',
@@ -462,7 +455,7 @@ const translations: Record<Locale, TranslationData> = {
     },
     
     // Meta
-    metaTitle: '廣告預算怎麼抓｜報數據來告訴你FB, IG廣告預算流量要多少',
+    metaTitle: '成效規劃｜報數據來告訴你FB, IG廣告預算流量要多少',
     metaDescription: '免費電商廣告預算計算器！輸入目標營收、平均客單價和轉換率，立即算出Facebook、Instagram廣告每日預算和所需流量。適合電商老闆快速評估廣告投放成本。',
     
     // GA Integration
@@ -492,8 +485,8 @@ const translations: Record<Locale, TranslationData> = {
     blog: '部落格',
     
     // Facebook Audit
-    fbAuditTitle: 'Facebook 廣告健檢',
-    fbAuditDescription: '專業的 Facebook 廣告成效分析工具，由小黑老師 AI 提供智能診斷建議',
+    fbAuditTitle: '廣告健檢',
+    fbAuditDescription: '專業的廣告成效分析工具，由小黑老師 AI 提供智能診斷建議',
     fbAuditSubtitle: '透過 AI 智能分析，為您的 Facebook 廣告提供專業健檢服務',
     fbAuditStep1: '步驟 1：連接 Facebook',
     fbAuditStep2: '步驟 2：選擇廣告帳戶',
@@ -697,9 +690,9 @@ const translations: Record<Locale, TranslationData> = {
       cta: {
         title: '立即開始使用報數據',
         description: '選擇最適合你的工具，開始你的廣告優化之旅',
-        calculator: '廣告預算計算機',
-        fbaudit: 'FB 廣告健檢',
-        campaign_planner: '活動預算規劃師'
+        calculator: '成效規劃',
+        fbaudit: '廣告健檢',
+        campaign_planner: '預算規劃'
       }
     }
   },
@@ -707,8 +700,9 @@ const translations: Record<Locale, TranslationData> = {
   'en': {
     // Navigation
     home: 'Home',
-    calculator: 'Budget Calculator',
-    campaignPlanner: 'Campaign Planner',
+    calculator: 'Performance Planning',
+    campaignPlanner: 'Budget Planning',
+    dashboard: 'Performance Report',
     privacy: 'Privacy Policy',
     terms: 'Terms of Service',
     
@@ -718,7 +712,7 @@ const translations: Record<Locale, TranslationData> = {
     login: 'Sign in',
     
     // Calculator
-    calculatorTitle: 'How to Set Ad Budget | Report Data tells you FB, IG ad budget and traffic requirements',
+    calculatorTitle: 'Performance Planning | Report Data tells you FB, IG ad budget and traffic requirements',
     calculatorDescription: 'Calculate your required advertising budget based on target revenue, average order value, and conversion rate',
     monthlyRevenue: 'Target Monthly Revenue',
     averageOrderValue: 'Average Order Value',
@@ -732,7 +726,7 @@ const translations: Record<Locale, TranslationData> = {
     dailyAdBudget: 'Daily Ad Budget',
     
     // Campaign Planner  
-    campaignPlannerDescription: 'Professional campaign planning tool for complete strategy',
+    campaignPlannerDescription: 'Professional budget planning tool for complete strategy',
     
     // Common
     loading: 'Loading...',
@@ -802,7 +796,7 @@ const translations: Record<Locale, TranslationData> = {
     },
     
     // Meta
-    metaTitle: 'How to Set Ad Budget | Report Data tells you FB, IG ad budget and traffic requirements',
+    metaTitle: 'Performance Planning | Report Data tells you FB, IG ad budget and traffic requirements',
     metaDescription: 'Free e-commerce advertising budget calculator! Enter target revenue, average order value, and conversion rate to instantly calculate Facebook and Instagram daily ad budget and required traffic. Perfect for e-commerce owners to quickly assess advertising costs.',
     
     // GA Integration
@@ -832,8 +826,8 @@ const translations: Record<Locale, TranslationData> = {
     blog: 'Blog',
     
     // Facebook Audit
-    fbAuditTitle: 'Facebook Ads Health Check',
-    fbAuditDescription: 'Professional Facebook ads performance analysis tool with AI-powered diagnostic recommendations by Teacher Black',
+    fbAuditTitle: 'Ads Health Check',
+    fbAuditDescription: 'Professional ads performance analysis tool with AI-powered diagnostic recommendations by Teacher Black',
     fbAuditSubtitle: 'Get professional health check service for your Facebook ads through AI intelligent analysis',
     fbAuditStep1: 'Step 1: Connect Facebook',
     fbAuditStep2: 'Step 2: Select Ad Account',
@@ -989,10 +983,9 @@ const translations: Record<Locale, TranslationData> = {
       founder: {
         title: 'Founder Introduction | Qiu Yu-Ting (Mr.Kuro)',
         intro: 'You might have seen me in a class or read something I wrote in a post, but if I really had to introduce myself, it would be like this:',
-        experience: 'I\'ve been involved in this industry since Facebook advertising first launched, from one-person studios to multinational corporations, from 10,000 budgets to 10-million scale, across almost every industry. Over the years, I\'ve seen too many excellent marketers stuck in the anxiety of "can\'t find anyone to ask" and "don\'t know how to do it."',
+        career_path: 'I\'ve been involved in this industry since Facebook advertising first launched, from one-person studios to multinational corporations, from 10,000 budgets to 10-million scale, across almost every industry. Over the years, I\'ve seen too many excellent marketers stuck in the anxiety of "can\'t find anyone to ask" and "don\'t know how to do it."',
         philosophy: 'I often joke that I\'m hard to find and don\'t like replying to messages, so I thought, could there be more "versions of me" to accompany you through those late nights facing reports alone?',
-        vision: '"Report Data" is exactly that kind of existence.',
-        conclusion: 'It\'s not just a tool, it\'s the logical support behind you, the strategy consultant that helps you find breakthroughs and provides recommendations.'
+        philosophy: '"Report Data" is exactly that kind of existence. It\'s not just a tool, it\'s the logical support behind you, the strategy consultant that helps you find breakthroughs and provides recommendations.'
       },
       company: {
         title: 'Who Are We?',
@@ -1033,6 +1026,7 @@ const translations: Record<Locale, TranslationData> = {
     home: 'ホーム',
     calculator: '予算計算機',
     campaignPlanner: 'キャンペーンプランナー',
+    dashboard: '成果レポート',
     privacy: 'プライバシーポリシー',
     terms: '利用規約',
     
@@ -1313,10 +1307,9 @@ const translations: Record<Locale, TranslationData> = {
       founder: {
         title: '創設者紹介｜邱煜庭（小黒先生）',
         intro: 'どこかのクラスで私を見たことがあるか、投稿で私の言葉を読んだことがあるかもしれませんが、本当に自己紹介をするなら、こんな感じです：',
-        experience: 'Facebook広告が世に出た時からこの業界に携わり、一人の小さな作業室から多国籍企業まで、1万円の予算から1000万円規模まで、ほぼすべての業界で経験を積んできました。この年月で、「聞ける人がいない」「どうしたらいいかわからない」という不安に陥る多くの優秀なマーケターを見てきました。',
+        career_path: 'Facebook広告が世に出た時からこの業界に携わり、一人の小さな作業室から多国籍企業まで、1万円の予算から1000万円規模まで、ほぼすべての業界で経験を積んできました。この年月で、「聞ける人がいない」「どうしたらいいかわからない」という不安に陥る多くの優秀なマーケターを見てきました。',
         philosophy: 'よく冗談で、私は見つけにくいし、メッセージの返信も好きではないと言っています。だから、深夜一人でレポートと向き合う時に、もっと多くの「私の分身」があなたに寄り添えないかと考えました。',
-        vision: '《レポートデータ》は、まさにそのような存在です。',
-        conclusion: 'これは単なるツールではなく、あなたの背後にある論理的なサポートであり、突破口を見つけて提案を行う戦略コンサルタントです。'
+        philosophy: '《レポートデータ》は、まさにそのような存在です。これは単なるツールではなく、あなたの背後にある論理的なサポートであり、突破口を見つけて提案を行う戦略コンサルタントです。'
       },
       company: {
         title: '私たちは誰ですか？',

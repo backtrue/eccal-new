@@ -1,8 +1,20 @@
 import { useLocale } from "@/hooks/useLocale";
+import NavigationBar from "@/components/NavigationBar";
 import Footer from "@/components/Footer";
 
 export default function TermsOfServicePage() {
   const { locale } = useLocale();
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <NavigationBar locale={locale} />
+      <TermsOfServiceContent locale={locale} />
+      <Footer />
+    </div>
+  );
+}
+
+function TermsOfServiceContent({ locale }: { locale: any }) {
 
   const t = {
     'zh-TW': {

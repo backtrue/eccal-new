@@ -49,7 +49,7 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
 
             {isAuthenticated && (
               <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
-                儀表板
+                {t.dashboard}
               </Link>
             )}
 
@@ -97,7 +97,7 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
 
               {isAuthenticated && (
                 <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
-                  儀表板
+                  {t.dashboard}
                 </Link>
               )}
 
