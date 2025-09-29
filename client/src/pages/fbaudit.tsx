@@ -26,6 +26,8 @@ import { useFbAuditAccounts, useFbAuditPlans, useFbAuditIndustries, useFbAuditCh
 import { useFbAuditStream } from "@/hooks/useFbAuditStream";
 import { NPSRating } from "@/components/NPSRating";
 import FacebookAccountSelector from "@/components/FacebookAccountSelector";
+import ProUpgradePrompt from "@/components/ProUpgradePrompt";
+import { useProtectedFeature } from "@/hooks/useMembership";
 import type { Locale } from "@/lib/i18n";
 import { getTranslations } from "@/lib/i18n";
 import { useQueryClient } from "@tanstack/react-query";
@@ -45,7 +47,8 @@ export default function FbAudit({ locale }: FbAuditProps) {
   const [showResults, setShowResults] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
-  // 移除會員權限檢查 - 所有用戶都可以使用廣告健檢
+  // Pro 會員權限檢查
+  const { hasAccess, requiresUpgrade } = useProtectedFeature("pro");
 
   // 追蹤頁面瀏覽和功能使用
   usePageViewTracking('/fbaudit', 'fbaudit', { locale, step: currentStep });
@@ -406,6 +409,14 @@ export default function FbAudit({ locale }: FbAuditProps) {
     <div className="min-h-screen bg-gray-50">
       <NavigationBar locale={locale} />
       
+      {/* Pro 會員權限檢查 */}
+      {requiresUpgrade ? (
+        <ProUpgradePrompt 
+          featureName={t.fbAuditTitle}
+          description={t.fbAuditDescription}
+          locale={locale}
+        />
+      ) : (
       <div className="container mx-auto p-6 max-w-4xl">
         {/* 頁面標題 */}
         <div className="text-center mb-12">
@@ -747,6 +758,7 @@ export default function FbAudit({ locale }: FbAuditProps) {
           </Card>
         )}
       </div>
+      )}
       
       <Footer />
     </div>
