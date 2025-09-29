@@ -4,9 +4,8 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getTranslations, type Locale } from "@/lib/i18n";
-import GoogleLoginButton from "@/components/GoogleLoginButton";
-import LogoutButton from "@/components/LogoutButton";
 import LanguageDropdown from "@/components/LanguageDropdown";
+import UserDropdown from "@/components/UserDropdown";
 import { useAuth } from "@/hooks/useAuth";
 
 interface NavigationBarProps {
@@ -46,18 +45,10 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
 
 
 
-            <Link href="/meta-dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
-              {t.dashboard}
-            </Link>
-
             {/* Language switcher and Auth buttons */}
             <div className="flex items-center space-x-2">
               <LanguageDropdown />
-              {isAuthenticated ? (
-                <LogoutButton />
-              ) : (
-                <GoogleLoginButton locale={locale} />
-              )}
+              <UserDropdown locale={locale} />
             </div>
           </div>
 
@@ -91,17 +82,9 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
 
 
 
-              <Link href="/meta-dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
-                {t.dashboard}
-              </Link>
-
               <div className="pt-2 border-t flex flex-col space-y-2">
                 <LanguageDropdown />
-                {isAuthenticated ? (
-                  <LogoutButton />
-                ) : (
-                  <GoogleLoginButton locale={locale} />
-                )}
+                <UserDropdown locale={locale} />
               </div>
             </div>
           </div>
