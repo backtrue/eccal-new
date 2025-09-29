@@ -47,11 +47,9 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
 
 
 
-            {isAuthenticated && (
-              <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
-                {t.dashboard}
-              </Link>
-            )}
+            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
+              {t.dashboard}
+            </Link>
 
             {/* Language switcher and Auth buttons */}
             <div className="flex items-center space-x-2">
@@ -95,11 +93,9 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
 
 
 
-              {isAuthenticated && (
-                <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
-                  {t.dashboard}
-                </Link>
-              )}
+              <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
+                {t.dashboard}
+              </Link>
 
               <div className="pt-2 border-t flex flex-col space-y-2">
                 <LanguageDropdown />
