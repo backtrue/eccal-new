@@ -14,10 +14,12 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useCampaignPlannerUsage } from "@/hooks/useCampaignPlannerUsage";
+import { useProtectedFeature } from "@/hooks/useMembership";
 import { apiRequest } from "@/lib/queryClient";
 import NavigationBar from "@/components/NavigationBar";
 import Footer from "@/components/Footer";
 import SaveProjectDialog from "@/components/SaveProjectDialog";
+import ProUpgradePrompt from "@/components/ProUpgradePrompt";
 
 // 表單驗證 Schema
 const campaignFormSchema = z.object({
@@ -50,6 +52,7 @@ export default function CampaignPlannerV2({ locale = "zh-TW" }: { locale?: strin
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const { data: usageData, refetch: refetchUsage } = useCampaignPlannerUsage();
+  const { hasAccess, requiresUpgrade } = useProtectedFeature("pro");
   const [results, setResults] = useState<CampaignResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -164,6 +167,18 @@ export default function CampaignPlannerV2({ locale = "zh-TW" }: { locale?: strin
     <div className="min-h-screen bg-gray-50">
       <NavigationBar locale={locale as any} />
       
+      {/* Pro 會員權限檢查 */}
+      {requiresUpgrade ? (
+        <>
+          <ProUpgradePrompt 
+            featureName="活動預算規劃器 2.0"
+            description="智能活動預算分配系統，根據活動天數自動優化預算配置策略"
+            locale={locale}
+          />
+          <Footer />
+        </>
+      ) : (
+        <>
       <div className="container mx-auto p-6 max-w-7xl">
         {/* 頁面標題 */}
         <div className="mb-8 text-center">
@@ -965,8 +980,9 @@ export default function CampaignPlannerV2({ locale = "zh-TW" }: { locale?: strin
           </div>
         )}
       </div>
-
       <Footer />
+      </>
+      )}
     </div>
   );
 }
