@@ -192,7 +192,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
       setAnalysisResult(result.data);
       setShowAnalysis(true);
     } catch (error) {
-      console.error('GPT 分析失敗:', error);
+      console.error('AI 分析失敗:', error);
       // 可以添加錯誤提示
     } finally {
       setIsAnalyzing(false);
@@ -500,7 +500,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4 mr-2" />
-                        GPT 分析
+                        ＡＩ成效分析
                       </>
                     )}
                   </Button>
@@ -910,7 +910,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                       <CardTitle className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-5 h-5 text-blue-600" />
-                          GPT-4.1 三步驟智能分析
+                          成效攻略AI三步驟智慧分析
                         </div>
                         <Button 
                           variant="ghost" 

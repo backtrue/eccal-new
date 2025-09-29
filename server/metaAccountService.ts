@@ -321,10 +321,6 @@ export class MetaAccountService {
       
       const accountData = await response.json();
       
-      // 計算token過期時間 (假設60天有效期)
-      const tokenExpires = new Date();
-      tokenExpires.setDate(tokenExpires.getDate() + 60);
-      
       return {
         id: '', // 會由資料庫自動生成
         userId,
@@ -334,8 +330,7 @@ export class MetaAccountService {
         timezone: accountData.timezone_name || 'Asia/Taipei',
         accountStatus: accountData.account_status || 'ACTIVE',
         businessType,
-        accessToken, // 在實際儲存時應該加密
-        tokenExpires,
+        // accessToken 和 tokenExpires 應該單獨處理，不存儲在此結構中
         isActive: true,
         lastSyncAt: new Date(),
         createdAt: new Date(),
