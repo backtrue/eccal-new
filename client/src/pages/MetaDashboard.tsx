@@ -149,6 +149,24 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
     }
   }, [savedBusinessType]);
 
+  // 處理 Facebook OAuth 回調成功
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasFacebookAuthSuccess = urlParams.has('facebook_auth_success');
+    
+    if (hasFacebookAuthSuccess) {
+      console.log('檢測到 facebook_auth_success 參數，刷新認證狀態');
+      
+      // 清除 URL 參數
+      window.history.replaceState({}, '', window.location.pathname);
+      
+      // 刷新認證狀態
+      setTimeout(() => {
+        refreshAuthStatus();
+      }, 500);
+    }
+  }, []);
+
   // 處理業務類型變更
   const handleBusinessTypeChange = (newBusinessType: 'ecommerce' | 'consultation' | 'lead_generation') => {
     setBusinessType(newBusinessType);
