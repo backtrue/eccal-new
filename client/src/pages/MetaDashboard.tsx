@@ -276,7 +276,9 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                       請授權您的 Facebook 廣告帳戶存取權限
                     </p>
                   )}
-                  <FacebookLoginButton />
+                  <div className="flex flex-col items-center">
+                    <FacebookLoginButton />
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -459,12 +461,28 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                     />
                   </div>
 
-                  {/* 帳戶資訊 */}
+                  {/* 帳戶切換 */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-600">已選擇帳戶</label>
-                    <div className="p-2 bg-gray-50 rounded-md text-sm truncate" title={selectedAccount}>
-                      {selectedAccount}
-                    </div>
+                    <Select 
+                      value={selectedAccount} 
+                      onValueChange={(value) => {
+                        setSelectedAccount(value);
+                        // 自動保存新的廣告帳戶選擇
+                        saveAdAccountMutation.mutate(value);
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="選擇廣告帳戶" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts?.map((account: any) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.name || account.id}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* GPT 分析按鈕 */}
@@ -559,7 +577,7 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
                     <CardTitle>核心廣告指標</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 justify-items-center max-w-4xl mx-auto">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-blue-600">
                           ${(dashboardStats as any)?.data?.overview?.totalSpend?.toLocaleString() || '0'}

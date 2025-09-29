@@ -76,7 +76,7 @@ export default function FacebookLoginButton({ className }: FacebookLoginButtonPr
         )}
         {isLoading ? '連接中...' : '連接 Facebook'}
       </Button>
-      <p className="text-xs text-gray-600 max-w-sm">
+      <p className="text-xs text-gray-600 max-w-sm mx-auto text-center">
         {t.privacyTermsNotice.split('隱私政策').length > 1 ? (
           <>
             {t.privacyTermsNotice.split('隱私政策')[0]}
