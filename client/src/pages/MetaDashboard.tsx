@@ -5,12 +5,14 @@ import { Facebook, CheckCircle, Loader2, Target, AlertTriangle, TrendingUp, Doll
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
+import { useProtectedFeature } from '@/hooks/useMembership';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import NavigationBar from '@/components/NavigationBar';
 import Footer from '@/components/Footer';
 import FacebookLoginButton from '@/components/FacebookLoginButton';
 import FacebookAccountSelector from '@/components/FacebookAccountSelector';
+import ProUpgradePrompt from '@/components/ProUpgradePrompt';
 import { useFbAuditAccounts } from '@/hooks/useFbAudit';
 import type { Locale } from '@/lib/i18n';
 import { getTranslations } from '@/lib/i18n';
@@ -22,6 +24,7 @@ interface MetaDashboardProps {
 export default function MetaDashboard({ locale }: MetaDashboardProps) {
   const t = getTranslations(locale);
   const { user, isAuthenticated } = useAuth();
+  const { hasAccess, requiresUpgrade } = useProtectedFeature("pro");
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedAccount, setSelectedAccount] = useState<string>("");
@@ -222,6 +225,19 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <NavigationBar locale={locale} />
+      
+      {/* Pro 會員權限檢查 */}
+      {requiresUpgrade ? (
+        <>
+          <ProUpgradePrompt 
+            featureName="Meta 廣告儀表板"
+            description="深度分析 Facebook 廣告成效，提供專業數據洞察和 AI 智能建議"
+            locale={locale}
+          />
+          <Footer />
+        </>
+      ) : (
+        <>
       <div className="container mx-auto p-6 max-w-4xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Meta 廣告儀表板</h1>
@@ -1211,6 +1227,8 @@ export default function MetaDashboard({ locale }: MetaDashboardProps) {
         )}
       </div>
       <Footer />
+      </>
+      )}
     </div>
   );
 }
