@@ -215,6 +215,7 @@ function Router() {
       <Route path="/jp/calculator" component={() => <Calculator locale="ja" />} />
       <Route path="/jp/campaign-planner" component={() => <CampaignPlannerV2 locale="ja" />} />
       <Route path="/jp/fbaudit" component={() => <FbAudit locale="ja" />} />
+      <Route path="/jp/meta-dashboard" component={() => <MetaDashboard locale="ja" />} />
       <Route path="/jp/pricing" component={() => <Pricing locale="ja" />} />
       <Route path="/jp/checkout" component={() => (
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center">

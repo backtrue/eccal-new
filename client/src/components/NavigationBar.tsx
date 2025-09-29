@@ -46,7 +46,7 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
 
 
 
-            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/meta-dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
               {t.dashboard}
             </Link>
 
@@ -91,7 +91,7 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
 
 
 
-              <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <Link href="/meta-dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
                 {t.dashboard}
               </Link>
 
