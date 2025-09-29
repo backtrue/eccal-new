@@ -35,7 +35,8 @@ export const users = pgTable("users", {
   // OAuth tokens moved to secure storage - no longer stored in plain text
   // Google OAuth info (non-sensitive metadata only)
   googleId: varchar("google_id"), // Google user ID (public identifier)
-  // Meta/Facebook Ad Account Integration (non-sensitive metadata only)
+  // Meta/Facebook Ad Account Integration
+  metaAccessToken: varchar("meta_access_token"), // Facebook access token for API calls
   metaAdAccountId: varchar("meta_ad_account_id"),
   metaBusinessType: varchar("meta_business_type", { enum: ["ecommerce", "consultation", "lead_generation"] }).default("ecommerce"),
   membershipLevel: varchar("membership_level", { length: 15 }).default("free").notNull(), // "free", "pro", or "founders"
