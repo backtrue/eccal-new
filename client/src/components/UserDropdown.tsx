@@ -69,12 +69,6 @@ export default function UserDropdown({ locale }: UserDropdownProps) {
             {locale === 'zh-TW' ? '儀表板' : locale === 'en' ? 'Dashboard' : 'ダッシュボード'}
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/meta-dashboard" className="flex items-center gap-2 w-full">
-            <BarChart3 className="h-4 w-4" />
-            {t.dashboard}
-          </Link>
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut} className="flex items-center gap-2 text-red-600">
           <LogOut className={`h-4 w-4 ${isLoggingOut ? 'animate-spin' : ''}`} />
