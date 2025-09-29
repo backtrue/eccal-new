@@ -692,7 +692,7 @@ export function setupJWTGoogleAuth(app: Express) {
           membershipLevel: (req as any).user.membershipLevel,
           credits: (req as any).user.credits,
           // 只提供連接狀態，不暴露實際 token
-          hasFacebookAuth: !!(req as any).user.metaAccessToken,
+          hasFacebookAuth: !!(req as any).user.metaAccessToken && (req as any).user.metaAccessToken !== 'fake_token',
           hasSelectedAdAccount: !!(req as any).user.metaAdAccountId,
           metaAdAccountId: (req as any).user.metaAdAccountId // 廣告帳戶ID可以暴露
         };
