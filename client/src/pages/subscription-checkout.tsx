@@ -59,24 +59,7 @@ const CheckoutForm = ({ locale, planType, priceId }: CheckoutFormProps) => {
       console.error('Toast error:', error, options);
     }
   };
-  // 使用簡單的日圓定價數據
-  const pricingDataForCheckout = {
-    monthly: {
-      jpyPrice: 2000,
-      priceId: 'price_0RiHY9YDQY3sAQESGLKwBfNm',
-      credits: 350
-    },
-    lifetime: {
-      jpyPrice: 17250,
-      priceId: 'price_0RiHY9YDQY3sAQESlN1UPzu0',
-      credits: 700
-    },
-    annual: {
-      jpyPrice: 20000,
-      priceId: 'price_0RiVZOYDQY3sAQESuwqOGvzn',
-      credits: 4200
-    }
-  };
+  // 移除舊的日圓定價數據，統一使用 pricingData
 
   const t = getTranslations(locale);
 

@@ -23,12 +23,12 @@ export const PRICING_CONFIG: Record<Locale, PricingConfig> = {
   'zh-TW': {
     currency: 'TWD',
     monthly: {
-      amount: 690,        // NT$690/month
-      displayPrice: 'NT$690'
+      amount: 1280,       // NT$1,280/month
+      displayPrice: 'NT$1,280'
     },
     annual: {
-      amount: 6900,       // NT$6,900/year (17% savings)
-      displayPrice: 'NT$6,900'
+      amount: 12800,      // NT$12,800/year (2 months free)
+      displayPrice: 'NT$12,800'
     },
     lifetime: {
       amount: 5990,       // NT$5,990 one-time
