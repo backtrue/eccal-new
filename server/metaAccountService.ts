@@ -212,11 +212,14 @@ export class MetaAccountService {
   private getBusinessTypeFields(businessType: string): string {
     switch (businessType) {
       case 'ecommerce':
-        return 'purchase_roas,cost_per_action_type';
+        // 電商相關指標
+        return 'purchase_roas,cost_per_action_type,cost_per_purchase';
       case 'consultation':
-        return 'messaging_conversation_started_7d';
+        // 諮詢相關指標 - 需要從 actions 中提取 messaging_conversation_started_7d
+        return '';
       case 'lead_generation':
-        return 'cost_per_lead';
+        // 潛客相關指標 - 需要從 actions 中提取 lead
+        return '';
       default:
         return '';
     }
