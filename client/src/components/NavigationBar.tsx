@@ -36,9 +36,8 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
               {t.calculator}
             </Link>
             
-            <Link href="/campaign-planner" className="flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors">
+            <Link href="/campaign-planner" className="text-purple-600 hover:text-purple-800 transition-colors">
               {t.campaignPlanner}
-              <Badge variant="outline" className="text-xs">PRO</Badge>
             </Link>
 
             <Link href="/fbaudit" className="text-blue-600 hover:text-blue-800 transition-colors">
@@ -82,9 +81,8 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
                 {t.calculator}
               </Link>
               
-              <Link href="/campaign-planner" className="flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors">
+              <Link href="/campaign-planner" className="text-purple-600 hover:text-purple-800 transition-colors">
                 {t.campaignPlanner}
-                <Badge variant="outline" className="text-xs">PRO</Badge>
               </Link>
 
               <Link href="/fbaudit" className="text-blue-600 hover:text-blue-800 transition-colors">
