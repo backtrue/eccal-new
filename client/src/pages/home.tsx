@@ -326,6 +326,110 @@ export default function Home({ locale }: HomeProps) {
             </Card>
           </div>
 
+          {/* Customer Success Stories */}
+          <div className="mb-16 max-w-6xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">
+              {locale === 'zh-TW' ? '用戶真實成果' : locale === 'en' ? 'Real User Results' : 'ユーザーの実績'}
+            </h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card className="border-2 border-blue-100 dark:border-blue-900">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="flex-shrink-0">
+                      <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                        <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex gap-1 mb-2">
+                        {[1,2,3,4,5].map(i => (
+                          <Star key={i} className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        ))}
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                        {locale === 'zh-TW' ? '保健品電商' : locale === 'en' ? 'Health E-commerce' : '健康食品EC'}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-gray-700 dark:text-gray-300 mb-4">
+                    {locale === 'zh-TW' 
+                      ? '使用廣告健檢功能後，CPA 從 $800 降到 $280，找出了之前沒發現的受眾問題。'
+                      : locale === 'en'
+                      ? 'After using the ad health check, CPA dropped from $800 to $280, uncovering audience issues I never noticed.'
+                      : '広告ヘルスチェック利用後、CPAが$800から$280に低下、以前気づかなかったオーディエンス問題を発見。'}
+                  </p>
+                  <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                    {locale === 'zh-TW' ? 'CPA 降低 65%' : locale === 'en' ? 'CPA reduced by 65%' : 'CPA 65%削減'}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-purple-100 dark:border-purple-900">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="flex-shrink-0">
+                      <div className="h-12 w-12 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                        <BarChart3 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex gap-1 mb-2">
+                        {[1,2,3,4,5].map(i => (
+                          <Star key={i} className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        ))}
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                        {locale === 'zh-TW' ? '服飾電商' : locale === 'en' ? 'Fashion E-commerce' : 'ファッションEC'}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-gray-700 dark:text-gray-300 mb-4">
+                    {locale === 'zh-TW' 
+                      ? '用活動預算規劃師跑雙11，不再手忙腳亂。5階段分配讓整個活動有條不紊，ROAS 提升 2.5 倍。'
+                      : locale === 'en'
+                      ? 'Used campaign planner for 11.11, no more chaos. 5-phase allocation kept everything organized, ROAS increased 2.5x.'
+                      : 'キャンペーンプランナーで11.11を実施、混乱なし。5段階配分で整然と進行、ROAS 2.5倍向上。'}
+                  </p>
+                  <p className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                    {locale === 'zh-TW' ? 'ROAS 提升 2.5 倍' : locale === 'en' ? 'ROAS increased 2.5x' : 'ROAS 2.5倍向上'}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-emerald-100 dark:border-emerald-900">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="flex-shrink-0">
+                      <div className="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+                        <Monitor className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex gap-1 mb-2">
+                        {[1,2,3,4,5].map(i => (
+                          <Star key={i} className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        ))}
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                        {locale === 'zh-TW' ? '代理商' : locale === 'en' ? 'Agency' : '広告代理店'}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-gray-700 dark:text-gray-300 mb-4">
+                    {locale === 'zh-TW' 
+                      ? '管理 20 個客戶帳戶，Meta 儀表板讓我不用來回切換，工作效率提升 10 倍。'
+                      : locale === 'en'
+                      ? 'Managing 20 client accounts, Meta dashboard eliminated account switching, 10x efficiency boost.'
+                      : '20のクライアントアカウント管理、Metaダッシュボードでアカウント切替不要、効率10倍向上。'}
+                  </p>
+                  <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                    {locale === 'zh-TW' ? '效率提升 10 倍' : locale === 'en' ? '10x efficiency boost' : '効率10倍向上'}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
           {/* Quick Access Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href={locale === 'zh-TW' ? '/pricing' : `/${locale === 'en' ? 'en' : 'jp'}/pricing`}>
