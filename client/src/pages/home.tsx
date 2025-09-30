@@ -430,20 +430,62 @@ export default function Home({ locale }: HomeProps) {
             </div>
           </div>
 
-          {/* Quick Access Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href={locale === 'zh-TW' ? '/pricing' : `/${locale === 'en' ? 'en' : 'jp'}/pricing`}>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-3">
-                <Zap className="mr-2 h-5 w-5" />
-                {locale === 'zh-TW' ? '查看方案' : locale === 'en' ? 'View Pricing' : '料金プラン'}
-              </Button>
-            </Link>
-            <Link href={locale === 'zh-TW' ? '/help/fbaudit' : `/${locale === 'en' ? 'en' : 'jp'}/help/fbaudit`}>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-3">
-                <Shield className="mr-2 h-5 w-5" />
-                {locale === 'zh-TW' ? '功能說明' : locale === 'en' ? 'Feature Guide' : '機能説明'}
-              </Button>
-            </Link>
+          {/* Trust Building Section */}
+          <div className="mb-16 max-w-5xl mx-auto">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-8">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
+                {locale === 'zh-TW' ? '零風險開始使用' : locale === 'en' ? 'Start Risk-Free' : 'リスクゼロで開始'}
+              </h3>
+              <div className="grid md:grid-cols-3 gap-6 mb-8">
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-3">
+                    <Shield className="h-8 w-8 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    {locale === 'zh-TW' ? '7 天不滿意退費' : locale === 'en' ? '7-Day Money Back' : '7日間返金保証'}
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {locale === 'zh-TW' ? '使用後不滿意，無條件退款' : locale === 'en' ? 'Not satisfied? Get a full refund' : '満足できない場合は全額返金'}
+                  </p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mb-3">
+                    <CheckCircle2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    {locale === 'zh-TW' ? '隨時取消訂閱' : locale === 'en' ? 'Cancel Anytime' : 'いつでもキャンセル'}
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {locale === 'zh-TW' ? '不綁約，隨時可以取消' : locale === 'en' ? 'No commitment, cancel anytime' : '縛りなし、いつでもキャンセル可能'}
+                  </p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-16 w-16 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center mb-3">
+                    <Zap className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    {locale === 'zh-TW' ? '立即開始使用' : locale === 'en' ? 'Instant Access' : '即座にアクセス'}
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {locale === 'zh-TW' ? '升級後馬上使用所有功能' : locale === 'en' ? 'Access all features immediately' : 'アップグレード後すぐに全機能利用可能'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href={locale === 'zh-TW' ? '/pricing' : `/${locale === 'en' ? 'en' : 'jp'}/pricing`}>
+                  <Button size="lg" className="text-lg px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transition-all" data-testid="button-pricing-cta">
+                    <Zap className="mr-2 h-5 w-5" />
+                    {locale === 'zh-TW' ? '立即升級 PRO' : locale === 'en' ? 'Upgrade to PRO Now' : '今すぐPROアップグレード'}
+                  </Button>
+                </Link>
+                <Link href={locale === 'zh-TW' ? '/help/fbaudit' : `/${locale === 'en' ? 'en' : 'jp'}/help/fbaudit`}>
+                  <Button variant="outline" size="lg" className="text-lg px-8 py-4" data-testid="button-features-guide">
+                    <Shield className="mr-2 h-5 w-5" />
+                    {locale === 'zh-TW' ? '查看完整功能' : locale === 'en' ? 'View All Features' : '全機能を見る'}
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
