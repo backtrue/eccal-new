@@ -187,17 +187,22 @@ export default function Home({ locale }: HomeProps) {
                 </Badge>
               </CardHeader>
               <CardContent className="pt-0">
-                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
                   {locale === 'zh-TW' 
-                    ? '專業 AI 分析您的 Facebook 廣告帳戶表現，提供個人化改善建議與 Hero Post 識別'
+                    ? '專業 AI 分析您的 Facebook 廣告帳戶表現，3分鐘找出問題所在，提供個人化改善建議與 Hero Post 識別'
                     : locale === 'en'
-                    ? 'Professional AI analysis of your Facebook ad account performance with personalized improvement suggestions and Hero Post identification'
-                    : 'Facebook広告アカウントのパフォーマンスをプロのAIが分析し、個別の改善提案とHero Post識別を提供'}
+                    ? 'Professional AI analysis of your Facebook ad account performance, find issues in 3 minutes with personalized improvement suggestions and Hero Post identification'
+                    : 'Facebook広告アカウントのパフォーマンスをプロのAIが分析し、3分で問題を発見、個別の改善提案とHero Post識別を提供'}
                 </p>
+                <div className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                  <Clock className="h-4 w-4 inline mr-1" />
+                  {locale === 'zh-TW' ? 'PRO 會員無限次使用' : locale === 'en' ? 'Unlimited for PRO members' : 'PROメンバーは無制限利用'}
+                </div>
                 <Link href={locale === 'zh-TW' ? '/fbaudit' : `/${locale === 'en' ? 'en' : 'jp'}/fbaudit`}>
                   <Button 
                     className="w-full bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white"
                     onClick={handleFbAuditClick}
+                    data-testid="button-fbaudit"
                   >
                     {locale === 'zh-TW' ? '開始健檢' : locale === 'en' ? 'Start Health Check' : 'ヘルスチェック開始'}
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -220,17 +225,22 @@ export default function Home({ locale }: HomeProps) {
                 </Badge>
               </CardHeader>
               <CardContent className="pt-0">
-                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
                   {locale === 'zh-TW' 
-                    ? '根據目標營收、客單價、轉換率智能計算廣告預算需求，支援 Google Analytics 數據匯入'
+                    ? '根據目標營收、客單價、轉換率智能計算廣告預算需求，避免預算不足或浪費，支援 Google Analytics 數據匯入'
                     : locale === 'en'
-                    ? 'Intelligent ad budget calculation based on target revenue, AOV, and conversion rate with Google Analytics data import'
-                    : '目標売上、客単価、コンバージョン率に基づく知的広告予算計算、Google Analyticsデータインポート対応'}
+                    ? 'Intelligent ad budget calculation based on target revenue, AOV, and conversion rate, avoid budget shortage or waste with Google Analytics data import'
+                    : '目標売上、客単価、コンバージョン率に基づく知的広告予算計算、予算不足や無駄を回避、Google Analyticsデータインポート対応'}
                 </p>
+                <div className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                  <CheckCircle2 className="h-4 w-4 inline mr-1" />
+                  {locale === 'zh-TW' ? '科學化預算規劃，不再憑感覺' : locale === 'en' ? 'Scientific budget planning, no more guesswork' : '科学的予算計画、もう勘に頼らない'}
+                </div>
                 <Link href={locale === 'zh-TW' ? '/calculator' : `/${locale === 'en' ? 'en' : 'jp'}/calculator`}>
                   <Button 
                     className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white"
                     onClick={handleCalculatorClick}
+                    data-testid="button-calculator"
                   >
                     {locale === 'zh-TW' ? '開始計算' : locale === 'en' ? 'Start Calculating' : '計算開始'}
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -253,17 +263,22 @@ export default function Home({ locale }: HomeProps) {
                 </Badge>
               </CardHeader>
               <CardContent className="pt-0">
-                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
                   {locale === 'zh-TW' 
-                    ? '專業五階段活動預算配置：預熱期、啟動期、主推期、衝刺期、回購期，智能分配每日預算'
+                    ? '專業五階段活動預算配置：預熱期、啟動期、主推期、衝刺期、回購期，智能分配每日預算，讓大檔活動不再手忙腳亂'
                     : locale === 'en'
-                    ? 'Professional 5-phase campaign budget allocation: Pre-heat, Launch, Main, Final, Repurchase with intelligent daily budget distribution'
-                    : 'プロ5段階キャンペーン予算配分：予熱期、開始期、メイン期、最終期、リピート期、知的日次予算分散'}
+                    ? 'Professional 5-phase campaign budget allocation: Pre-heat, Launch, Main, Final, Repurchase with intelligent daily budget distribution for stress-free major campaigns'
+                    : 'プロ5段階キャンペーン予算配分：予熱期、開始期、メイン期、最終期、リピート期、知的日次予算分散で大型キャンペーンも余裕'}
                 </p>
+                <div className="mb-4 text-sm text-purple-600 dark:text-purple-400 font-semibold">
+                  <Zap className="h-4 w-4 inline mr-1" />
+                  {locale === 'zh-TW' ? 'PRO 會員專屬功能' : locale === 'en' ? 'Exclusive PRO Feature' : 'PROメンバー専用機能'}
+                </div>
                 <Link href={locale === 'zh-TW' ? '/campaign-planner' : `/${locale === 'en' ? 'en' : 'jp'}/campaign-planner`}>
                   <Button 
                     className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white"
                     onClick={handleCampaignPlannerClick}
+                    data-testid="button-campaign-planner"
                   >
                     {locale === 'zh-TW' ? '開始規劃' : locale === 'en' ? 'Start Planning' : '企画開始'}
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -286,17 +301,22 @@ export default function Home({ locale }: HomeProps) {
                 </Badge>
               </CardHeader>
               <CardContent className="pt-0">
-                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
                   {locale === 'zh-TW' 
-                    ? '整合多個 Meta 廣告帳戶，即時監控廣告數據表現，一站式管理所有廣告投放狀況'
+                    ? '整合多個 Meta 廣告帳戶，即時監控廣告數據表現，一站式管理所有廣告投放狀況，不再來回切換帳戶'
                     : locale === 'en'
-                    ? 'Integrate multiple Meta ad accounts, monitor ad performance in real-time, manage all ad campaigns in one place'
-                    : '複数のMeta広告アカウントを統合し、広告パフォーマンスをリアルタイムで監視、すべての広告キャンペーンを一元管理'}
+                    ? 'Integrate multiple Meta ad accounts, monitor ad performance in real-time, manage all ad campaigns in one place, no more account switching'
+                    : '複数のMeta広告アカウントを統合し、広告パフォーマンスをリアルタイムで監視、すべての広告キャンペーンを一元管理、アカウント切替不要'}
                 </p>
+                <div className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                  <TrendingUp className="h-4 w-4 inline mr-1" />
+                  {locale === 'zh-TW' ? '多帳戶整合，效率提升 10 倍' : locale === 'en' ? 'Multi-account integration, 10x efficiency' : 'マルチアカウント統合、効率10倍'}
+                </div>
                 <Link href={locale === 'zh-TW' ? '/meta-dashboard' : `/${locale === 'en' ? 'en' : 'jp'}/meta-dashboard`}>
                   <Button 
                     className="w-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800 text-white"
                     onClick={handleMetaDashboardClick}
+                    data-testid="button-meta-dashboard"
                   >
                     {locale === 'zh-TW' ? '查看儀表板' : locale === 'en' ? 'View Dashboard' : 'ダッシュボード表示'}
                     <ArrowRight className="ml-2 h-4 w-4" />
