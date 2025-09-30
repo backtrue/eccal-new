@@ -116,6 +116,61 @@ export default function Home({ locale }: HomeProps) {
             </div>
           </div>
 
+          {/* Pain Points Section */}
+          <div className="mb-16 max-w-4xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">
+              {locale === 'zh-TW' ? '你是否也遇到這些困擾？' : locale === 'en' ? 'Are You Facing These Challenges?' : 'こんな悩みはありませんか？'}
+            </h2>
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
+              <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                <div className="mt-1">
+                  <div className="h-6 w-6 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                    <span className="text-red-600 dark:text-red-400 font-bold">✗</span>
+                  </div>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300">
+                  {locale === 'zh-TW' ? '廣告花很多，訂單卻很少？' : locale === 'en' ? 'Spending a lot on ads but getting few orders?' : '広告費は高いのに、注文が少ない？'}
+                </p>
+              </div>
+              <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                <div className="mt-1">
+                  <div className="h-6 w-6 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                    <span className="text-red-600 dark:text-red-400 font-bold">✗</span>
+                  </div>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300">
+                  {locale === 'zh-TW' ? '不知道預算該抓多少才夠？' : locale === 'en' ? "Don't know how much budget to allocate?" : '予算をいくらにすべきか分からない？'}
+                </p>
+              </div>
+              <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                <div className="mt-1">
+                  <div className="h-6 w-6 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                    <span className="text-red-600 dark:text-red-400 font-bold">✗</span>
+                  </div>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300">
+                  {locale === 'zh-TW' ? '活動預算分配憑感覺，沒把握？' : locale === 'en' ? 'Campaign budget allocation based on guesswork?' : 'キャンペーン予算配分が勘頼み？'}
+                </p>
+              </div>
+              <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                <div className="mt-1">
+                  <div className="h-6 w-6 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                    <span className="text-red-600 dark:text-red-400 font-bold">✗</span>
+                  </div>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300">
+                  {locale === 'zh-TW' ? '想優化廣告，但不知從何下手？' : locale === 'en' ? 'Want to optimize ads but don\'t know where to start?' : '広告最適化したいけど、どこから手をつけるべき？'}
+                </p>
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-700 dark:to-purple-700 p-6 rounded-xl text-center">
+              <CheckCircle2 className="h-12 w-12 text-white mx-auto mb-3" />
+              <p className="text-xl font-bold text-white">
+                {locale === 'zh-TW' ? '報數據幫你解決這些問題！' : locale === 'en' ? 'Report Data Solves These Problems!' : 'レポートデータがこれらの問題を解決！'}
+              </p>
+            </div>
+          </div>
+
           {/* Service Cards Grid - 2x2 Layout */}
           <div className="grid md:grid-cols-2 gap-8 mb-16 max-w-5xl mx-auto">
             {/* FB Ads Health Check */}
