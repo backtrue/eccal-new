@@ -914,7 +914,9 @@ user3@example.com"
                                 <div>
                                   <div className="font-medium">{user.email}</div>
                                   <div className="text-sm text-gray-600">
-                                    {user.firstName} {user.lastName}
+                                    {user.firstName || user.lastName 
+                                      ? `${user.firstName || ''} ${user.lastName || ''}`.trim() 
+                                      : '未設定姓名'}
                                   </div>
                                 </div>
                               </td>
