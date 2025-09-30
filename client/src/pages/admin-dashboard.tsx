@@ -444,7 +444,7 @@ export default function AdminDashboard() {
     bulkEmailUpgradeMutation.mutate({
       emails,
       membershipLevel: 'pro',
-      duration: 30
+      duration: 365
     });
   };
 
