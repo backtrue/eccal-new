@@ -347,9 +347,28 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ['/api/bdmin/stats'] });
       setIsProcessingEmails(false);
       setBulkEmails("");
+      
+      // 統計失敗原因
+      const failedResults = data.results?.filter((r: any) => !r.success) || [];
+      const notExistCount = failedResults.filter((r: any) => r.error === '用戶不存在').length;
+      const alreadyProCount = failedResults.filter((r: any) => r.error === '用戶已經是該會員等級').length;
+      const otherErrorCount = failedResults.length - notExistCount - alreadyProCount;
+      
+      let detailMessage = `總共處理 ${data.processed || 0} 個郵箱\n✅ 成功升級: ${data.upgraded || 0} 個`;
+      if (failedResults.length > 0) {
+        detailMessage += `\n❌ 未處理: ${failedResults.length} 個`;
+        if (notExistCount > 0) detailMessage += `\n   • 用戶未註冊: ${notExistCount} 個`;
+        if (alreadyProCount > 0) detailMessage += `\n   • 已是 Pro 會員: ${alreadyProCount} 個`;
+        if (otherErrorCount > 0) detailMessage += `\n   • 其他錯誤: ${otherErrorCount} 個`;
+      }
+      
+      // 在控制台輸出詳細結果供管理員查看
+      console.log('📊 批量升級詳細結果:', data.results);
+      
       toast({
-        title: "批量升級成功",
-        description: `成功處理 ${data.processed || 0} 個郵箱，其中 ${data.upgraded || 0} 個升級成功`,
+        title: data.upgraded > 0 ? "批量升級完成" : "批量升級結果",
+        description: detailMessage,
+        variant: data.upgraded > 0 ? "default" : "destructive",
       });
     },
     onError: (error) => {
