@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, TrendingUp, Target, BarChart3, Activity, ArrowRight, Zap, Shield } from "lucide-react";
+import { Calculator, TrendingUp, Target, BarChart3, Activity, ArrowRight, Zap, Shield, Star, Monitor } from "lucide-react";
 import { Link } from "wouter";
 import NavigationBar from "@/components/NavigationBar";
 import Footer from "@/components/Footer";
@@ -32,6 +32,11 @@ export default function Home({ locale }: HomeProps) {
     trackMetaEvent('ViewContent', { content_name: 'FB Audit Page', content_category: 'Navigation' });
   };
 
+  const handleMetaDashboardClick = () => {
+    trackEvent('navigate_meta_dashboard', 'navigation', 'home_page');
+    trackMetaEvent('ViewContent', { content_name: 'Meta Dashboard Page', content_category: 'Navigation' });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <NavigationBar locale={locale} />
@@ -49,16 +54,26 @@ export default function Home({ locale }: HomeProps) {
               ? 'Professional E-commerce Advertising Analytics Platform'
               : 'プロフェッショナル電子商取引広告分析プラットフォーム'}
           </p>
-          <p className="text-lg text-gray-500 dark:text-gray-400 mb-12 max-w-3xl mx-auto">
+          <p className="text-lg text-gray-500 dark:text-gray-400 mb-6 max-w-3xl mx-auto">
             {locale === 'zh-TW' 
-              ? '提供 Facebook 廣告健檢、預算計算、活動規劃三大核心服務，助您精準投放廣告，最大化投資回報'
+              ? '提供 Facebook 廣告健檢、預算計算、活動規劃、數據儀表板四大核心服務，助您精準投放廣告，最大化投資回報'
               : locale === 'en'
-              ? 'Offering three core services: Facebook ad health checks, budget calculation, and campaign planning to optimize your advertising ROI'
-              : 'Facebook広告ヘルスチェック、予算計算、キャンペーン企画の3つのコアサービスで、広告ROIを最大化'}
+              ? 'Offering four core services: Facebook ad health checks, budget calculation, campaign planning, and data dashboard to optimize your advertising ROI'
+              : 'Facebook広告ヘルスチェック、予算計算、キャンペーン企画、データダッシュボードの4つのコアサービスで、広告ROIを最大化'}
           </p>
 
-          {/* Service Cards Grid */}
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
+          {/* NPS Score Badge */}
+          <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 px-6 py-3 rounded-full shadow-lg mb-12">
+            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+            <span className="text-lg font-semibold text-gray-900 dark:text-white">
+              {locale === 'zh-TW' ? '用戶推薦度' : locale === 'en' ? 'User NPS Score' : 'ユーザー推奨度'}
+            </span>
+            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">8.3</span>
+            <span className="text-gray-500 dark:text-gray-400">/10</span>
+          </div>
+
+          {/* Service Cards Grid - 2x2 Layout */}
+          <div className="grid md:grid-cols-2 gap-8 mb-16 max-w-5xl mx-auto">
             {/* FB Ads Health Check */}
             <Card className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-red-200 dark:hover:border-red-800">
               <CardHeader className="pb-4">
@@ -152,6 +167,39 @@ export default function Home({ locale }: HomeProps) {
                     onClick={handleCampaignPlannerClick}
                   >
                     {locale === 'zh-TW' ? '開始規劃' : locale === 'en' ? 'Start Planning' : '企画開始'}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Meta Dashboard */}
+            <Card className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-emerald-200 dark:hover:border-emerald-800">
+              <CardHeader className="pb-4">
+                <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Monitor className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <CardTitle className="text-xl">
+                  {locale === 'zh-TW' ? 'Meta 數據儀表板' : locale === 'en' ? 'Meta Data Dashboard' : 'Metaデータダッシュボード'}
+                </CardTitle>
+                <Badge variant="outline" className="w-fit mx-auto">
+                  {locale === 'zh-TW' ? '實時數據' : locale === 'en' ? 'Real-time Data' : 'リアルタイムデータ'}
+                </Badge>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                  {locale === 'zh-TW' 
+                    ? '整合多個 Meta 廣告帳戶，即時監控廣告數據表現，一站式管理所有廣告投放狀況'
+                    : locale === 'en'
+                    ? 'Integrate multiple Meta ad accounts, monitor ad performance in real-time, manage all ad campaigns in one place'
+                    : '複数のMeta広告アカウントを統合し、広告パフォーマンスをリアルタイムで監視、すべての広告キャンペーンを一元管理'}
+                </p>
+                <Link href={locale === 'zh-TW' ? '/meta-dashboard' : `/${locale === 'en' ? 'en' : 'jp'}/meta-dashboard`}>
+                  <Button 
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800 text-white"
+                    onClick={handleMetaDashboardClick}
+                  >
+                    {locale === 'zh-TW' ? '查看儀表板' : locale === 'en' ? 'View Dashboard' : 'ダッシュボード表示'}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
