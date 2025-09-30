@@ -448,6 +448,30 @@ export default function AdminDashboard() {
     });
   };
 
+  // Fix today's upgrades to 1 year
+  const handleFixTodayUpgrades = async () => {
+    try {
+      const response = await apiRequest('POST', '/api/bdmin/users/fix-today-upgrades', {});
+      const data = await response.json();
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/bdmin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/bdmin/stats'] });
+      
+      console.log('修正結果:', data.users);
+      
+      toast({
+        title: "修正完成",
+        description: `已將今天升級的 ${data.fixed} 位用戶延長到一年會員`,
+      });
+    } catch (error) {
+      toast({
+        title: "修正失敗",
+        description: error instanceof Error ? error.message : "執行修正時發生錯誤",
+        variant: "destructive",
+      });
+    }
+  };
+
   const formatBytes = (bytes: number) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     if (bytes === 0) return '0 Byte';
@@ -788,10 +812,29 @@ export default function AdminDashboard() {
                   批量 Email 升級 Pro 會員
                 </CardTitle>
                 <CardDescription>
-                  輸入郵箱地址（每行一個），系統將自動升級現有用戶為 Pro 會員
+                  輸入郵箱地址（每行一個），系統將自動升級現有用戶為 Pro 會員（一年有效期）
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-medium text-amber-900 mb-1">臨時修正工具</h4>
+                      <p className="text-sm text-amber-800 mb-3">
+                        如果今天批量升級的用戶只獲得了一個月權限，點擊下方按鈕可將今天升級的所有用戶延長到一年。
+                      </p>
+                      <Button
+                        onClick={handleFixTodayUpgrades}
+                        variant="outline"
+                        className="border-amber-300 hover:bg-amber-100"
+                        size="sm"
+                      >
+                        修正今天的升級（延長到一年）
+                      </Button>
+                    </div>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="bulk-emails">郵箱地址列表</Label>
                   <Textarea

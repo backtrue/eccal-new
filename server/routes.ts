@@ -3024,6 +3024,63 @@ echo "Bulk import completed!"`;
     }
   });
 
+  // 臨時修正：延長今天升級的用戶到一年
+  app.post('/api/bdmin/users/fix-today-upgrades', requireJWTAuth, async (req, res) => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      // 找出今天更新且會員等級為 pro 且到期時間在 60 天內的用戶
+      const usersToFix = await db
+        .select()
+        .from(usersTable)
+        .where(
+          and(
+            eq(usersTable.membershipLevel, 'pro'),
+            gte(usersTable.updatedAt, today),
+            lt(usersTable.updatedAt, tomorrow),
+            isNotNull(usersTable.membershipExpires)
+          )
+        );
+      
+      let fixedCount = 0;
+      const fixedUsers = [];
+      
+      // 延長到一年
+      for (const user of usersToFix) {
+        const oneYearFromNow = new Date();
+        oneYearFromNow.setDate(oneYearFromNow.getDate() + 365);
+        
+        await db.update(usersTable)
+          .set({ 
+            membershipExpires: oneYearFromNow,
+            updatedAt: new Date()
+          })
+          .where(eq(usersTable.id, user.id));
+        
+        fixedCount++;
+        fixedUsers.push({
+          email: user.email,
+          oldExpires: user.membershipExpires,
+          newExpires: oneYearFromNow
+        });
+      }
+      
+      console.log(`Fixed ${fixedCount} users upgraded today to 1 year membership`);
+      
+      res.json({ 
+        success: true, 
+        fixed: fixedCount,
+        users: fixedUsers
+      });
+    } catch (error) {
+      console.error('Fix today upgrades error:', error);
+      res.status(500).json({ error: 'Failed to fix upgrades' });
+    }
+  });
+
   app.post('/api/bdmin/users/bulk-credits', requireJWTAuth, async (req, res) => {
     try {
       const { userIds, amount } = req.body;
