@@ -101,6 +101,8 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [bulkEmails, setBulkEmails] = useState("");
+  const [isProcessingEmails, setIsProcessingEmails] = useState(false);
 
   // Fetch user statistics
   const { data: userStats, isLoading: statsLoading } = useQuery<UserStats>({
@@ -326,6 +328,40 @@ export default function AdminDashboard() {
     }
   });
 
+  // Bulk email upgrade mutation
+  const bulkEmailUpgradeMutation = useMutation({
+    mutationFn: async ({ emails, membershipLevel, duration }: {
+      emails: string[];
+      membershipLevel: string;
+      duration?: number;
+    }) => {
+      return await apiRequest('POST', '/api/bdmin/users/bulk-email-upgrade', {
+        emails,
+        membershipLevel,
+        duration
+      });
+    },
+    onSuccess: async (response) => {
+      const data = await response.json();
+      queryClient.invalidateQueries({ queryKey: ['/api/bdmin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/bdmin/stats'] });
+      setIsProcessingEmails(false);
+      setBulkEmails("");
+      toast({
+        title: "批量升級成功",
+        description: `成功處理 ${data.processed || 0} 個郵箱，其中 ${data.upgraded || 0} 個升級成功`,
+      });
+    },
+    onError: (error) => {
+      setIsProcessingEmails(false);
+      toast({
+        title: "批量升級失敗",
+        description: error instanceof Error ? error.message : "處理郵箱升級時發生錯誤",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleBatchMembershipUpdate = (membershipLevel: string, durationDays?: number) => {
     if (selectedUsers.length === 0) {
       toast({
@@ -357,6 +393,39 @@ export default function AdminDashboard() {
       userIds: selectedUsers,
       amount,
       description
+    });
+  };
+
+  // Handle bulk email upgrade
+  const handleBulkEmailUpgrade = async () => {
+    if (!bulkEmails.trim()) {
+      toast({
+        title: "請輸入郵箱地址",
+        description: "請在文本框中輸入要升級的郵箱地址（每行一個）",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const emails = bulkEmails
+      .split('\n')
+      .map(email => email.trim())
+      .filter(email => email && email.includes('@'));
+
+    if (emails.length === 0) {
+      toast({
+        title: "無效的郵箱地址",
+        description: "請輸入至少一個有效的郵箱地址",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessingEmails(true);
+    bulkEmailUpgradeMutation.mutate({
+      emails,
+      membershipLevel: 'pro',
+      duration: 30
     });
   };
 
@@ -692,6 +761,63 @@ export default function AdminDashboard() {
 
           {/* User Management */}
           <TabsContent value="users" className="space-y-6">
+            {/* Bulk Email Upgrade Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  批量 Email 升級 Pro 會員
+                </CardTitle>
+                <CardDescription>
+                  輸入郵箱地址（每行一個），系統將自動升級現有用戶為 Pro 會員
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="bulk-emails">郵箱地址列表</Label>
+                  <Textarea
+                    id="bulk-emails"
+                    placeholder="user1@example.com
+user2@example.com
+user3@example.com"
+                    value={bulkEmails}
+                    onChange={(e) => setBulkEmails(e.target.value)}
+                    rows={6}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500">
+                    請輸入有效的郵箱地址，每行一個。系統將檢查郵箱是否已註冊並進行升級。
+                  </p>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-gray-600">
+                    {bulkEmails.trim() && (
+                      <span>
+                        檢測到 {bulkEmails.split('\n').filter(email => email.trim() && email.includes('@')).length} 個有效郵箱
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    onClick={handleBulkEmailUpgrade}
+                    disabled={isProcessingEmails || !bulkEmails.trim()}
+                    className="flex items-center gap-2"
+                  >
+                    {isProcessingEmails ? (
+                      <>
+                        <Activity className="w-4 h-4 animate-spin" />
+                        處理中...
+                      </>
+                    ) : (
+                      <>
+                        <Users className="w-4 h-4" />
+                        升級為 Pro 會員
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>用戶管理</CardTitle>
