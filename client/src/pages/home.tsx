@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, TrendingUp, Target, BarChart3, Activity, ArrowRight, Zap, Shield, Star, Monitor } from "lucide-react";
+import { Calculator, TrendingUp, Target, BarChart3, Activity, ArrowRight, Zap, Shield, Star, Monitor, Users, CheckCircle2, Clock } from "lucide-react";
 import { Link } from "wouter";
 import NavigationBar from "@/components/NavigationBar";
 import Footer from "@/components/Footer";
@@ -54,7 +54,7 @@ export default function Home({ locale }: HomeProps) {
               ? 'Professional E-commerce Advertising Analytics Platform'
               : 'プロフェッショナル電子商取引広告分析プラットフォーム'}
           </p>
-          <p className="text-lg text-gray-500 dark:text-gray-400 mb-6 max-w-3xl mx-auto">
+          <p className="text-lg text-gray-500 dark:text-gray-400 mb-8 max-w-3xl mx-auto">
             {locale === 'zh-TW' 
               ? '提供 Facebook 廣告健檢、預算計算、活動規劃、數據儀表板四大核心服務，助您精準投放廣告，最大化投資回報'
               : locale === 'en'
@@ -62,14 +62,58 @@ export default function Home({ locale }: HomeProps) {
               : 'Facebook広告ヘルスチェック、予算計算、キャンペーン企画、データダッシュボードの4つのコアサービスで、広告ROIを最大化'}
           </p>
 
-          {/* NPS Score Badge */}
-          <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 px-6 py-3 rounded-full shadow-lg mb-12">
-            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-            <span className="text-lg font-semibold text-gray-900 dark:text-white">
-              {locale === 'zh-TW' ? '用戶推薦度' : locale === 'en' ? 'User NPS Score' : 'ユーザー推奨度'}
-            </span>
-            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">8.3</span>
-            <span className="text-gray-500 dark:text-gray-400">/10</span>
+          {/* Social Proof & Value Proposition */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+            {/* NPS Score Badge */}
+            <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 px-6 py-3 rounded-full shadow-lg">
+              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                {locale === 'zh-TW' ? '用戶推薦度' : locale === 'en' ? 'User NPS Score' : 'ユーザー推奨度'}
+              </span>
+              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">8.3</span>
+              <span className="text-gray-500 dark:text-gray-400">/10</span>
+            </div>
+
+            {/* Users Count Badge */}
+            <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 px-6 py-3 rounded-full shadow-lg">
+              <Users className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                {locale === 'zh-TW' ? '350+ 品牌信賴' : locale === 'en' ? '350+ Brands Trust Us' : '350+ ブランド信頼'}
+              </span>
+            </div>
+          </div>
+
+          {/* Value Proposition & CTA */}
+          <div className="mb-12">
+            <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              {locale === 'zh-TW' 
+                ? '每天只要 NT$43，找出廣告浪費、優化投放策略'
+                : locale === 'en'
+                ? 'Only $43/day to identify ad waste and optimize your strategy'
+                : '1日わずか¥43で、広告の無駄を発見し、戦略を最適化'}
+            </p>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {locale === 'zh-TW' 
+                ? 'NT$1,280/月，物超所值的專業廣告分析工具'
+                : locale === 'en'
+                ? 'NT$1,280/month - Professional ad analysis tool with exceptional value'
+                : '月額NT$1,280 - 価値ある専門広告分析ツール'}
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href={locale === 'zh-TW' ? '/pricing' : `/${locale === 'en' ? 'en' : 'jp'}/pricing`}>
+                <Button size="lg" className="text-lg px-8 py-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transition-all">
+                  <Zap className="mr-2 h-5 w-5" />
+                  {locale === 'zh-TW' ? '立即升級 PRO' : locale === 'en' ? 'Upgrade to PRO Now' : '今すぐPROアップグレード'}
+                </Button>
+              </Link>
+              <Link href={locale === 'zh-TW' ? '/help/fbaudit' : `/${locale === 'en' ? 'en' : 'jp'}/help/fbaudit`}>
+                <Button variant="outline" size="lg" className="text-lg px-8 py-6">
+                  <Shield className="mr-2 h-5 w-5" />
+                  {locale === 'zh-TW' ? '查看完整功能' : locale === 'en' ? 'View All Features' : '全機能を見る'}
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Service Cards Grid - 2x2 Layout */}
