@@ -1,99 +1,87 @@
-# Credits API 文檔
+# eccal Credits API 使用文檔
 
-## 概述
+## 📌 快速開始
 
-此 API 允許外部子服務（如 fabe）為用戶增加點數。API 使用 API Key 進行身份驗證，確保只有授權的服務可以操作用戶點數。
+### 1. 設定環境變數
 
-**基礎 URL**：
-- **生產環境**：`https://eccal.thinkwithblack.com`
-- **開發環境**：`http://localhost:5000`
+在你的 Replit 項目中設定 Secrets：
+
+```
+Key: SERVICE_API_KEY
+Value: sk_live_81de5b1388d556d6e6e86a96d6bf412b554d0cd2a1a96028bed2064c1b23ffff
+```
+
+### 2. 呼叫 API
+
+```javascript
+// Node.js 範例
+const response = await fetch(
+  `https://eccal.thinkwithblack.com/api/account-center/credits/${userEmail}/add`,
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': process.env.SERVICE_API_KEY  // 從環境變數讀取
+    },
+    body: JSON.stringify({
+      amount: 50,
+      reason: '考試通過獎勵',
+      service: 'fabe'  // 你的服務名稱
+    })
+  }
+);
+
+const result = await response.json();
+console.log(`成功！用戶新餘額: ${result.newBalance}`);
+```
 
 ---
 
-## 認證
-
-所有請求必須在 HTTP Header 中包含 API Key：
-
-```
-X-API-Key: YOUR_SERVICE_API_KEY
-```
-
-**獲取 API Key**：
-- API Key 由 eccal 系統管理員提供
-- 當前 API Key：`sk_live_81de5b1388d556d6e6e86a96d6bf412b554d0cd2a1a96028bed2064c1b23ffff`
-- 請妥善保管，不要洩露或提交到版本控制系統
-
----
-
-## API 端點
+## 🔌 API 端點
 
 ### 增加用戶點數
 
-為指定用戶增加點數。
+**POST** `/api/account-center/credits/:userId/add`
 
-**端點**：`POST /api/account-center/credits/:userId/add`
+#### 路徑參數
+- `userId` - 用戶 Email 或 UUID
+  - 範例：`student@example.com` 或 `550e8400-e29b-41d4-a716-446655440000`
 
-**路徑參數**：
-- `userId` (string, required) - 用戶標識符，可以是：
-  - Email 地址（例如：`user@example.com`）
-  - 用戶 ID（UUID 格式）
-
-**請求 Headers**：
+#### Headers
 ```
 Content-Type: application/json
-X-API-Key: YOUR_SERVICE_API_KEY
+X-API-Key: <從環境變數讀取>
 ```
 
-**請求 Body**：
+#### Request Body
 ```json
 {
-  "amount": 50,
-  "reason": "考試通過獎勵",
-  "service": "fabe"
+  "amount": 50,           // 必填：增加的點數（正整數）
+  "reason": "考試通過",    // 可選：原因說明
+  "service": "fabe"       // 必填：服務名稱
 }
 ```
 
-**參數說明**：
-| 參數 | 類型 | 必填 | 說明 |
-|------|------|------|------|
-| `amount` | number | ✅ | 要增加的點數，必須大於 0 |
-| `reason` | string | ❌ | 增加點數的原因（可選） |
-| `service` | string | ✅ | 服務名稱（例如：fabe, audai, galine） |
-
-**成功回應** (HTTP 200)：
+#### 成功回應 (200 OK)
 ```json
 {
   "success": true,
-  "userId": "550e8400-e29b-41d4-a716-446655440000",
-  "email": "user@example.com",
-  "newBalance": 80,
-  "addedAmount": 50,
-  "previousBalance": 30,
-  "transactionId": "tx_1696234567890_abc123def",
-  "reason": "考試通過獎勵",
+  "userId": "102598988575056957509",
+  "email": "student@example.com",
+  "newBalance": 92,        // 新餘額
+  "addedAmount": 50,       // 本次增加
+  "previousBalance": 42,   // 原本餘額
+  "transactionId": "tx_1759461858894_lo0w5x8gi",
+  "reason": "考試通過",
   "service": "fabe"
 }
 ```
 
-**回應欄位說明**：
-| 欄位 | 類型 | 說明 |
-|------|------|------|
-| `success` | boolean | 操作是否成功 |
-| `userId` | string | 用戶 ID |
-| `email` | string | 用戶 Email |
-| `newBalance` | number | 更新後的點數餘額 |
-| `addedAmount` | number | 本次增加的點數 |
-| `previousBalance` | number | 增加前的點數餘額 |
-| `transactionId` | string | 交易 ID（用於追蹤） |
-| `reason` | string \| null | 增加原因 |
-| `service` | string | 服務名稱 |
-
 ---
 
-## 錯誤處理
+## ⚠️ 錯誤處理
 
-所有錯誤回應都包含以下格式：
-
+### 錯誤回應格式
 ```json
 {
   "success": false,
@@ -102,142 +90,124 @@ X-API-Key: YOUR_SERVICE_API_KEY
 }
 ```
 
-### 錯誤代碼表
+### 常見錯誤
 
-| HTTP Status | Error Code | 說明 | 解決方案 |
-|-------------|------------|------|----------|
-| 500 | `API_KEY_NOT_CONFIGURED` | 服務器未配置 API Key | 聯繫 eccal 管理員設置 SERVICE_API_KEY |
-| 401 | `API_KEY_MISSING` | 請求缺少 API Key | 在 Header 中加入 `X-API-Key` |
-| 403 | `INVALID_API_KEY` | API Key 無效 | 檢查 API Key 是否正確 |
-| 400 | `INVALID_AMOUNT` | 金額無效 | 確保 amount 是大於 0 的數字 |
+| 狀態碼 | Error Code | 原因 | 解決方案 |
+|--------|-----------|------|---------|
+| 401 | `API_KEY_MISSING` | 缺少 API Key | 檢查 Header 是否包含 `X-API-Key` |
+| 403 | `INVALID_API_KEY` | API Key 錯誤 | 確認環境變數設定正確 |
+| 404 | `USER_NOT_FOUND` | 用戶不存在 | 檢查 Email 是否正確 |
+| 400 | `INVALID_AMOUNT` | 金額無效 | 確保 amount 是正整數 |
 | 400 | `SERVICE_REQUIRED` | 缺少服務名稱 | 提供 service 參數 |
-| 404 | `USER_NOT_FOUND` | 用戶不存在 | 檢查用戶 Email 或 ID 是否正確 |
-| 500 | `INTERNAL_ERROR` | 服務器內部錯誤 | 聯繫技術支援 |
-
-### 錯誤範例
-
-**1. API Key 缺失**
-```json
-{
-  "success": false,
-  "error": "API key is required",
-  "code": "API_KEY_MISSING"
-}
-```
-
-**2. 用戶不存在**
-```json
-{
-  "success": false,
-  "error": "用戶未找到",
-  "code": "USER_NOT_FOUND"
-}
-```
-
-**3. 無效金額**
-```json
-{
-  "success": false,
-  "error": "增加金額必須是大於 0 的數字",
-  "code": "INVALID_AMOUNT"
-}
-```
 
 ---
 
-## 使用範例
+## 💻 程式碼範例
 
-### cURL
-
-```bash
-curl -X POST https://eccal.thinkwithblack.com/api/account-center/credits/user@example.com/add \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: sk_live_81de5b1388d556d6e6e86a96d6bf412b554d0cd2a1a96028bed2064c1b23ffff" \
-  -d '{
-    "amount": 100,
-    "reason": "FABE 課程考試通過",
-    "service": "fabe"
-  }'
-```
-
-### JavaScript (Node.js)
+### Node.js / Express
 
 ```javascript
-const axios = require('axios');
-
-async function addCredits(userEmail, amount, reason) {
+// 後端 API 路由
+app.post('/api/student/exam-passed', async (req, res) => {
+  const { studentEmail, courseName } = req.body;
+  
   try {
-    const response = await axios.post(
-      `https://eccal.thinkwithblack.com/api/account-center/credits/${userEmail}/add`,
+    // 呼叫 eccal API 增加點數
+    const response = await fetch(
+      `https://eccal.thinkwithblack.com/api/account-center/credits/${studentEmail}/add`,
       {
-        amount: amount,
-        reason: reason,
-        service: 'fabe'
-      },
-      {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'sk_live_81de5b1388d556d6e6e86a96d6bf412b554d0cd2a1a96028bed2064c1b23ffff'
-        }
+          'X-API-Key': process.env.SERVICE_API_KEY
+        },
+        body: JSON.stringify({
+          amount: 50,
+          reason: `${courseName} 考試通過`,
+          service: 'fabe'
+        })
       }
     );
     
-    console.log('點數增加成功:', response.data);
-    return response.data;
+    const result = await response.json();
+    
+    if (result.success) {
+      res.json({
+        message: '點數發放成功',
+        credits: result.newBalance
+      });
+    } else {
+      res.status(400).json({ error: result.error });
+    }
+    
   } catch (error) {
-    console.error('點數增加失敗:', error.response?.data || error.message);
+    console.error('點數發放失敗:', error);
+    res.status(500).json({ error: '系統錯誤' });
+  }
+});
+```
+
+### JavaScript (Fetch with Error Handling)
+
+```javascript
+async function rewardStudentCredits(userEmail, amount, reason) {
+  try {
+    const response = await fetch(
+      `https://eccal.thinkwithblack.com/api/account-center/credits/${userEmail}/add`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': process.env.SERVICE_API_KEY
+        },
+        body: JSON.stringify({
+          amount,
+          reason,
+          service: 'fabe'
+        })
+      }
+    );
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(`${data.code}: ${data.error}`);
+    }
+    
+    return data;
+    
+  } catch (error) {
+    console.error('點數增加失敗:', error.message);
     throw error;
   }
 }
 
 // 使用範例
-addCredits('student@example.com', 50, '考試通過獎勵')
-  .then(result => console.log('新餘額:', result.newBalance))
-  .catch(err => console.error('錯誤:', err));
-```
-
-### JavaScript (Fetch API)
-
-```javascript
-async function addCredits(userEmail, amount, reason) {
-  const response = await fetch(
-    `https://eccal.thinkwithblack.com/api/account-center/credits/${userEmail}/add`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': 'sk_live_81de5b1388d556d6e6e86a96d6bf412b554d0cd2a1a96028bed2064c1b23ffff'
-      },
-      body: JSON.stringify({
-        amount: amount,
-        reason: reason,
-        service: 'fabe'
-      })
-    }
-  );
-  
-  const data = await response.json();
-  
-  if (!data.success) {
-    throw new Error(`${data.code}: ${data.error}`);
-  }
-  
-  return data;
-}
+rewardStudentCredits('student@example.com', 50, 'FABE 課程考試通過')
+  .then(result => {
+    console.log('✅ 點數發放成功');
+    console.log(`新餘額: ${result.newBalance}`);
+    console.log(`交易 ID: ${result.transactionId}`);
+  })
+  .catch(error => {
+    console.error('❌ 錯誤:', error.message);
+  });
 ```
 
 ### Python
 
 ```python
+import os
 import requests
-import json
 
 def add_credits(user_email, amount, reason):
+    """為用戶增加 eccal 點數"""
+    
     url = f"https://eccal.thinkwithblack.com/api/account-center/credits/{user_email}/add"
     
     headers = {
         "Content-Type": "application/json",
-        "X-API-Key": "sk_live_81de5b1388d556d6e6e86a96d6bf412b554d0cd2a1a96028bed2064c1b23ffff"
+        "X-API-Key": os.environ.get("SERVICE_API_KEY")
     }
     
     payload = {
@@ -249,209 +219,269 @@ def add_credits(user_email, amount, reason):
     try:
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
+        
         data = response.json()
         
-        print(f"點數增加成功: {data}")
-        return data
-    except requests.exceptions.RequestException as e:
-        print(f"點數增加失敗: {e}")
-        raise
+        if data.get("success"):
+            print(f"✅ 點數發放成功")
+            print(f"新餘額: {data['newBalance']}")
+            return data
+        else:
+            print(f"❌ 錯誤: {data.get('error')}")
+            return None
+            
+    except Exception as e:
+        print(f"❌ 請求失敗: {str(e)}")
+        return None
 
 # 使用範例
-result = add_credits("student@example.com", 50, "考試通過獎勵")
-print(f"新餘額: {result['newBalance']}")
+result = add_credits(
+    user_email="student@example.com",
+    amount=50,
+    reason="FABE 課程考試通過"
+)
 ```
 
 ### PHP
 
 ```php
 <?php
-
 function addCredits($userEmail, $amount, $reason) {
     $url = "https://eccal.thinkwithblack.com/api/account-center/credits/{$userEmail}/add";
     
-    $data = array(
+    $data = [
         'amount' => $amount,
         'reason' => $reason,
         'service' => 'fabe'
-    );
+    ];
     
-    $options = array(
-        'http' => array(
+    $options = [
+        'http' => [
             'method'  => 'POST',
             'header'  => 
                 "Content-Type: application/json\r\n" .
-                "X-API-Key: sk_live_81de5b1388d556d6e6e86a96d6bf412b554d0cd2a1a96028bed2064c1b23ffff\r\n",
+                "X-API-Key: " . getenv('SERVICE_API_KEY') . "\r\n",
             'content' => json_encode($data)
-        )
-    );
+        ]
+    ];
     
-    $context  = stream_context_create($options);
+    $context = stream_context_create($options);
     $result = file_get_contents($url, false, $context);
     
     if ($result === FALSE) {
         throw new Exception('API 請求失敗');
     }
     
-    return json_decode($result, true);
+    $response = json_decode($result, true);
+    
+    if ($response['success']) {
+        echo "✅ 點數發放成功，新餘額: {$response['newBalance']}\n";
+        return $response;
+    } else {
+        echo "❌ 錯誤: {$response['error']}\n";
+        return null;
+    }
 }
 
 // 使用範例
-try {
-    $result = addCredits('student@example.com', 50, '考試通過獎勵');
-    echo "點數增加成功，新餘額: " . $result['newBalance'];
-} catch (Exception $e) {
-    echo "錯誤: " . $e->getMessage();
-}
+addCredits('student@example.com', 50, 'FABE 課程考試通過');
 ?>
 ```
 
 ---
 
-## 業務場景範例
+## 🎯 實際應用場景
 
-### FABE 課程考試獎勵
-
-當學員通過 FABE 課程考試時，自動為學員增加點數：
+### 場景 1: 學員考試通過自動發放點數
 
 ```javascript
-// 學員考試通過後的處理
-async function handleExamPassed(student) {
-  const creditsReward = 50; // 考試通過獎勵 50 點
+// FABE 後端：考試成功處理器
+async function handleExamSuccess(exam) {
+  const student = await getStudent(exam.studentId);
+  
+  // 根據考試難度決定獎勵點數
+  const rewardPoints = {
+    'beginner': 30,
+    'intermediate': 50,
+    'advanced': 100
+  };
+  
+  const amount = rewardPoints[exam.level] || 50;
   
   try {
-    const result = await addCredits(
-      student.email,
-      creditsReward,
-      `FABE ${student.courseName} 考試通過`
+    const result = await fetch(
+      `https://eccal.thinkwithblack.com/api/account-center/credits/${student.email}/add`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': process.env.SERVICE_API_KEY
+        },
+        body: JSON.stringify({
+          amount,
+          reason: `${exam.courseName} ${exam.level} 考試通過`,
+          service: 'fabe'
+        })
+      }
     );
     
-    // 記錄到 FABE 系統
-    await logCreditsReward({
-      studentId: student.id,
-      credits: creditsReward,
-      transactionId: result.transactionId,
-      timestamp: new Date()
-    });
+    const data = await result.json();
     
-    // 通知學員
-    await sendNotification(student.email, {
-      title: '恭喜考試通過！',
-      message: `您獲得了 ${creditsReward} 點數獎勵！eccal 點數餘額：${result.newBalance}`
-    });
+    if (data.success) {
+      // 記錄到 FABE 系統
+      await logReward({
+        studentId: student.id,
+        credits: amount,
+        transactionId: data.transactionId
+      });
+      
+      // 發送通知給學員
+      await sendEmail(student.email, {
+        subject: '🎉 恭喜考試通過！',
+        body: `您獲得了 ${amount} 點 eccal 點數獎勵！目前餘額：${data.newBalance}`
+      });
+    }
     
-    return result;
   } catch (error) {
-    console.error('點數發放失敗:', error);
-    // 記錄錯誤，稍後重試
-    await queueRetry({
-      studentEmail: student.email,
-      amount: creditsReward,
-      reason: `FABE ${student.courseName} 考試通過`
-    });
+    console.error('點數發放失敗，將加入重試隊列:', error);
+    await queueRetry({ studentEmail: student.email, amount, exam });
   }
 }
 ```
 
----
+### 場景 2: 批次發放獎勵
 
-## 安全性建議
-
-### 1. API Key 保護
-- ❌ **不要**將 API Key 硬編碼在前端代碼中
-- ✅ **務必**將 API Key 存儲在環境變數或密鑰管理系統中
-- ✅ **建議**定期輪換 API Key
-- ✅ **必須**只在後端服務器調用此 API
-
-### 2. 請求驗證
 ```javascript
-// ✅ 正確：在後端調用
-app.post('/api/student/exam-passed', async (req, res) => {
-  // 驗證學員身份和考試結果
-  const student = await verifyStudent(req.body.studentId);
-  const examResult = await getExamResult(req.body.examId);
+// 批次為多位學員發放點數
+async function batchRewardStudents(students, amount, reason) {
+  const results = {
+    success: [],
+    failed: []
+  };
   
-  if (examResult.passed) {
-    // 從後端調用 eccal API
-    const result = await addCredits(
-      student.email,
-      50,
-      'FABE 考試通過'
-    );
-    res.json({ success: true, credits: result.newBalance });
-  }
-});
-
-// ❌ 錯誤：不要在前端直接調用
-// 前端 JavaScript 中不應包含 API Key
-```
-
-### 3. 錯誤處理與重試機制
-```javascript
-async function addCreditsWithRetry(email, amount, reason, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
+  for (const student of students) {
     try {
-      return await addCredits(email, amount, reason);
+      const response = await fetch(
+        `https://eccal.thinkwithblack.com/api/account-center/credits/${student.email}/add`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': process.env.SERVICE_API_KEY
+          },
+          body: JSON.stringify({
+            amount,
+            reason,
+            service: 'fabe'
+          })
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        results.success.push({
+          email: student.email,
+          newBalance: data.newBalance
+        });
+      } else {
+        results.failed.push({
+          email: student.email,
+          error: data.error
+        });
+      }
+      
+      // 避免請求過快，加入延遲
+      await sleep(100);
+      
     } catch (error) {
-      if (error.response?.data?.code === 'USER_NOT_FOUND') {
-        // 用戶不存在，不需要重試
-        throw error;
-      }
-      
-      if (i === maxRetries - 1) {
-        // 最後一次重試失敗
-        throw error;
-      }
-      
-      // 指數退避重試
-      await sleep(Math.pow(2, i) * 1000);
+      results.failed.push({
+        email: student.email,
+        error: error.message
+      });
     }
   }
+  
+  console.log(`✅ 成功: ${results.success.length}, ❌ 失敗: ${results.failed.length}`);
+  return results;
 }
 ```
 
 ---
 
-## 監控與日誌
+## 🔒 安全性最佳實踐
 
-### 服務器日誌
+### ✅ DO（正確做法）
 
-每次成功的點數增加都會在服務器記錄：
+1. **使用環境變數**
+   ```javascript
+   // ✅ 正確
+   'X-API-Key': process.env.SERVICE_API_KEY
+   ```
 
-```
-點數增加成功: {
-  userId: '550e8400-e29b-41d4-a716-446655440000',
-  email: 'user@example.com',
-  addedAmount: 50,
-  newBalance: 80,
-  previousBalance: 30,
-  reason: '考試通過獎勵',
-  service: 'fabe',
-  transactionId: 'tx_1696234567890_abc123def'
-}
-```
+2. **只在後端調用**
+   ```javascript
+   // ✅ 正確：後端 API
+   app.post('/reward', async (req, res) => {
+     await callEccalAPI(req.body.email);
+   });
+   ```
 
-### 建議的監控指標
+3. **驗證用戶身份**
+   ```javascript
+   // ✅ 正確：先驗證學員
+   const student = await verifyStudent(studentId);
+   if (student) {
+     await addCredits(student.email, 50);
+   }
+   ```
 
-1. **成功率**：追蹤 API 調用成功/失敗比率
-2. **響應時間**：監控 API 響應延遲
-3. **錯誤類型**：統計各類錯誤的發生頻率
-4. **點數發放量**：追蹤每日/每週點數發放總量
+### ❌ DON'T（錯誤做法）
+
+1. **不要硬編碼 API Key**
+   ```javascript
+   // ❌ 錯誤
+   'X-API-Key': 'sk_live_abc123...'
+   ```
+
+2. **不要在前端調用**
+   ```javascript
+   // ❌ 錯誤：前端直接調用會洩露 API Key
+   <button onClick={() => fetch('https://eccal...', {
+     headers: { 'X-API-Key': ... }
+   })}>
+   ```
+
+3. **不要跳過驗證**
+   ```javascript
+   // ❌ 錯誤：沒驗證就發放點數
+   await addCredits(req.body.email, req.body.amount);
+   ```
 
 ---
 
-## 測試
+## 🧪 測試
 
-### 測試帳號
-- 請聯繫 eccal 管理員獲取測試用戶帳號
+### 本地測試
 
-### 測試環境
-- **URL**：`http://localhost:5000`（開發環境）
-- **API Key**：使用相同的 SERVICE_API_KEY
+```bash
+# 1. 設定環境變數
+export SERVICE_API_KEY="sk_live_81de5b1388d556d6e6e86a96d6bf412b554d0cd2a1a96028bed2064c1b23ffff"
 
-### 快速測試腳本
+# 2. 測試 API
+curl -X POST https://eccal.thinkwithblack.com/api/account-center/credits/test@example.com/add \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $SERVICE_API_KEY" \
+  -d '{
+    "amount": 50,
+    "reason": "測試",
+    "service": "fabe"
+  }'
+```
 
-項目中已包含 `test-credits-api.sh` 測試腳本，可以快速驗證 API 功能：
+### 測試腳本
+
+專案中已包含測試腳本 `test-credits-api.sh`：
 
 ```bash
 chmod +x test-credits-api.sh
@@ -460,50 +490,97 @@ chmod +x test-credits-api.sh
 
 ---
 
-## 常見問題 FAQ
+## 📊 監控建議
 
-### Q1: 可以扣除點數嗎？
-A: 扣除點數請使用另一個端點：`POST /api/account-center/credits/:userId/deduct`（需要相同的 API Key 認證）
+### 建議追蹤的指標
 
-### Q2: 如何查詢用戶當前點數？
-A: 使用 `GET /api/account-center/credits/:userId`（需要 JWT 認證或 API Key）
+1. **API 調用統計**
+   - 每日調用次數
+   - 成功率 (成功/總數)
+   - 平均響應時間
 
-### Q3: API Key 洩露了怎麼辦？
-A: 立即聯繫 eccal 管理員 (backtrue@gmail.com) 更換 API Key
+2. **點數發放記錄**
+   - 每日發放總點數
+   - 每個 service 的發放量
+   - 失敗重試次數
 
-### Q4: 點數上限是多少？
-A: 目前沒有上限，但建議單次增加不超過 1000 點
+3. **錯誤監控**
+   - `USER_NOT_FOUND` 次數（可能是 email 錯誤）
+   - `INVALID_API_KEY` 次數（可能是配置問題）
+   - 系統錯誤次數
 
-### Q5: 支援批次增加點數嗎？
-A: 目前不支援批次操作，需要逐個用戶調用
+### 日誌範例
 
----
-
-## 技術支援
-
-**聯繫方式**：
-- **Email**：backtrue@gmail.com
-- **技術負責人**：eccal 系統管理員
-
-**服務時間**：
-- 週一至週五 09:00 - 18:00 (GMT+8)
-
-**緊急問題**：
-- 如遇生產環境 API 異常，請立即聯繫技術支援
-
----
-
-## 更新日誌
-
-### v1.0.0 (2025-10-03)
-- ✨ 初始版本發布
-- ✅ 支援通過 email 或 userId 增加點數
-- ✅ API Key 認證機制
-- ✅ 完整的錯誤處理
-- ✅ 交易記錄和日誌
+```javascript
+// 記錄每次 API 調用
+console.log({
+  timestamp: new Date().toISOString(),
+  action: 'add_credits',
+  email: userEmail,
+  amount: amount,
+  service: 'fabe',
+  transactionId: result.transactionId,
+  success: true
+});
+```
 
 ---
 
-**文檔版本**：v1.0.0  
-**最後更新**：2025-10-03  
-**維護者**：eccal 開發團隊
+## 🔧 故障排除
+
+### 問題 1: 收到 `API_KEY_NOT_CONFIGURED` 錯誤
+
+**原因**: eccal 服務器未設定 SERVICE_API_KEY
+
+**解決**: 聯繫 eccal 管理員確認環境變數設定
+
+### 問題 2: 收到 `INVALID_API_KEY` 錯誤
+
+**檢查項目**:
+1. Replit Secrets 中 `SERVICE_API_KEY` 是否正確
+2. 重啟服務器讓環境變數生效
+3. 檢查代碼是否正確讀取環境變數
+
+```javascript
+// 除錯：檢查環境變數
+console.log('API Key 是否存在:', !!process.env.SERVICE_API_KEY);
+console.log('API Key 前10字元:', process.env.SERVICE_API_KEY?.substring(0, 10));
+```
+
+### 問題 3: 收到 `USER_NOT_FOUND` 錯誤
+
+**可能原因**:
+1. Email 拼寫錯誤
+2. 用戶尚未在 eccal 註冊
+
+**解決**:
+1. 確認用戶 email 正確
+2. 確認用戶已經在 eccal.thinkwithblack.com 註冊過
+
+---
+
+## 📞 技術支援
+
+**問題回報**:
+- Email: backtrue@gmail.com
+- 主旨: [FABE-eccal API] 問題描述
+
+**緊急聯繫**:
+- 生產環境 API 異常請立即聯繫
+
+---
+
+## 📝 API 資訊
+
+| 項目 | 說明 |
+|------|------|
+| **基礎 URL** | `https://eccal.thinkwithblack.com` |
+| **API Key** | `sk_live_81de5b1388d556d6e6e86a96d6bf412b554d0cd2a1a96028bed2064c1b23ffff` |
+| **環境變數名稱** | `SERVICE_API_KEY` |
+| **版本** | v1.0.0 |
+| **最後更新** | 2025-10-03 |
+
+---
+
+**文檔版本**: v1.0.0  
+**維護者**: eccal 開發團隊
