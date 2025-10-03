@@ -76,6 +76,22 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### External Service Credits API (2025-10-03) - ✅ COMPLETED
+- **New Feature**: Cross-service credits management API for external integrations
+  - **Endpoint**: `POST /api/account-center/credits/:userId/add`
+  - **Authentication**: API Key based (SERVICE_API_KEY) for secure external service access
+  - **Functionality**: Allows authorized external services (e.g., fabe) to add credits to user accounts
+  - **Supported Identifiers**: Email address or User ID (UUID)
+  - **Transaction Tracking**: Generates unique transaction IDs and logs service source, reason, and amounts
+  - **Input Validation**: Comprehensive validation for amount (must be positive number) and required service parameter
+  - **Error Handling**: Complete error responses with specific codes (API_KEY_MISSING, INVALID_API_KEY, USER_NOT_FOUND, etc.)
+  - **CORS Configuration**: Updated to support X-API-Key header for cross-origin requests
+  - **Documentation**: Full API documentation (`CREDITS_API.md`) with examples in Node.js, Python, PHP, cURL
+  - **Testing**: Test script (`test-credits-api.sh`) for validating all scenarios
+  - **Use Case**: Enable FABE platform to automatically reward students with eccal credits upon exam completion
+  - **Security**: API Key stored in environment variables, not hardcoded; backend-only access recommended
+  - **Generated API Key**: `sk_live_81de5b1388d556d6e6e86a96d6bf412b554d0cd2a1a96028bed2064c1b23ffff`
+
 ### Stripe Lazy Loading Enhancement (2025-09-26) - ✅ COMPLETED
 - **Issue Resolution**: Fixed Stripe XHR requests running on non-payment pages
   - **Root Cause**: Checkout and SubscriptionCheckout components were imported at module level in App.tsx
