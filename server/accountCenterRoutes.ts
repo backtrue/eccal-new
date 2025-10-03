@@ -7,6 +7,43 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const SERVICE_API_KEY = process.env.SERVICE_API_KEY;
+
+// API Key 驗證中間件（用於外部服務）
+const requireServiceApiKey = (req: Request, res: Response, next: any) => {
+  const apiKey = req.headers['x-api-key'] as string;
+  
+  if (!SERVICE_API_KEY) {
+    console.error('SERVICE_API_KEY not configured');
+    return res.status(500).json({
+      success: false,
+      error: 'Service API key not configured',
+      code: 'API_KEY_NOT_CONFIGURED'
+    });
+  }
+  
+  if (!apiKey) {
+    return res.status(401).json({
+      success: false,
+      error: 'API key is required',
+      code: 'API_KEY_MISSING'
+    });
+  }
+  
+  if (apiKey !== SERVICE_API_KEY) {
+    console.warn('Invalid API key attempt:', { 
+      providedKey: apiKey.substring(0, 10) + '...',
+      ip: req.ip 
+    });
+    return res.status(403).json({
+      success: false,
+      error: 'Invalid API key',
+      code: 'INVALID_API_KEY'
+    });
+  }
+  
+  next();
+};
 
 // 允許的外部域名清單
 const ALLOWED_ORIGINS = [
@@ -514,6 +551,96 @@ export function setupAccountCenterRoutes(app: Express) {
       res.status(500).json({
         success: false,
         error: '點數扣除失敗',
+        code: 'INTERNAL_ERROR'
+      });
+    }
+  });
+
+  /**
+   * 點數增加端點（供外部服務使用）
+   * 需要 API Key 驗證
+   */
+  app.post('/api/account-center/credits/:userId/add', requireServiceApiKey, async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const { amount, reason, service } = req.body;
+      
+      // 驗證輸入
+      if (!amount || typeof amount !== 'number' || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: '增加金額必須是大於 0 的數字',
+          code: 'INVALID_AMOUNT'
+        });
+      }
+      
+      if (!service || typeof service !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: '必須提供服務名稱',
+          code: 'SERVICE_REQUIRED'
+        });
+      }
+      
+      // 支援通過 email 或 userId 查詢
+      let user;
+      if (userId.includes('@')) {
+        user = await db.query.users.findFirst({
+          where: eq(users.email, userId)
+        });
+      } else {
+        user = await db.query.users.findFirst({
+          where: eq(users.id, userId)
+        });
+      }
+      
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: '用戶未找到',
+          code: 'USER_NOT_FOUND'
+        });
+      }
+      
+      const currentCredits = user.credits || 0;
+      
+      // 增加點數
+      const newCredits = currentCredits + amount;
+      await db.update(users)
+        .set({ credits: newCredits })
+        .where(eq(users.id, user.id));
+      
+      // 生成交易 ID
+      const transactionId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      console.log(`點數增加成功:`, {
+        userId: user.id,
+        email: user.email,
+        addedAmount: amount,
+        newBalance: newCredits,
+        previousBalance: currentCredits,
+        reason: reason || 'No reason provided',
+        service,
+        transactionId
+      });
+      
+      res.json({
+        success: true,
+        userId: user.id,
+        email: user.email,
+        newBalance: newCredits,
+        addedAmount: amount,
+        previousBalance: currentCredits,
+        transactionId,
+        reason: reason || null,
+        service
+      });
+      
+    } catch (error) {
+      console.error('Error adding credits:', error);
+      res.status(500).json({
+        success: false,
+        error: '點數增加失敗',
         code: 'INTERNAL_ERROR'
       });
     }
