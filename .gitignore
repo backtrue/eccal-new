@@ -42,3 +42,6 @@ backups/
 *.sql
 *.csv
 database_backups/
+*.tar.gz
+*.zip
+project-backup.*
