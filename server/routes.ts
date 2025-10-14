@@ -690,6 +690,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get scoped token - Convert long-lived JWT to short-lived scoped token
+  app.get('/api/auth/get-token', requireJWTAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // 從資料庫取得最新用戶資料
+      const [userData] = await db
+        .select({
+          id: usersTable.id,
+          email: usersTable.email,
+          name: usersTable.name,
+          membershipLevel: usersTable.membershipLevel,
+          credits: usersTable.credits
+        })
+        .from(usersTable)
+        .where(eq(usersTable.id, userId))
+        .limit(1);
+      
+      if (!userData) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // 生成短效 scope token
+      const { generateInternalJWT } = await import('./services/eccalAuth');
+      const scopedToken = generateInternalJWT({
+        id: userData.id,
+        email: userData.email || '',
+        name: userData.name || '',
+        membershipLevel: userData.membershipLevel || 'free',
+        credits: userData.credits || 0
+      });
+      
+      res.json({
+        success: true,
+        token: scopedToken,
+        expiresIn: 900 // 15 minutes in seconds
+      });
+      
+    } catch (error) {
+      console.error('Get scoped token error:', error);
+      res.status(500).json({ error: 'Failed to generate scoped token' });
+    }
+  });
+
   // Sync existing users to Brevo - one-time sync command
   app.post("/api/sync-brevo", async (req, res) => {
     try {
