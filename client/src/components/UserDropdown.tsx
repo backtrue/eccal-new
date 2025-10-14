@@ -15,6 +15,7 @@ import { getTranslations, type Locale } from "@/lib/i18n";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { clearScopedToken } from "@/lib/queryClient";
 
 interface UserDropdownProps {
   locale: Locale;
@@ -30,7 +31,10 @@ export default function UserDropdown({ locale }: UserDropdownProps) {
   const handleLogout = () => {
     setIsLoggingOut(true);
     
-    // Clear all cached queries first
+    // Clear scoped token first
+    clearScopedToken();
+    
+    // Clear all cached queries
     queryClient.clear();
     
     toast({

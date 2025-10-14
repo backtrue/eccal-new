@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { clearScopedToken } from "@/lib/queryClient";
 
 export default function LogoutButton() {
   const { toast } = useToast();
@@ -12,7 +13,10 @@ export default function LogoutButton() {
   const handleLogout = () => {
     setIsLoggingOut(true);
     
-    // Clear all cached queries first
+    // Clear scoped token first
+    clearScopedToken();
+    
+    // Clear all cached queries
     queryClient.clear();
     
     toast({
