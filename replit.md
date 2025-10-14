@@ -76,6 +76,30 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### JWT Scope Token System (2025-10-14) - ✅ COMPLETED
+- **New Feature**: Dual-token authentication system with scope-based permissions
+  - **Long-lived JWT (7 days)**: Basic authentication via HttpOnly cookie
+  - **Short-lived Scope Token (15 minutes)**: Fine-grained API permissions
+  - **Automatic Token Management**: Frontend auto-fetches and caches scoped tokens
+  - **Scope Derivation**: Membership-based permission assignment (Free vs Pro)
+  - **Security Enhancement**: Separate tokens for authentication and authorization
+- **Backend Implementation**:
+  - `server/services/eccalAuth.ts`: Scope logic and token generation
+  - `deriveScopes()`: Maps membership levels to scopes
+  - `generateInternalJWT()`: Creates 15-minute scoped tokens
+  - `verifyInternalJWT()`: Validates scope tokens
+  - New endpoint: `GET /api/auth/get-token` for token conversion
+- **Frontend Implementation**:
+  - Auto-fetch scoped token before API requests
+  - Cache management with expiry tracking (localStorage)
+  - Authorization header injection (`Bearer <token>`)
+  - Logout integration to clear cached tokens
+- **Scope Definitions**:
+  - Free users: `user:profile`, `line:read`
+  - Pro/Founders: `user:profile`, `line:read`, `line:write`, `line:manage`
+- **Integration Ready**: Compatible with Cloudflare Worker for galine service
+- **Documentation**: Complete test guide in `SCOPE_TOKEN_TEST.md`
+
 ### External Service Credits API (2025-10-03) - ✅ COMPLETED
 - **New Feature**: Cross-service credits management API for external integrations
   - **Endpoint**: `POST /api/account-center/credits/:userId/add`

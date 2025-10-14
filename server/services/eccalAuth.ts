@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
+// JWT_SECRET is REQUIRED - fail fast if not set
+if (!process.env.JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is not set. Cannot generate secure tokens.');
+}
+const JWT_SECRET: string = process.env.JWT_SECRET;
 
 interface UserData {
   id?: string;
