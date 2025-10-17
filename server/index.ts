@@ -1978,7 +1978,18 @@ app.post('/api/sso/verify-token', express.json(), async (req, res) => {
     const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
     
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      // 🔧 FIX: 添加 60 秒時鐘容忍度，解決 Eccal 和 Cloudflare Worker 時間偏差問題
+      const decoded = jwt.verify(token, JWT_SECRET, {
+        clockTolerance: 60  // 允許 60 秒的時鐘偏差
+      }) as any;
+      
+      console.log('✅ JWT 驗證成功:', {
+        userId: decoded.sub,
+        email: decoded.email,
+        iat: new Date(decoded.iat * 1000).toISOString(),
+        exp: new Date(decoded.exp * 1000).toISOString()
+      });
+      
       res.json({ 
         success: true,
         valid: true, 
@@ -1991,10 +2002,16 @@ app.post('/api/sso/verify-token', express.json(), async (req, res) => {
         }
       });
     } catch (jwtError) {
+      console.error('❌ JWT 驗證失敗:', {
+        error: jwtError instanceof Error ? jwtError.message : 'Unknown error',
+        tokenPrefix: token.substring(0, 30) + '...'
+      });
+      
       res.status(401).json({ 
         success: false, 
         valid: false, 
-        error: 'Invalid token' 
+        error: 'Invalid token',
+        details: jwtError instanceof Error ? jwtError.message : 'Unknown error'
       });
     }
     
