@@ -76,6 +76,23 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Documentation Reorganization (2025-10-17) - ✅ COMPLETED
+- **Project Organization**: Reorganized all technical documentation into structured `docs/` folder
+- **New Structure**:
+  - `docs/api/` - API specifications (2 files): Credits API, FABE API
+  - `docs/integration/` - Integration guides (8 files): SSO, GA, FABE, Scope Token, etc.
+  - `docs/guides/` - Operation guides (13 files): Meta App Review, Privacy Policy, Discount System, etc.
+  - `docs/reports/` - System reports (5 files): Health reports, architecture docs, fix reports
+  - `docs/tests/` - Test files (17 files): HTML test pages, diagnostic tools
+  - `docs/archive/` - Archived documents (5 files): Git guides, backup files
+- **Index File**: Created `docs/README.md` with complete file index and quick-find guide
+- **Benefits**: 
+  - Improved navigation and file discovery
+  - Clear categorization by document type
+  - Easier maintenance and updates
+  - Better onboarding for new team members
+- **Root Directory**: Now only contains core files (README.md, replit.md, package.json, config files)
+
 ### SSO JWT Clock Tolerance Fix (2025-10-17) - ✅ COMPLETED
 - **Issue Resolution**: Fixed "exp claim timestamp check failed" error for galine SSO integration
   - **Root Cause**: JWT verification lacked clock tolerance, causing timestamp validation failures when Eccal server and Cloudflare Worker had minor time differences
