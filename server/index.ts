@@ -1607,12 +1607,29 @@ app.get('/api/auth/google-sso/callback', async (req, res) => {
     console.log('生成的 JWT Token:', token);
     console.log('Token 長度:', token.length);
     
-    // 立即驗證生成的 token
+    // 🔧 FIX: 添加時間戳調試日誌，協助排查時鐘偏差問題
+    const decodedForDebug = jwt.decode(token) as any;
+    const serverTime = new Date();
+    console.log('🕒 JWT 時間戳資訊:', {
+      iat: new Date(decodedForDebug.iat * 1000).toISOString(),
+      exp: new Date(decodedForDebug.exp * 1000).toISOString(),
+      serverTime: serverTime.toISOString(),
+      serverTimeUnix: Math.floor(serverTime.getTime() / 1000),
+      validFor: `${(decodedForDebug.exp - decodedForDebug.iat) / 86400} days`,
+      timeDiff: `iat vs now: ${decodedForDebug.iat - Math.floor(serverTime.getTime() / 1000)} seconds`
+    });
+    
+    // 立即驗證生成的 token（添加 clockTolerance）
     try {
-      const verifyResult = jwt.verify(token, JWT_SECRET);
-      console.log('JWT 驗證成功:', verifyResult);
+      const verifyResult = jwt.verify(token, JWT_SECRET, {
+        clockTolerance: 60  // 一致的時鐘容忍度
+      });
+      console.log('✅ JWT 自我驗證成功:', {
+        sub: (verifyResult as any).sub,
+        exp: new Date((verifyResult as any).exp * 1000).toISOString()
+      });
     } catch (verifyError) {
-      console.error('JWT 驗證失敗:', verifyError);
+      console.error('❌ JWT 自我驗證失敗:', verifyError);
     }
     
     // 構建回調 URL
