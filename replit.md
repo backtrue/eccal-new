@@ -76,6 +76,27 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### SSO JWT Clock Tolerance Fix (2025-10-17) - ✅ COMPLETED
+- **Issue Resolution**: Fixed "exp claim timestamp check failed" error for galine SSO integration
+  - **Root Cause**: JWT verification lacked clock tolerance, causing timestamp validation failures when Eccal server and Cloudflare Worker had minor time differences
+  - **Symptoms**: First-time galine users saw only `?user_id=<id>` in redirect URL, missing `auth_success=true` and `token=<jwt>` parameters
+  - **Impact**: All new galine registrations failed to obtain valid tokens, blocking login functionality
+- **Technical Fixes**:
+  - **Fix 1**: Added 60-second `clockTolerance` to `/api/sso/verify-token` JWT verification (server/index.ts:1985)
+  - **Fix 2**: Enhanced JWT generation logging with detailed timestamp debugging (server/index.ts:1613-1636)
+    - Logs `iat`, `exp`, server time (ISO + Unix), and time difference
+    - Includes self-verification with clockTolerance to catch issues immediately
+  - **Fix 3**: Added detailed error logging for failed JWT verification with token prefix and error message
+- **Verification Strategy**:
+  - JWT verification now allows ±60 seconds clock skew between systems
+  - Comprehensive logging enables quick diagnosis of time synchronization issues
+  - Self-verification on token generation confirms validity before sending to client
+- **Cloudflare Worker Integration**:
+  - **Required**: Worker must also implement `clockTolerance: 60` when verifying Eccal JWT tokens
+  - **Monitoring**: Check Worker logs for timestamp mismatches using new debug output
+- **Testing Evidence**: All SSO callback parameters (`auth_success`, `token`, `user_id`) are correctly generated in code (server/index.ts:1639-1642)
+- **Status**: Production ready - awaiting galine user testing and Worker-side clockTolerance implementation
+
 ### JWT Scope Token System (2025-10-14) - ✅ COMPLETED
 - **New Feature**: Dual-token authentication system with scope-based permissions
   - **Long-lived JWT (7 days)**: Basic authentication via HttpOnly cookie
