@@ -8,6 +8,7 @@
 - `quote.thinkwithblack.com`
 - `fabe.thinkwithblack.com`
 - `galine.thinkwithblack.com`
+- `serp.thinkwithblack.com`
 - `sub3.thinkwithblack.com`
 - `sub4.thinkwithblack.com`
 - `sub5.thinkwithblack.com`
@@ -391,6 +392,7 @@ Content-Type: application/json
 - `https://quote.thinkwithblack.com`
 - `https://fabe.thinkwithblack.com`
 - `https://galine.thinkwithblack.com`
+- `https://serp.thinkwithblack.com`
 - `https://sub3.thinkwithblack.com`
 - `https://sub4.thinkwithblack.com`
 - `https://sub5.thinkwithblack.com`
@@ -690,6 +692,7 @@ function LoginPage() {
 
 ## 🔄 版本更新記錄
 
+- **V2.2** (2025-10-19): 新增 serp 子域名支援
 - **V2.1** (2025-01-14): 整合 quote 子服務實際問題解決經驗，新增混合認證架構指南
 - **V2.0** (2025-01-14): 整合兩份文件，修正會員等級欄位問題
 - **V1.2** (2025-01-14): 修復 Google SSO 回調問題
@@ -718,5 +721,5 @@ app.use(cookieParser()); // 必須在認證中間件之前
 
 ---
 
-**最後更新：2025-01-14**  
-**重要修正：整合實際問題解決經驗，完善混合認證架構指南**
+**最後更新：2025-10-19**  
+**重要修正：新增 serp 子域名支援，整合實際問題解決經驗，完善混合認證架構指南**
