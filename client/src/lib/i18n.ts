@@ -985,7 +985,7 @@ const translations: Record<Locale, TranslationData> = {
         intro: 'You might have seen me in a class or read something I wrote in a post, but if I really had to introduce myself, it would be like this:',
         career_path: 'I\'ve been involved in this industry since Facebook advertising first launched, from one-person studios to multinational corporations, from 10,000 budgets to 10-million scale, across almost every industry. Over the years, I\'ve seen too many excellent marketers stuck in the anxiety of "can\'t find anyone to ask" and "don\'t know how to do it."',
         philosophy: 'I often joke that I\'m hard to find and don\'t like replying to messages, so I thought, could there be more "versions of me" to accompany you through those late nights facing reports alone?',
-        philosophy: '"Report Data" is exactly that kind of existence. It\'s not just a tool, it\'s the logical support behind you, the strategy consultant that helps you find breakthroughs and provides recommendations.'
+        vision: '"Report Data" is exactly that kind of existence. It\'s not just a tool, it\'s the logical support behind you, the strategy consultant that helps you find breakthroughs and provides recommendations.'
       },
       company: {
         title: 'Who Are We?',
@@ -1309,7 +1309,7 @@ const translations: Record<Locale, TranslationData> = {
         intro: 'どこかのクラスで私を見たことがあるか、投稿で私の言葉を読んだことがあるかもしれませんが、本当に自己紹介をするなら、こんな感じです：',
         career_path: 'Facebook広告が世に出た時からこの業界に携わり、一人の小さな作業室から多国籍企業まで、1万円の予算から1000万円規模まで、ほぼすべての業界で経験を積んできました。この年月で、「聞ける人がいない」「どうしたらいいかわからない」という不安に陥る多くの優秀なマーケターを見てきました。',
         philosophy: 'よく冗談で、私は見つけにくいし、メッセージの返信も好きではないと言っています。だから、深夜一人でレポートと向き合う時に、もっと多くの「私の分身」があなたに寄り添えないかと考えました。',
-        philosophy: '《レポートデータ》は、まさにそのような存在です。これは単なるツールではなく、あなたの背後にある論理的なサポートであり、突破口を見つけて提案を行う戦略コンサルタントです。'
+        vision: '《レポートデータ》は、まさにそのような存在です。これは単なるツールではなく、あなたの背後にある論理的なサポートであり、突破口を見つけて提案を行う戦略コンサルタントです。'
       },
       company: {
         title: '私たちは誰ですか？',

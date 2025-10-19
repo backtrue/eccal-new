@@ -52,6 +52,7 @@ const ALLOWED_ORIGINS = [
   'https://quote.thinkwithblack.com',
   'https://fabe.thinkwithblack.com',
   'https://galine.thinkwithblack.com',
+  'https://serp.thinkwithblack.com',
   'https://sub3.thinkwithblack.com',
   'https://sub4.thinkwithblack.com',
   'https://sub5.thinkwithblack.com',
