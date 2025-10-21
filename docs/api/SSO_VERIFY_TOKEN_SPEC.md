@@ -8,9 +8,80 @@
 
 ---
 
-## 📋 必需的 Headers
+## ⚠️ 開發前必讀
+
+### Token 從哪裡來？
+
+在調用此 API 之前，你需要先讓用戶完成 Google SSO 登入流程：
+
+```javascript
+// 步驟 1: 引導用戶到 Google 登入
+const returnUrl = encodeURIComponent(window.location.href);
+const serviceName = 'serp'; // 你的子服務名稱
+window.location.href = `https://eccal.thinkwithblack.com/api/auth/google-sso?returnTo=${returnUrl}&service=${serviceName}`;
+
+// 步驟 2: Google 登入完成後，用戶會被重定向回你的網站，URL 會包含 token
+// 範例: https://serp.thinkwithblack.com/?auth_success=true&token=eyJhbGci...&user_id=123
+
+// 步驟 3: 從 URL 取得 token 並儲存
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('auth_success') === 'true') {
+  const token = urlParams.get('token');
+  localStorage.setItem('eccal_auth_token', token);
+  // 清除 URL 參數
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
+
+// 步驟 4: 現在你可以使用此 token 調用驗證 API
+const savedToken = localStorage.getItem('eccal_auth_token');
+// 使用下方的 API 進行驗證...
+```
+
+### 完整整合流程圖
 
 ```
+┌─────────────────┐
+│  用戶點擊登入    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│ 重定向到 Eccal Google SSO            │
+│ /api/auth/google-sso?returnTo=...   │
+└────────┬────────────────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Google 授權頁面  │
+└────────┬────────┘
+         │
+         ▼
+┌──────────────────────────────────────┐
+│ Eccal 處理回調並生成 JWT token        │
+└────────┬─────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────────────┐
+│ 重定向回子服務並附帶 token            │
+│ ?auth_success=true&token=...&user_id=│
+└────────┬─────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────────────┐
+│ 子服務儲存 token 到 localStorage      │
+└────────┬─────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────────────┐
+│ 調用 /api/sso/verify-token 驗證 token │  ← 本文件描述的 API
+└──────────────────────────────────────┘
+```
+
+---
+
+## 📋 必需的 Headers
+
+```http
 Content-Type: application/json
 Origin: https://[your-subdomain].thinkwithblack.com
 ```
@@ -20,6 +91,30 @@ Origin: https://[your-subdomain].thinkwithblack.com
 - ✅ `Origin` 必須是允許清單中的子域名（見下方）
 - ❌ **不需要** `Authorization` header
 - ❌ **不需要** Cookies
+- ⚠️ **瀏覽器會自動發送 OPTIONS 預檢請求**（CORS preflight），伺服器已處理
+
+### CORS 預檢請求（自動處理）
+
+如果你從瀏覽器發送跨域 POST 請求，瀏覽器會先發送一個 OPTIONS 請求：
+
+```http
+OPTIONS /api/sso/verify-token HTTP/1.1
+Host: eccal.thinkwithblack.com
+Origin: https://serp.thinkwithblack.com
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: content-type
+```
+
+**伺服器會返回**:
+```http
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: https://serp.thinkwithblack.com
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Access-Control-Allow-Credentials: true
+```
+
+**你不需要手動處理 OPTIONS 請求** - 瀏覽器和伺服器會自動完成。
 
 ---
 
@@ -275,38 +370,272 @@ if ($user) {
 
 ## 🧪 測試建議
 
-### 基本測試流程
+### 開發環境快速測試
 
-1. **獲取 Token**:
-   - 完成 Google SSO 登入流程
-   - 從回調 URL 取得 token 參數
-   - 儲存到 localStorage
+#### 方法 1: 使用測試 HTML 頁面（最快）
 
-2. **驗證 Token**:
-   - 使用本 API 驗證 token 有效性
-   - 檢查 response 中的 `success` 和 `valid` 欄位
+創建一個測試 HTML 文件：
 
-3. **處理錯誤**:
-   - Token 過期時清除本地儲存
-   - 引導用戶重新登入
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SSO Token 驗證測試</title>
+</head>
+<body>
+  <h1>SSO Token 驗證測試</h1>
+  
+  <div id="step1">
+    <h2>步驟 1: 獲取 Token</h2>
+    <button onclick="startLogin()">開始 Google 登入</button>
+    <p>點擊後會跳轉到 Google 登入，完成後會返回本頁面</p>
+  </div>
+  
+  <div id="step2" style="display:none;">
+    <h2>步驟 2: Token 已獲取</h2>
+    <p>Token: <span id="tokenDisplay"></span></p>
+    <button onclick="verifyToken()">驗證 Token</button>
+  </div>
+  
+  <div id="result"></div>
+  
+  <script>
+    // 步驟 1: 啟動登入
+    function startLogin() {
+      const returnUrl = encodeURIComponent(window.location.href);
+      const serviceName = 'serp'; // 改成你的服務名稱
+      window.location.href = `https://eccal.thinkwithblack.com/api/auth/google-sso?returnTo=${returnUrl}&service=${serviceName}`;
+    }
+    
+    // 檢查是否有回調 token
+    window.addEventListener('DOMContentLoaded', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('auth_success') === 'true') {
+        const token = urlParams.get('token');
+        localStorage.setItem('eccal_auth_token', token);
+        
+        // 顯示 token
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = 'block';
+        document.getElementById('tokenDisplay').textContent = token.substring(0, 50) + '...';
+        
+        // 清除 URL 參數
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (localStorage.getItem('eccal_auth_token')) {
+        // 已有儲存的 token
+        const token = localStorage.getItem('eccal_auth_token');
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = 'block';
+        document.getElementById('tokenDisplay').textContent = token.substring(0, 50) + '...';
+      }
+    });
+    
+    // 步驟 2: 驗證 token
+    async function verifyToken() {
+      const token = localStorage.getItem('eccal_auth_token');
+      const resultDiv = document.getElementById('result');
+      
+      try {
+        resultDiv.innerHTML = '<p>正在驗證...</p>';
+        
+        const response = await fetch('https://eccal.thinkwithblack.com/api/sso/verify-token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Origin': window.location.origin
+          },
+          body: JSON.stringify({ token })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.valid) {
+          resultDiv.innerHTML = `
+            <h3 style="color: green;">✅ Token 驗證成功！</h3>
+            <pre>${JSON.stringify(data.user, null, 2)}</pre>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <h3 style="color: red;">❌ Token 驗證失敗</h3>
+            <p>錯誤: ${data.error}</p>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <h3 style="color: red;">❌ 請求錯誤</h3>
+          <p>${error.message}</p>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
+```
 
-### 測試指令
+#### 方法 2: 瀏覽器 Console 快速測試
 
 ```javascript
-// 在瀏覽器 Console 執行
+// 在瀏覽器 Console 執行 - 完整測試流程
+
+// 檢查是否已有 token
+let token = localStorage.getItem('eccal_auth_token');
+console.log('當前 Token:', token ? token.substring(0, 50) + '...' : '無');
+
+// 如果沒有 token，先登入
+if (!token) {
+  console.log('請先執行登入:');
+  console.log('window.location.href = "https://eccal.thinkwithblack.com/api/auth/google-sso?returnTo=" + encodeURIComponent(window.location.href) + "&service=serp"');
+} else {
+  // 有 token，開始驗證
+  fetch('https://eccal.thinkwithblack.com/api/sso/verify-token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Origin': window.location.origin
+    },
+    body: JSON.stringify({ token })
+  })
+  .then(res => {
+    console.log('HTTP Status:', res.status);
+    return res.json();
+  })
+  .then(data => {
+    console.log('驗證結果:', data);
+    if (data.success && data.valid) {
+      console.log('✅ Token 有效');
+      console.log('用戶資訊:', data.user);
+    } else {
+      console.log('❌ Token 無效:', data.error);
+    }
+  })
+  .catch(err => console.error('❌ 請求錯誤:', err));
+}
+```
+
+### 常見問題排查
+
+#### 問題 1: CORS 錯誤 - "Access-Control-Allow-Origin"
+
+**錯誤訊息**:
+```
+Access to fetch at 'https://eccal.thinkwithblack.com/api/sso/verify-token' from origin 'https://serp.thinkwithblack.com' has been blocked by CORS policy
+```
+
+**檢查清單**:
+- ✅ 確認你的域名在允許清單中（見上方「允許的 Origin 域名」）
+- ✅ 確認 `Origin` header 正確設置
+- ✅ 檢查是否使用 HTTPS（生產環境必須用 HTTPS）
+- ✅ 開發環境使用 `http://localhost:3000` 或 `http://localhost:5000`
+
+**解決方案**:
+```javascript
+// ✅ 正確 - 使用 window.location.origin
+headers: {
+  'Content-Type': 'application/json',
+  'Origin': window.location.origin  // 自動使用當前域名
+}
+
+// ❌ 錯誤 - 不要硬編碼 Origin
+headers: {
+  'Content-Type': 'application/json',
+  'Origin': 'https://wrong-domain.com'  // 不在允許清單中
+}
+```
+
+#### 問題 2: Token 格式錯誤
+
+**錯誤訊息**:
+```json
+{
+  "success": false,
+  "error": "Invalid token format - JWT should have 3 parts separated by dots"
+}
+```
+
+**檢查清單**:
+- ✅ Token 是完整的字串（不是截斷的）
+- ✅ Token 包含三個部分，用 `.` 分隔
+- ✅ 沒有額外的空格或換行符
+
+**檢查方法**:
+```javascript
 const token = localStorage.getItem('eccal_auth_token');
+console.log('Token 長度:', token.length);
+console.log('Token 部分數:', token.split('.').length);  // 應該是 3
+console.log('Token 預覽:', token.substring(0, 100));
+```
+
+#### 問題 3: Token 過期
+
+**錯誤訊息**:
+```json
+{
+  "success": false,
+  "valid": false,
+  "error": "Invalid token",
+  "details": "jwt expired"
+}
+```
+
+**解決方案**:
+```javascript
+// 清除舊 token 並重新登入
+localStorage.removeItem('eccal_auth_token');
+const returnUrl = encodeURIComponent(window.location.href);
+window.location.href = `https://eccal.thinkwithblack.com/api/auth/google-sso?returnTo=${returnUrl}&service=serp`;
+```
+
+#### 問題 4: 網路請求失敗
+
+**錯誤訊息**:
+```
+TypeError: Failed to fetch
+```
+
+**檢查清單**:
+- ✅ 確認網路連線正常
+- ✅ 確認 API 端點 URL 正確（`https://eccal.thinkwithblack.com/api/sso/verify-token`）
+- ✅ 檢查瀏覽器 Network 面板查看實際請求
+
+**調試方法**:
+```javascript
+// 開啟瀏覽器開發者工具 > Network 面板
+// 然後執行以下代碼，觀察請求詳情
+
 fetch('https://eccal.thinkwithblack.com/api/sso/verify-token', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
     'Origin': window.location.origin
   },
-  body: JSON.stringify({ token })
+  body: JSON.stringify({ 
+    token: localStorage.getItem('eccal_auth_token') 
+  })
 })
-.then(res => res.json())
-.then(data => console.log('驗證結果:', data))
-.catch(err => console.error('錯誤:', err));
+.then(res => {
+  console.log('Response Status:', res.status);
+  console.log('Response Headers:', [...res.headers.entries()]);
+  return res.json();
+})
+.then(data => console.log('Response Data:', data))
+.catch(err => {
+  console.error('Error Type:', err.constructor.name);
+  console.error('Error Message:', err.message);
+  console.error('Full Error:', err);
+});
 ```
+
+### 生產環境檢查清單
+
+在部署到生產環境前，請確認：
+
+- [ ] 子服務域名已加入允許清單（聯繫 Eccal 團隊）
+- [ ] 使用 HTTPS（不是 HTTP）
+- [ ] Token 正確儲存在 localStorage
+- [ ] 錯誤處理已實現（token 過期自動重新登入）
+- [ ] CORS headers 正確設置
+- [ ] 已測試完整登入→驗證流程
 
 ---
 
