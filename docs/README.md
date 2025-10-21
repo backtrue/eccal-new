@@ -16,13 +16,20 @@ API 規格、端點說明和使用範例
 ### `/integration` - 整合指南
 系統整合、SSO、第三方服務串接指南
 
-- **GALINE_SSO_FIX_GUIDE.md** - galine SSO JWT 時鐘容忍度修復指南
-- **ECCAL_FABE_CROSS_PLATFORM_GUIDE.md** - Eccal-FABE 跨平台整合指南
+**🌟 推薦閱讀（按順序）**：
+1. **SSO_INTEGRATION_DECISION_GUIDE.md** - 📌 整合方案決策指南（先看這個！）
+2. **ECCAL_SSO_ZERO_CONFIG_GUIDE.md** - ⭐ 零配置 SSO 整合（5 分鐘完成，推薦 95% 情況）
+
+**進階/特殊需求**：
+- **INTEGRATED_SSO_GUIDE.md** - 統一 SSO 認證整合指南（完整技術文檔）
 - **ECCAL_SSO_ADVANCED_FEATURES_2025.md** - SSO 進階功能文件
-- **FOOTER_INTEGRATION_GUIDE.md** - Footer 元件整合指南
-- **GA_AUTHORIZATION_INTEGRATION_GUIDE.md** - Google Analytics 授權整合
-- **INTEGRATED_SSO_GUIDE.md** - 統一 SSO 認證整合指南
 - **SCOPE_TOKEN_TEST.md** - JWT Scope Token 測試文件
+
+**特定服務整合**：
+- **ECCAL_FABE_CROSS_PLATFORM_GUIDE.md** - Eccal-FABE 跨平台整合指南
+- **GALINE_SSO_FIX_GUIDE.md** - galine SSO JWT 時鐘容忍度修復指南
+- **GA_AUTHORIZATION_INTEGRATION_GUIDE.md** - Google Analytics 授權整合
+- **FOOTER_INTEGRATION_GUIDE.md** - Footer 元件整合指南
 - **PRIVACY_POLICY_INTEGRATION_TEST.md** - 隱私政策整合測試
 
 ### `/guides` - 操作指南
@@ -53,8 +60,14 @@ API 規格、端點說明和使用範例
 ### `/tests` - 測試文件
 測試 HTML 頁面、診斷工具
 
-- **SERP_SSO_DIAGNOSTIC_GUIDE.md** - SERP SSO 整合診斷指南（完整排查步驟）⭐ 
-- **ECCAL_SSO_ENDPOINT_TEST_REPORT.md** - ECCAL SSO 端點測試報告（證明無 301 重定向）⭐ 新增
+**🌟 推薦測試頁面**：
+- **sso-sdk-test.html** - ⭐ SSO SDK 互動測試頁面（可直接使用）
+
+**診斷工具**：
+- **SERP_SSO_DIAGNOSTIC_GUIDE.md** - SERP SSO 整合診斷指南（完整排查步驟）
+- **ECCAL_SSO_ENDPOINT_TEST_REPORT.md** - ECCAL SSO 端點測試報告（證明無 301 重定向）
+
+**其他測試頁面**：
 - **test-*.html** - 各種功能測試頁面
 - **emergency-diagnosis.html** - 緊急診斷工具
 - **debug-failing-users.html** - 用戶登入問題調試
@@ -73,9 +86,11 @@ API 規格、端點說明和使用範例
 
 ### 我想要...
 
-#### 串接外部服務
-→ 查看 `/integration/INTEGRATED_SSO_GUIDE.md`  
-→ 查看 `/integration/GALINE_SSO_FIX_GUIDE.md`
+#### 串接外部服務（SSO 整合）
+→ 🌟 **第一次整合？先看這個** `/integration/SSO_INTEGRATION_DECISION_GUIDE.md`  
+→ ⭐ **快速開始（推薦）** `/integration/ECCAL_SSO_ZERO_CONFIG_GUIDE.md`  
+→ 📄 **完整技術文檔** `/integration/INTEGRATED_SSO_GUIDE.md`  
+→ 🧪 **互動測試頁面** `/tests/sso-sdk-test.html`
 
 #### 使用 API
 → 查看 `/api/CREDITS_API.md`  
@@ -118,18 +133,43 @@ API 規格、端點說明和使用範例
 
 ---
 
-## 🆕 最新更新（2025-10-19）
+## 🆕 最新更新（2025-10-21）⭐ 重大更新
 
-- ✅ 新增 **SERP_SSO_DIAGNOSTIC_GUIDE.md** - SERP 團隊 SSO 整合診斷指南
-  - 完整診斷步驟（4 步驟排查法）
-  - 前端/後端修復方案（Node.js, Python 範例）
-  - 自動診斷腳本（一鍵檢測問題）
-  - 針對 401 Unauthorized 錯誤的完整解決方案
-- ✅ 新增 **SSO_VERIFY_TOKEN_SPEC.md** - `/api/sso/verify-token` 完整技術規格
-  - 明確說明必需的 headers 和 cookies
-  - 提供 JavaScript, cURL, Python, PHP 完整程式碼範例
-  - 詳細錯誤響應和處理建議
-- ✅ 更新 **INTEGRATED_SSO_GUIDE.md** - 新增 serp 子域名支援和 API 快速參考
+### 🎯 **徹底解決 SSO 整合困難問題**
+
+**問題**：子服務整合 SSO 經常需要修改十幾二十次才成功  
+**原因**：文檔過於複雜，缺乏開箱即用的方案  
+**解決**：推出零配置 SDK 方案 + 決策指南
+
+- ✅ 新增 **SSO_INTEGRATION_DECISION_GUIDE.md** - 整合方案決策指南
+  - 30 秒決策樹：選擇最適合的整合方案
+  - 3 種方案比較（SDK / SDK+後端 / 手動整合）
+  - 常見情境決策（SaaS、靜態網站、內容平台等）
+  - 推薦閱讀順序指引
+
+- ✅ 新增 **ECCAL_SSO_ZERO_CONFIG_GUIDE.md** - 零配置快速整合（推薦 95% 情況）
+  - 🚀 **3 步驟 5 分鐘完成整合**（不需要理解 JWT/CORS/API）
+  - 📄 完整 HTML 範例（可直接複製使用）
+  - ⚛️ React/Vue 整合範例
+  - 🎯 95% 情況下不需要後端
+  - ✅ 使用現有的 `eccal-auth-sdk.js`（之前被忽略）
+
+- ✅ 新增 **sso-sdk-test.html** - 互動測試頁面
+  - 美觀的測試介面
+  - 即時事件日誌
+  - 測試所有 SDK 功能
+  - 可直接部署使用
+
+- ✅ 新增 **ECCAL_SSO_ENDPOINT_TEST_REPORT.md** - 端點測試報告
+  - 證明 eccal 端點無 301 重定向問題
+  - 完整測試過程和結果
+  - 診斷建議和錯誤排查
+
+### 📋 舊文檔（仍然可用）
+
+- ✅ **SERP_SSO_DIAGNOSTIC_GUIDE.md** - SERP 團隊診斷指南（針對後端整合問題）
+- ✅ **SSO_VERIFY_TOKEN_SPEC.md** - API 技術規格（給需要手動整合的團隊）
+- ✅ **INTEGRATED_SSO_GUIDE.md** - 統一 SSO 認證整合指南（完整技術文檔）
 
 ---
 

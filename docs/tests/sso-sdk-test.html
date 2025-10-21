@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECCAL SSO SDK 測試頁面</title>
+  
+  <!-- 引入 ECCAL Auth SDK -->
+  <script src="https://eccal.thinkwithblack.com/eccal-auth-sdk.js"></script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      max-width: 600px;
+      width: 100%;
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    
+    .content {
+      padding: 30px;
+    }
+    
+    .section {
+      margin-bottom: 25px;
+    }
+    
+    .section h2 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    
+    button {
+      width: 100%;
+      padding: 14px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      background: #357ae8;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button.secondary {
+      background: #f5f5f5;
+      color: #333;
+    }
+    
+    button.secondary:hover {
+      background: #e0e0e0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    button.danger {
+      background: #dc3545;
+    }
+    
+    button.danger:hover {
+      background: #c82333;
+      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    }
+    
+    .user-info {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .user-info p {
+      margin: 8px 0;
+      color: #555;
+      font-size: 14px;
+    }
+    
+    .user-info strong {
+      color: #333;
+      min-width: 100px;
+      display: inline-block;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .badge.pro {
+      background: #ffd700;
+      color: #333;
+    }
+    
+    .badge.free {
+      background: #e0e0e0;
+      color: #666;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .log-section {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    
+    .log-entry {
+      margin: 4px 0;
+      padding: 4px 0;
+      border-bottom: 1px solid #333;
+    }
+    
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+    
+    .log-time {
+      color: #858585;
+      margin-right: 8px;
+    }
+    
+    .log-success {
+      color: #4ec9b0;
+    }
+    
+    .log-error {
+      color: #f48771;
+    }
+    
+    .log-info {
+      color: #569cd6;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .status-online {
+      background: #28a745;
+    }
+    
+    .status-offline {
+      background: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔐 ECCAL SSO SDK 測試</h1>
+      <p>這個頁面示範如何使用 ECCAL Auth SDK 進行 SSO 整合</p>
+    </div>
+    
+    <div class="content">
+      <!-- 未登入時顯示 -->
+      <div id="login-section">
+        <div class="section">
+          <h2>👤 用戶登入</h2>
+          <p style="color: #666; margin-bottom: 15px;">
+            點擊下方按鈕，使用 Google 帳號登入
+          </p>
+          <button onclick="handleLogin()">
+            🔐 使用 Google 登入
+          </button>
+        </div>
+        
+        <div class="section">
+          <h2>📋 測試資訊</h2>
+          <div class="user-info">
+            <p><strong>狀態：</strong><span class="status-indicator status-offline"></span>未登入</p>
+            <p><strong>SDK 版本：</strong>1.0.0</p>
+            <p><strong>API 端點：</strong>eccal.thinkwithblack.com</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 登入後顯示 -->
+      <div id="user-section" class="hidden">
+        <div class="section">
+          <h2>✅ 登入成功！</h2>
+          <div class="user-info">
+            <p><strong>狀態：</strong><span class="status-indicator status-online"></span>已登入</p>
+            <p><strong>姓名：</strong><span id="user-name"></span></p>
+            <p><strong>Email：</strong><span id="user-email"></span></p>
+            <p><strong>用戶 ID：</strong><span id="user-id"></span></p>
+            <p>
+              <strong>會員等級：</strong>
+              <span id="user-membership-badge"></span>
+            </p>
+            <p><strong>點數餘額：</strong><span id="user-credits"></span></p>
+          </div>
+        </div>
+        
+        <div class="section">
+          <h2>🔧 測試功能</h2>
+          <button class="secondary" onclick="testGetUser()">
+            📋 取得用戶資訊
+          </button>
+          <button class="secondary" onclick="testCheckAuth()">
+            🔍 檢查認證狀態
+          </button>
+          <button class="secondary" onclick="testGetToken()">
+            🎫 查看 Token
+          </button>
+          <button class="danger" onclick="handleLogout()">
+            🚪 登出
+          </button>
+        </div>
+      </div>
+      
+      <!-- 事件日誌 -->
+      <div class="section">
+        <h2>📊 事件日誌</h2>
+        <div class="log-section" id="log-container">
+          <div class="log-entry">
+            <span class="log-time">[載入中...]</span>
+            <span class="log-info">等待 SDK 初始化...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // 日誌系統
+    const logContainer = document.getElementById('log-container');
+    
+    function log(message, type = 'info') {
+      const time = new Date().toLocaleTimeString('zh-TW');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `
+        <span class="log-time">[${time}]</span>
+        <span class="log-${type}">${message}</span>
+      `;
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+      
+      // 同時輸出到 console
+      console.log(`[${time}] ${message}`);
+    }
+    
+    // 初始化 SDK
+    log('🚀 開始初始化 ECCAL Auth SDK...', 'info');
+    
+    const eccalAuth = new EccalAuth({
+      siteName: 'test',  // 測試服務名稱
+      
+      onLogin: (user) => {
+        log(`✅ 用戶登入成功: ${user.email}`, 'success');
+        updateUI(user);
+      },
+      
+      onLogout: () => {
+        log('👋 用戶已登出', 'info');
+        showLoginSection();
+      },
+      
+      onError: (error) => {
+        log(`❌ 發生錯誤: ${error.message}`, 'error');
+        alert('發生錯誤：' + error.message);
+      }
+    });
+    
+    log('✅ SDK 初始化完成', 'success');
+    
+    // 登入處理
+    function handleLogin() {
+      log('🔐 開始 Google SSO 登入流程...', 'info');
+      eccalAuth.login();
+    }
+    
+    // 登出處理
+    function handleLogout() {
+      if (confirm('確定要登出嗎？')) {
+        log('🚪 執行登出...', 'info');
+        eccalAuth.logout();
+      }
+    }
+    
+    // 更新 UI
+    function updateUI(user) {
+      document.getElementById('login-section').classList.add('hidden');
+      document.getElementById('user-section').classList.remove('hidden');
+      
+      document.getElementById('user-name').textContent = user.name || '未提供';
+      document.getElementById('user-email').textContent = user.email;
+      document.getElementById('user-id').textContent = user.id;
+      document.getElementById('user-credits').textContent = user.credits || 0;
+      
+      // 會員等級徽章
+      const membership = user.membership || 'free';
+      const badgeClass = membership === 'pro' ? 'pro' : 'free';
+      const badgeText = membership === 'pro' ? 'PRO' : 'FREE';
+      document.getElementById('user-membership-badge').innerHTML = 
+        `<span class="badge ${badgeClass}">${badgeText}</span>`;
+      
+      log(`📊 UI 更新完成`, 'success');
+    }
+    
+    // 顯示登入區段
+    function showLoginSection() {
+      document.getElementById('login-section').classList.remove('hidden');
+      document.getElementById('user-section').classList.add('hidden');
+    }
+    
+    // 測試功能：取得用戶資訊
+    function testGetUser() {
+      log('🔍 執行: getUser()', 'info');
+      const user = eccalAuth.getUser();
+      log(`📋 用戶資訊: ${JSON.stringify(user)}`, 'success');
+      alert('用戶資訊（請查看 Console）:\n' + JSON.stringify(user, null, 2));
+    }
+    
+    // 測試功能：檢查認證狀態
+    async function testCheckAuth() {
+      log('🔍 執行: checkAuth()', 'info');
+      const user = await eccalAuth.checkAuth();
+      if (user) {
+        log(`✅ 認證有效，用戶: ${user.email}`, 'success');
+        alert('認證有效！\n' + JSON.stringify(user, null, 2));
+      } else {
+        log('⚠️ 認證無效或已過期', 'error');
+        alert('認證無效或已過期');
+      }
+    }
+    
+    // 測試功能：取得 Token
+    function testGetToken() {
+      log('🔍 執行: getToken()', 'info');
+      const token = eccalAuth.getToken();
+      if (token) {
+        log(`🎫 Token (前50字元): ${token.substring(0, 50)}...`, 'success');
+        alert('Token（請查看 Console）:\n' + token);
+        console.log('完整 Token:', token);
+      } else {
+        log('⚠️ 沒有 Token', 'error');
+        alert('沒有 Token');
+      }
+    }
+    
+    // 頁面載入時檢查登入狀態
+    window.addEventListener('load', async () => {
+      log('🔄 檢查登入狀態...', 'info');
+      
+      const user = await eccalAuth.checkAuth();
+      if (user) {
+        log(`✅ 偵測到已登入用戶: ${user.email}`, 'success');
+        updateUI(user);
+      } else {
+        log('ℹ️ 用戶未登入', 'info');
+        showLoginSection();
+      }
+    });
+    
+    // 捕捉全域錯誤
+    window.addEventListener('error', (event) => {
+      log(`❌ 全域錯誤: ${event.message}`, 'error');
+    });
+  </script>
+</body>
+</html>
