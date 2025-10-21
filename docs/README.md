@@ -11,6 +11,7 @@ API 規格、端點說明和使用範例
 
 - **CREDITS_API.md** - 跨服務點數管理 API 文件
 - **FABE_API_SPEC.md** - FABE 平台整合 API 規格
+- **SSO_VERIFY_TOKEN_SPEC.md** - SSO Token 驗證 API 完整規格（含 headers/cookies 詳細說明）⭐ 推薦
 
 ### `/integration` - 整合指南
 系統整合、SSO、第三方服務串接指南
@@ -76,11 +77,14 @@ API 規格、端點說明和使用範例
 
 #### 使用 API
 → 查看 `/api/CREDITS_API.md`  
-→ 查看 `/api/FABE_API_SPEC.md`
+→ 查看 `/api/FABE_API_SPEC.md`  
+→ 查看 `/api/SSO_VERIFY_TOKEN_SPEC.md` ⭐ **Token 驗證 API 完整規格**
 
 #### 解決 SSO 問題
-→ 查看 `/integration/GALINE_SSO_FIX_GUIDE.md`  
-→ 查看 `/integration/ECCAL_SSO_ADVANCED_FEATURES_2025.md`
+→ 查看 `/integration/INTEGRATED_SSO_GUIDE.md` - 完整整合指南  
+→ 查看 `/api/SSO_VERIFY_TOKEN_SPEC.md` ⭐ **API 技術規格（headers/cookies/錯誤處理）**  
+→ 查看 `/integration/GALINE_SSO_FIX_GUIDE.md` - 時鐘容忍度修復  
+→ 查看 `/integration/ECCAL_SSO_ADVANCED_FEATURES_2025.md` - 進階功能
 
 #### 查看系統架構
 → 查看 `/reports/META-DASHBOARD-ARCHITECTURE.md`  
@@ -112,5 +116,15 @@ API 規格、端點說明和使用範例
 
 ---
 
-**最後更新**：2025-10-17  
+## 🆕 最新更新（2025-10-19）
+
+- ✅ 新增 **SSO_VERIFY_TOKEN_SPEC.md** - `/api/sso/verify-token` 完整技術規格
+  - 明確說明必需的 headers 和 cookies
+  - 提供 JavaScript, cURL, Python, PHP 完整程式碼範例
+  - 詳細錯誤響應和處理建議
+- ✅ 更新 **INTEGRATED_SSO_GUIDE.md** - 新增 serp 子域名支援和 API 快速參考
+
+---
+
+**最後更新**：2025-10-19  
 **維護者**：Eccal 技術團隊

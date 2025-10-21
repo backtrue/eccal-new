@@ -335,22 +335,67 @@ window.addEventListener('storage', (e) => {
 
 ## 📋 API 端點詳細說明
 
+### ⚡ 快速參考：必備技術規格
+
+| 項目 | `/api/sso/verify-token` | `/api/account-center/user/:userId` | `/api/account-center/credits/:userId/deduct` |
+|------|-------------------------|-------------------------------------|----------------------------------------------|
+| **HTTP Method** | POST | GET | POST |
+| **Content-Type** | `application/json` | N/A | `application/json` |
+| **Origin Header** | ✅ 必需 | ✅ 必需 | ✅ 必需 |
+| **需要 Cookies?** | ❌ 否 | ❌ 否 | ❌ 否 |
+| **Body/Query** | `{ "token": "..." }` | URL 參數: `:userId` | `{ "amount": 1, "reason": "...", "service": "..." }` |
+
 ### 1. Google SSO 登入
 ```
 GET /api/auth/google-sso?returnTo={子服務URL}&service={服務名稱}
 ```
 
 ### 2. Token 驗證
-```
-POST /api/sso/verify-token
-Content-Type: application/json
 
+**端點**: `POST /api/sso/verify-token`
+
+**必需的 Headers**:
+```
+Content-Type: application/json
+Origin: https://[your-subdomain].thinkwithblack.com
+```
+
+**必需的 Body**:
+```json
 {
-  "token": "your_jwt_token_here"
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
-**響應格式**：
+**不需要 Cookies** - 此端點通過 request body 傳遞 token，不使用 cookies
+
+**完整請求範例（JavaScript fetch）**:
+```javascript
+const response = await fetch('https://eccal.thinkwithblack.com/api/sso/verify-token', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Origin': window.location.origin  // 必需：子服務的域名
+  },
+  body: JSON.stringify({
+    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'  // 必需：JWT token 字串
+  })
+});
+
+const data = await response.json();
+```
+
+**完整請求範例（cURL）**:
+```bash
+curl -X POST https://eccal.thinkwithblack.com/api/sso/verify-token \
+  -H "Content-Type: application/json" \
+  -H "Origin: https://serp.thinkwithblack.com" \
+  -d '{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }'
+```
+
+**成功響應**（HTTP 200）:
 ```json
 {
   "success": true,
@@ -359,11 +404,48 @@ Content-Type: application/json
     "id": "user_id",
     "email": "user@example.com",
     "name": "User Name",
-    "membership": "pro", // 或 "free"
+    "membership": "pro",
     "credits": 30
   }
 }
 ```
+
+**錯誤響應**（HTTP 400 - Token 缺失）:
+```json
+{
+  "success": false,
+  "error": "Token is required"
+}
+```
+
+**錯誤響應**（HTTP 400 - Token 格式錯誤）:
+```json
+{
+  "success": false,
+  "error": "Invalid token format - JWT should have 3 parts separated by dots",
+  "debug": {
+    "tokenType": "string",
+    "parts": 2,
+    "expected": 3
+  }
+}
+```
+
+**錯誤響應**（HTTP 401 - Token 無效/過期）:
+```json
+{
+  "success": false,
+  "valid": false,
+  "error": "Invalid token",
+  "details": "jwt expired"
+}
+```
+
+**重要技術細節**:
+- ✅ **JWT 格式驗證**: Token 必須是標準 JWT 格式（header.payload.signature，三個部分用 `.` 分隔）
+- ✅ **時鐘容忍度**: 伺服器設定 60 秒 `clockTolerance`，允許 ±60 秒的時間偏差
+- ✅ **CORS 檢查**: Origin header 必須在允許清單中，否則請求會被拒絕
+- ✅ **Token 位置**: Token 必須在 request body 中，不支援 Authorization header
 
 ### 3. 用戶資料查詢
 ```
@@ -692,6 +774,12 @@ function LoginPage() {
 
 ## 🔄 版本更新記錄
 
+- **V2.3** (2025-10-19): 重大更新 - 新增詳細 API 規格說明，包含完整的 headers/cookies 要求
+  - ✅ 新增 `/api/sso/verify-token` 完整技術規格
+  - ✅ 提供 JavaScript, cURL, Python, PHP 程式碼範例
+  - ✅ 明確說明必需的 headers、不需要 cookies
+  - ✅ 新增錯誤響應說明和處理建議
+  - ✅ 建立獨立 API 規格文件（`SSO_VERIFY_TOKEN_SPEC.md`）
 - **V2.2** (2025-10-19): 新增 serp 子域名支援
 - **V2.1** (2025-01-14): 整合 quote 子服務實際問題解決經驗，新增混合認證架構指南
 - **V2.0** (2025-01-14): 整合兩份文件，修正會員等級欄位問題
@@ -722,4 +810,8 @@ app.use(cookieParser()); // 必須在認證中間件之前
 ---
 
 **最後更新：2025-10-19**  
-**重要修正：新增 serp 子域名支援，整合實際問題解決經驗，完善混合認證架構指南**
+**重要修正：新增 serp 子域名支援，完整 API 技術規格說明（headers/cookies/錯誤處理），整合實際問題解決經驗，完善混合認證架構指南**
+
+**📌 開發團隊快速參考**:
+- 需要快速查閱 `/api/sso/verify-token` 規格？請參考 [`docs/api/SSO_VERIFY_TOKEN_SPEC.md`](../api/SSO_VERIFY_TOKEN_SPEC.md)
+- 包含完整的 headers 要求、程式碼範例、錯誤處理指南
