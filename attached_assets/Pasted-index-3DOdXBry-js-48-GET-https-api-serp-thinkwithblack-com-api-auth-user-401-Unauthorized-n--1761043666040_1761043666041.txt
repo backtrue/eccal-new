@@ -1,0 +1,103 @@
+index-3DOdXBry.js:48   GET https://api.serp.thinkwithblack.com/api/auth/user 401 (Unauthorized)
+$n @ index-3DOdXBry.js:48
+queryFn @ index-3DOdXBry.js:238
+o @ index-3DOdXBry.js:48
+v @ index-3DOdXBry.js:48
+start @ index-3DOdXBry.js:48
+fetch @ index-3DOdXBry.js:48
+ll @ index-3DOdXBry.js:48
+onSubscribe @ index-3DOdXBry.js:48
+subscribe @ index-3DOdXBry.js:48
+(匿名) @ index-3DOdXBry.js:48
+RA @ index-3DOdXBry.js:38
+Kd @ index-3DOdXBry.js:40
+ha @ index-3DOdXBry.js:40
+aw @ index-3DOdXBry.js:40
+Ti @ index-3DOdXBry.js:38
+ER @ index-3DOdXBry.js:40
+Wi @ index-3DOdXBry.js:40
+p_ @ index-3DOdXBry.js:40
+w @ index-3DOdXBry.js:25
+T @ index-3DOdXBry.js:25
+index-3DOdXBry.js:48 擷取 無法載入:GET "https://api.serp.thinkwithblack.com/api/auth/user"。
+$n @ index-3DOdXBry.js:48
+queryFn @ index-3DOdXBry.js:238
+o @ index-3DOdXBry.js:48
+v @ index-3DOdXBry.js:48
+start @ index-3DOdXBry.js:48
+fetch @ index-3DOdXBry.js:48
+ll @ index-3DOdXBry.js:48
+onSubscribe @ index-3DOdXBry.js:48
+subscribe @ index-3DOdXBry.js:48
+(匿名) @ index-3DOdXBry.js:48
+RA @ index-3DOdXBry.js:38
+Kd @ index-3DOdXBry.js:40
+ha @ index-3DOdXBry.js:40
+aw @ index-3DOdXBry.js:40
+Ti @ index-3DOdXBry.js:38
+ER @ index-3DOdXBry.js:40
+Wi @ index-3DOdXBry.js:40
+p_ @ index-3DOdXBry.js:40
+w @ index-3DOdXBry.js:25
+T @ index-3DOdXBry.js:25
+contentScript.bundle.js:6 🚧 👷 key 'required_field_warning' not found in localizedStrings for language zh 🚧
+contentScript.bundle.js:6 🚧 👷 key 'required_field_warning' not found in localizedStrings for language zh 🚧
+multi-tabs.js:2 擷取 已完成載入:GET "chrome-extension://lknmjhcajhfbbglglccadlfdjbaiifig/content-scripts/multi-tabs.css"。
+Jv @ multi-tabs.js:2
+kv @ multi-tabs.js:1
+main @ multi-tabs.js:5075
+await in main
+(匿名) @ multi-tabs.js:5075
+(匿名) @ multi-tabs.js:5075
+(匿名) @ multi-tabs.js:5075
+multi-tabs.js:5075 Injected CSS loaded successfully
+vcd15cbe7772f49c399c6a5babf22c1241717689176015:1 XHR 已完成載入:POST "https://serp.thinkwithblack.com/cdn-cgi/rum?"。
+t.sendObjectBeacon @ vcd15cbe7772f49c399c6a5babf22c1241717689176015:1
+P @ vcd15cbe7772f49c399c6a5babf22c1241717689176015:1
+R @ vcd15cbe7772f49c399c6a5babf22c1241717689176015:1
+setTimeout
+(匿名) @ vcd15cbe7772f49c399c6a5babf22c1241717689176015:1
+index-3DOdXBry.js:48   POST https://api.serp.thinkwithblack.com/api/auth/login 401 (Unauthorized)
+$n @ index-3DOdXBry.js:48
+JI @ index-3DOdXBry.js:48
+eD @ index-3DOdXBry.js:48
+(匿名) @ index-3DOdXBry.js:359
+Kd @ index-3DOdXBry.js:40
+ha @ index-3DOdXBry.js:40
+aw @ index-3DOdXBry.js:40
+Ti @ index-3DOdXBry.js:38
+ER @ index-3DOdXBry.js:40
+Wi @ index-3DOdXBry.js:40
+p_ @ index-3DOdXBry.js:40
+w @ index-3DOdXBry.js:25
+T @ index-3DOdXBry.js:25
+index-3DOdXBry.js:48  processAuthCallback error Error: 401: {"message":"Authentication failed"}
+    at $n (index-3DOdXBry.js:48:43494)
+    at async JI (index-3DOdXBry.js:48:43928)
+    at async eD (index-3DOdXBry.js:48:44496)
+eD @ index-3DOdXBry.js:48
+await in eD
+(匿名) @ index-3DOdXBry.js:359
+Kd @ index-3DOdXBry.js:40
+ha @ index-3DOdXBry.js:40
+aw @ index-3DOdXBry.js:40
+Ti @ index-3DOdXBry.js:38
+ER @ index-3DOdXBry.js:40
+Wi @ index-3DOdXBry.js:40
+p_ @ index-3DOdXBry.js:40
+w @ index-3DOdXBry.js:25
+T @ index-3DOdXBry.js:25
+index-3DOdXBry.js:48 擷取 無法載入:POST "https://api.serp.thinkwithblack.com/api/auth/login"。
+$n @ index-3DOdXBry.js:48
+JI @ index-3DOdXBry.js:48
+eD @ index-3DOdXBry.js:48
+(匿名) @ index-3DOdXBry.js:359
+Kd @ index-3DOdXBry.js:40
+ha @ index-3DOdXBry.js:40
+aw @ index-3DOdXBry.js:40
+Ti @ index-3DOdXBry.js:38
+ER @ index-3DOdXBry.js:40
+Wi @ index-3DOdXBry.js:40
+p_ @ index-3DOdXBry.js:40
+w @ index-3DOdXBry.js:25
+T @ index-3DOdXBry.js:25

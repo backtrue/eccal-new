@@ -53,6 +53,7 @@ API 規格、端點說明和使用範例
 ### `/tests` - 測試文件
 測試 HTML 頁面、診斷工具
 
+- **SERP_SSO_DIAGNOSTIC_GUIDE.md** - SERP SSO 整合診斷指南（完整排查步驟）⭐ 新增
 - **test-*.html** - 各種功能測試頁面
 - **emergency-diagnosis.html** - 緊急診斷工具
 - **debug-failing-users.html** - 用戶登入問題調試
@@ -118,6 +119,11 @@ API 規格、端點說明和使用範例
 
 ## 🆕 最新更新（2025-10-19）
 
+- ✅ 新增 **SERP_SSO_DIAGNOSTIC_GUIDE.md** - SERP 團隊 SSO 整合診斷指南
+  - 完整診斷步驟（4 步驟排查法）
+  - 前端/後端修復方案（Node.js, Python 範例）
+  - 自動診斷腳本（一鍵檢測問題）
+  - 針對 401 Unauthorized 錯誤的完整解決方案
 - ✅ 新增 **SSO_VERIFY_TOKEN_SPEC.md** - `/api/sso/verify-token` 完整技術規格
   - 明確說明必需的 headers 和 cookies
   - 提供 JavaScript, cURL, Python, PHP 完整程式碼範例
