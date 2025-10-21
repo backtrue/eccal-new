@@ -27,7 +27,6 @@ API 規格、端點說明和使用範例
 
 **特定服務整合**：
 - **ECCAL_FABE_CROSS_PLATFORM_GUIDE.md** - Eccal-FABE 跨平台整合指南
-- **GALINE_SSO_FIX_GUIDE.md** - galine SSO JWT 時鐘容忍度修復指南
 - **GA_AUTHORIZATION_INTEGRATION_GUIDE.md** - Google Analytics 授權整合
 - **FOOTER_INTEGRATION_GUIDE.md** - Footer 元件整合指南
 - **PRIVACY_POLICY_INTEGRATION_TEST.md** - 隱私政策整合測試
@@ -35,18 +34,23 @@ API 規格、端點說明和使用範例
 ### `/guides` - 操作指南
 功能說明、使用手冊、系統設計文件
 
+**Meta 相關**：
 - **META_APP_REVIEW_E2E_GUIDE.md** - Meta App 審核端到端指南
 - **META_APP_REVIEW_RESPONSE.md** - Meta App 審核回覆範本
+
+**系統設計**：
+- **UNIFIED_DISCOUNT_SYSTEM_DESIGN.md** - 統一折扣系統設計
+- **UNIFIED_DISCOUNT_SYSTEM_IMPLEMENTATION.md** - 統一折扣系統實作
+- **STRIPE_WEBHOOK_DEBUG_GUIDE.md** - Stripe Webhook 調試指南
+- **HANDOVER_DOCUMENT.md** - 系統交接文件
+
+**政策與內容**：
+- **NEW_PRIVACY_POLICY.md** - 新版隱私政策
+- **NEW_TERMS_OF_SERVICE.md** - 新版服務條款
 - **PRIVACY_POLICY_UPDATE_PLAN.md** - 隱私政策更新計畫
 - **SERVICE_CONTENT_GUIDE.md** - 服務內容指南
 - **SERVICE_PRIVACY_UPDATE_SUMMARY.md** - 服務隱私更新摘要
-- **STRIPE_WEBHOOK_DEBUG_GUIDE.md** - Stripe Webhook 調試指南
-- **UNIFIED_DISCOUNT_SYSTEM_DESIGN.md** - 統一折扣系統設計
-- **UNIFIED_DISCOUNT_SYSTEM_IMPLEMENTATION.md** - 統一折扣系統實作
-- **HANDOVER_DOCUMENT.md** - 系統交接文件
 - **JAPANESE_MARKET_CONTENT.md** - 日本市場內容
-- **NEW_PRIVACY_POLICY.md** - 新版隱私政策
-- **NEW_TERMS_OF_SERVICE.md** - 新版服務條款
 
 ### `/reports` - 系統報告
 問題診斷、修復報告、系統架構文件
@@ -63,22 +67,29 @@ API 規格、端點說明和使用範例
 **🌟 推薦測試頁面**：
 - **sso-sdk-test.html** - ⭐ SSO SDK 互動測試頁面（可直接使用）
 
-**診斷工具**：
+**診斷指南**：
 - **SERP_SSO_DIAGNOSTIC_GUIDE.md** - SERP SSO 整合診斷指南（完整排查步驟）
 - **ECCAL_SSO_ENDPOINT_TEST_REPORT.md** - ECCAL SSO 端點測試報告（證明無 301 重定向）
 
-**其他測試頁面**：
-- **test-*.html** - 各種功能測試頁面
+**通用測試工具**：
 - **emergency-diagnosis.html** - 緊急診斷工具
-- **debug-failing-users.html** - 用戶登入問題調試
+- **test-google-oauth.html** - Google OAuth 測試
+- **test-audai-integration.html** - Audai 整合測試
+- **test-integration-fixed.html** - 整合修復測試
 - **QUICK_INTEGRATION_TEMPLATE.html** - 快速整合範本
 
 ### `/archive` - 歸檔文件
-已過時或已解決的問題文件
+已過時、已解決或已整合到主要文檔的歷史文件
 
-- **GITHUB_COMMIT_GUIDE.md** - GitHub Commit 指南（歷史）
-- **GITHUB_PUSH_PROTECTION_FIX.md** - GitHub Push 保護修復（歷史）
-- **FINAL_GIT_SOLUTION.md** - Git 問題最終解決方案（歷史）
+**📦 已歸檔內容**：
+- Git 問題解決方案（已解決）
+- SSO 整合歷史文件（已整合到新文檔）
+- FABE 權限問題處理（已解決）
+- 用戶特定測試文件（已完成測試）
+
+📄 **詳細說明**：參考 `/archive/README.md`
+
+⚠️ **重要**：歸檔文件僅供歷史參考，請使用主要文檔進行開發
 
 ---
 
@@ -98,10 +109,11 @@ API 規格、端點說明和使用範例
 → 查看 `/api/SSO_VERIFY_TOKEN_SPEC.md` ⭐ **Token 驗證 API 完整規格**
 
 #### 解決 SSO 問題
-→ 查看 `/integration/INTEGRATED_SSO_GUIDE.md` - 完整整合指南  
-→ 查看 `/api/SSO_VERIFY_TOKEN_SPEC.md` ⭐ **API 技術規格（headers/cookies/錯誤處理）**  
-→ 查看 `/integration/GALINE_SSO_FIX_GUIDE.md` - 時鐘容忍度修復  
-→ 查看 `/integration/ECCAL_SSO_ADVANCED_FEATURES_2025.md` - 進階功能
+→ 🌟 **第一次整合？** `/integration/SSO_INTEGRATION_DECISION_GUIDE.md`  
+→ ⭐ **快速開始** `/integration/ECCAL_SSO_ZERO_CONFIG_GUIDE.md`  
+→ 📄 **完整技術文檔** `/integration/INTEGRATED_SSO_GUIDE.md`  
+→ 🔧 **API 技術規格** `/api/SSO_VERIFY_TOKEN_SPEC.md`  
+→ 🧪 **測試工具** `/tests/sso-sdk-test.html`
 
 #### 查看系統架構
 → 查看 `/reports/META-DASHBOARD-ARCHITECTURE.md`  
