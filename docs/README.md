@@ -53,7 +53,8 @@ API 規格、端點說明和使用範例
 ### `/tests` - 測試文件
 測試 HTML 頁面、診斷工具
 
-- **SERP_SSO_DIAGNOSTIC_GUIDE.md** - SERP SSO 整合診斷指南（完整排查步驟）⭐ 新增
+- **SERP_SSO_DIAGNOSTIC_GUIDE.md** - SERP SSO 整合診斷指南（完整排查步驟）⭐ 
+- **ECCAL_SSO_ENDPOINT_TEST_REPORT.md** - ECCAL SSO 端點測試報告（證明無 301 重定向）⭐ 新增
 - **test-*.html** - 各種功能測試頁面
 - **emergency-diagnosis.html** - 緊急診斷工具
 - **debug-failing-users.html** - 用戶登入問題調試
