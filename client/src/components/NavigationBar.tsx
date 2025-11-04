@@ -41,6 +41,14 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
             <Link href="/fbaudit" className="text-blue-600 hover:text-blue-800 transition-colors">
               {t.fbAuditTitle}
             </Link>
+            
+            <Link href="/profit-margin" className="text-green-600 hover:text-green-800 transition-colors">
+              損益計算
+            </Link>
+            
+            <Link href="/pricing-simulator" className="text-orange-600 hover:text-orange-800 transition-colors">
+              定價模擬
+            </Link>
 
             <Link href="/meta-dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
               {t.dashboard}
@@ -79,6 +87,14 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
 
               <Link href="/fbaudit" className="text-blue-600 hover:text-blue-800 transition-colors">
                 {t.fbAuditTitle}
+              </Link>
+              
+              <Link href="/profit-margin" className="text-green-600 hover:text-green-800 transition-colors">
+                損益計算
+              </Link>
+              
+              <Link href="/pricing-simulator" className="text-orange-600 hover:text-orange-800 transition-colors">
+                定價模擬
               </Link>
 
               <Link href="/meta-dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">

@@ -41,6 +41,8 @@ import RecruitmentEn from "./pages/recruitment-en";
 import RecruitmentJa from "./pages/recruitment-ja";
 import FacebookTestDemo from "./pages/facebook-test-demo";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
+import ProfitMargin from "./pages/profit-margin";
+import PricingSimulator from "./pages/pricing-simulator";
 
 // 🔧 Lazy load pages with Stripe to prevent unnecessary loading
 const Checkout = lazy(() => import("./pages/checkout"));
@@ -136,6 +138,8 @@ function Router() {
       <Route path="/campaign-planner" component={() => <CampaignPlannerV2 locale="zh-TW" />} />
       <Route path="/fbaudit" component={() => <FbAudit locale="zh-TW" />} />
       <Route path="/meta-dashboard" component={() => <MetaDashboard locale="zh-TW" />} />
+      <Route path="/profit-margin" component={() => <ProfitMargin locale="zh-TW" />} />
+      <Route path="/pricing-simulator" component={() => <PricingSimulator locale="zh-TW" />} />
       <Route path="/pricing" component={() => <Pricing locale="zh-TW" />} />
       <Route path="/checkout" component={() => (
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center">

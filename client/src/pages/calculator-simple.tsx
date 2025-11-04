@@ -64,14 +64,24 @@ export default function Calculator({ locale }: CalculatorProps) {
   usePageViewTracking('/calculator', 'calculator', { locale, returnTo });
   const { trackCalculation } = useCalculatorTracking('/calculator');
 
-  // 檢查是否有 returnTo 參數
+  // 檢查是否有 returnTo 參數和 targetRevenue 參數（從損益計算機傳來）
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const returnToParam = urlParams.get('returnTo');
+    const targetRevenueParam = urlParams.get('targetRevenue');
+    
     if (returnToParam) {
       setReturnTo(decodeURIComponent(returnToParam));
     }
-  }, []);
+    
+    // 如果有 targetRevenue 參數，自動填入表單
+    if (targetRevenueParam) {
+      const revenue = parseInt(targetRevenueParam);
+      if (!isNaN(revenue) && revenue > 0) {
+        form.setValue('targetRevenue', revenue);
+      }
+    }
+  }, [form]);
   
   // GA Analytics hooks
   const { data: properties } = useAnalyticsProperties(isAuthenticated);
