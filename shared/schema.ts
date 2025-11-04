@@ -993,3 +993,70 @@ export const insertMetaAiAnalysisSchema = createInsertSchema(metaAiAnalyses).omi
 });
 export type InsertMetaAiAnalysisType = z.infer<typeof insertMetaAiAnalysisSchema>;
 export type SelectMetaAiAnalysisType = typeof metaAiAnalyses.$inferSelect;
+
+// 微利率計算機 - Profit Margin Calculator
+export const profitMarginCalculations = pgTable("profit_margin_calculations", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // 計算類型：company (損益計算機) 或 product (定價模擬器)
+  calculationType: varchar("calculation_type", { length: 20 }).notNull(), // "company" or "product"
+  
+  // ===== 模組一：公司整體損益計算機 =====
+  // 輸入數據
+  revenue: decimal("revenue", { precision: 15, scale: 2 }), // 營業額
+  fixedCosts: jsonb("fixed_costs"), // 固定成本明細 {rent, utilities, salaries, etc.}
+  variableCosts: jsonb("variable_costs"), // 變動成本明細 {marketing, materials, etc.}
+  totalFixedCosts: decimal("total_fixed_costs", { precision: 15, scale: 2 }), // 總固定成本
+  totalVariableCosts: decimal("total_variable_costs", { precision: 15, scale: 2 }), // 總變動成本
+  
+  // 計算結果
+  profitMargin: decimal("profit_margin", { precision: 5, scale: 2 }), // 微利率 %
+  breakEvenRevenue: decimal("break_even_revenue", { precision: 15, scale: 2 }), // 損益平衡點營收
+  
+  // ===== 模組二：商品定價模擬器 =====
+  // 策略選擇
+  pricingStrategy: varchar("pricing_strategy", { length: 30 }), // "crowdfunding", "new_customer", "regular"
+  strategyName: varchar("strategy_name"), // 策略中文名稱
+  strategyCpaPercent: decimal("strategy_cpa_percent", { precision: 5, scale: 2 }), // 策略建議的 CPA 百分比
+  
+  // 產品成本
+  productCost: decimal("product_cost", { precision: 10, scale: 2 }), // 產品總成本
+  shippingMethod: varchar("shipping_method"), // 物流方式
+  shippingCost: decimal("shipping_cost", { precision: 8, scale: 2 }), // 運費
+  paymentFeePercent: decimal("payment_fee_percent", { precision: 5, scale: 2 }), // 金流手續費 %
+  taxPercent: decimal("tax_percent", { precision: 5, scale: 2 }).default("5"), // 稅率 %
+  
+  // 定價模擬結果
+  targetProfitMarginPercent: decimal("target_profit_margin_percent", { precision: 5, scale: 2 }), // 目標微利率 %
+  recommendedPrice: decimal("recommended_price", { precision: 10, scale: 2 }), // 建議售價
+  grossProfit: decimal("gross_profit", { precision: 10, scale: 2 }), // 毛額
+  recommendedCpa: decimal("recommended_cpa", { precision: 10, scale: 2 }), // 建議 CPA 上限
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }), // 總成本
+  
+  // 元數據
+  calculationName: varchar("calculation_name"), // 計算名稱（用戶自訂）
+  notes: text("notes"), // 備註
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Profit Margin Calculation Types
+export type ProfitMarginCalculation = typeof profitMarginCalculations.$inferSelect;
+export type InsertProfitMarginCalculation = typeof profitMarginCalculations.$inferInsert;
+
+// Profit Margin Calculation Zod Schemas
+export const insertProfitMarginCalculationSchema = createInsertSchema(profitMarginCalculations, {
+  revenue: z.number().min(0).optional(),
+  totalFixedCosts: z.number().min(0).optional(),
+  totalVariableCosts: z.number().min(0).optional(),
+  productCost: z.number().min(0).optional(),
+  targetProfitMarginPercent: z.number().min(0).max(100).optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertProfitMarginCalculationType = z.infer<typeof insertProfitMarginCalculationSchema>;
