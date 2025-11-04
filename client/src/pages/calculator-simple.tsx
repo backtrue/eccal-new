@@ -63,6 +63,23 @@ export default function Calculator({ locale }: CalculatorProps) {
   // 追蹤頁面瀏覽和計算器使用
   usePageViewTracking('/calculator', 'calculator', { locale, returnTo });
   const { trackCalculation } = useCalculatorTracking('/calculator');
+  
+  // GA Analytics hooks
+  const { data: properties } = useAnalyticsProperties(isAuthenticated);
+  const { data: analyticsData, refetch: refetchAnalytics } = useAnalyticsData(
+    selectedProperty, 
+    { enabled: false }
+  );
+
+  const form = useForm<CalculatorFormData>({
+    resolver: zodResolver(createCalculatorSchema(t)),
+    defaultValues: {
+      targetRevenue: undefined,
+      averageOrderValue: undefined,
+      conversionRate: undefined,
+      selectedGaProperty: '',
+    },
+  });
 
   // 檢查是否有 returnTo 參數和 targetRevenue 參數（從損益計算機傳來）
   useEffect(() => {
@@ -82,23 +99,6 @@ export default function Calculator({ locale }: CalculatorProps) {
       }
     }
   }, [form]);
-  
-  // GA Analytics hooks
-  const { data: properties } = useAnalyticsProperties(isAuthenticated);
-  const { data: analyticsData, refetch: refetchAnalytics } = useAnalyticsData(
-    selectedProperty, 
-    { enabled: false }
-  );
-
-  const form = useForm<CalculatorFormData>({
-    resolver: zodResolver(createCalculatorSchema(t)),
-    defaultValues: {
-      targetRevenue: undefined,
-      averageOrderValue: undefined,
-      conversionRate: undefined,
-      selectedGaProperty: '',
-    },
-  });
 
   const handleLoadGaData = async () => {
     if (!selectedProperty) return;
