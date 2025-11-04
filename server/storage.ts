@@ -85,6 +85,9 @@ import {
   knowledgeSearchIndex,
   type KnowledgeSearchIndex,
   type InsertKnowledgeSearchIndex,
+  profitMarginCalculations,
+  type ProfitMarginCalculation,
+  type InsertProfitMarginCalculationType,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, count, avg, sum, inArray, gte, lt } from "drizzle-orm";
@@ -295,6 +298,12 @@ export interface IStorage {
   getUserStripePayments(userId: string): Promise<StripePayment[]>;
   updateStripePayment(id: string, updates: Partial<StripePayment>): Promise<StripePayment>;
   updateUserStripeInfo(userId: string, customerId: string, subscriptionId?: string, status?: string): Promise<User>;
+
+  // Profit Margin Calculator operations
+  saveProfitMarginCalculation(calculation: InsertProfitMarginCalculationType): Promise<ProfitMarginCalculation>;
+  getUserProfitMarginCalculations(userId: string, calculationType?: string): Promise<ProfitMarginCalculation[]>;
+  getProfitMarginCalculation(id: string, userId: string): Promise<ProfitMarginCalculation | undefined>;
+  deleteProfitMarginCalculation(id: string, userId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2089,6 +2098,42 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return user;
+  }
+
+  // Profit Margin Calculator operations
+  async saveProfitMarginCalculation(calculation: InsertProfitMarginCalculationType): Promise<ProfitMarginCalculation> {
+    const [saved] = await db.insert(profitMarginCalculations).values([calculation]).returning();
+    return saved;
+  }
+
+  async getUserProfitMarginCalculations(userId: string, calculationType?: string): Promise<ProfitMarginCalculation[]> {
+    if (calculationType) {
+      return await db
+        .select()
+        .from(profitMarginCalculations)
+        .where(and(eq(profitMarginCalculations.userId, userId), eq(profitMarginCalculations.calculationType, calculationType)))
+        .orderBy(desc(profitMarginCalculations.createdAt));
+    }
+    return await db
+      .select()
+      .from(profitMarginCalculations)
+      .where(eq(profitMarginCalculations.userId, userId))
+      .orderBy(desc(profitMarginCalculations.createdAt));
+  }
+
+  async getProfitMarginCalculation(id: string, userId: string): Promise<ProfitMarginCalculation | undefined> {
+    const [calculation] = await db
+      .select()
+      .from(profitMarginCalculations)
+      .where(and(eq(profitMarginCalculations.id, id), eq(profitMarginCalculations.userId, userId)));
+    return calculation;
+  }
+
+  async deleteProfitMarginCalculation(id: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(profitMarginCalculations)
+      .where(and(eq(profitMarginCalculations.id, id), eq(profitMarginCalculations.userId, userId)));
+    return !!result;
   }
 }
 

@@ -3145,6 +3145,77 @@ echo "Bulk import completed!"`;
     }
   });
 
+  // Profit Margin Calculator routes
+  app.post('/api/profit-margin', requireJWTAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const calculationData = req.body;
+      
+      const saved = await storage.saveProfitMarginCalculation({
+        ...calculationData,
+        userId,
+      });
+      
+      res.json(saved);
+    } catch (error) {
+      console.error('Save profit margin calculation error:', error);
+      res.status(500).json({ error: 'Failed to save calculation' });
+    }
+  });
+
+  app.get('/api/profit-margin', requireJWTAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { type } = req.query;
+      
+      const calculations = await storage.getUserProfitMarginCalculations(
+        userId,
+        type as string | undefined
+      );
+      
+      res.json(calculations);
+    } catch (error) {
+      console.error('Get profit margin calculations error:', error);
+      res.status(500).json({ error: 'Failed to retrieve calculations' });
+    }
+  });
+
+  app.get('/api/profit-margin/:id', requireJWTAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+      
+      const calculation = await storage.getProfitMarginCalculation(id, userId);
+      
+      if (!calculation) {
+        return res.status(404).json({ error: 'Calculation not found' });
+      }
+      
+      res.json(calculation);
+    } catch (error) {
+      console.error('Get profit margin calculation error:', error);
+      res.status(500).json({ error: 'Failed to retrieve calculation' });
+    }
+  });
+
+  app.delete('/api/profit-margin/:id', requireJWTAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+      
+      const deleted = await storage.deleteProfitMarginCalculation(id, userId);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: 'Calculation not found' });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Delete profit margin calculation error:', error);
+      res.status(500).json({ error: 'Failed to delete calculation' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

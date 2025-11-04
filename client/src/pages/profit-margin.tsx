@@ -35,6 +35,7 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
     totalVariableCosts: 0,
     profitMargin: 0,
     breakEvenRevenue: 0,
+    requiredRevenue: 0,
   });
   
   const handleInputChange = (field: string, value: string) => {
@@ -54,11 +55,16 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
     const variableCostRate = revenue > 0 ? totalVariable / revenue : 0;
     const breakEvenRevenue = variableCostRate < 1 ? totalFixed / (1 - variableCostRate) : 0;
     
+    // 必需營收（達到15%健康利潤率）= 總成本 / (1 - 15%)
+    const targetProfitMargin = 0.15; // 15% 健康標準
+    const requiredRevenue = totalCosts / (1 - targetProfitMargin);
+    
     setResults({
       totalFixedCosts: totalFixed,
       totalVariableCosts: totalVariable,
       profitMargin: profitMargin,
       breakEvenRevenue: breakEvenRevenue,
+      requiredRevenue: requiredRevenue,
     });
   };
   
@@ -74,8 +80,8 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
   };
   
   const handleGoToCalculator = () => {
-    // 自動帶入損益平衡點營收到預算計算機
-    setLocation(`/calculator?targetRevenue=${Math.ceil(results.breakEvenRevenue)}`);
+    // 自動帶入健康營收目標（15%利潤率）到預算計算機
+    setLocation(`/calculator?targetRevenue=${Math.ceil(results.requiredRevenue)}`);
   };
   
   const progress = (wizardStep / 3) * 100;
@@ -299,28 +305,52 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
               </h2>
             </div>
             
-            <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950 dark:to-gray-900">
-              <CardContent className="pt-8 pb-8 text-center">
-                <div className="space-y-2 mb-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">您下個月的「最低營收目標」是：</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <TrendingUp className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                    <div className="text-5xl font-bold text-blue-600 dark:text-blue-400" data-testid="text-break-even-revenue">
-                      NT$ {Math.ceil(results.breakEvenRevenue).toLocaleString()}
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950 dark:to-gray-900">
+                <CardContent className="pt-8 pb-8 text-center">
+                  <div className="space-y-2 mb-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">最低營收目標（損益平衡）</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      <div className="text-4xl font-bold text-blue-600 dark:text-blue-400" data-testid="text-break-even-revenue">
+                        NT$ {Math.ceil(results.breakEvenRevenue).toLocaleString()}
+                      </div>
                     </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">（不賺不賠的基準線）</p>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-500">（這就是您的「損益平衡點銷售額」）</p>
-                </div>
-                
+                </CardContent>
+              </Card>
+              
+              <Card className="border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-white dark:from-green-950 dark:to-gray-900">
+                <CardContent className="pt-8 pb-8 text-center">
+                  <div className="space-y-2 mb-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">健康營收目標（15%利潤率）</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+                      <div className="text-4xl font-bold text-green-600 dark:text-green-400" data-testid="text-required-revenue">
+                        NT$ {Math.ceil(results.requiredRevenue).toLocaleString()}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">（達到健康標準所需營收）</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-2 border-purple-200 dark:border-purple-800">
+              <CardContent className="pt-6 text-center">
                 <Button
                   size="lg"
                   onClick={handleGoToCalculator}
-                  className="mt-6 text-lg px-8"
+                  className="text-lg px-8"
                   data-testid="button-go-to-calculator"
                 >
                   <Calculator className="mr-2 h-5 w-5" />
-                  用這個數字規劃廣告預算
+                  用健康營收目標規劃廣告預算
                 </Button>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">
+                  一鍵將 NT$ {Math.ceil(results.requiredRevenue).toLocaleString()} 帶入預算計算機
+                </p>
               </CardContent>
             </Card>
             
