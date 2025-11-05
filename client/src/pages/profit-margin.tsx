@@ -10,7 +10,7 @@ import { AlertCircle, TrendingUp, DollarSign, ArrowRight, Calculator } from "luc
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import NavigationBar from "@/components/NavigationBar";
 import Footer from "@/components/Footer";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 type Props = {
   locale?: string;
@@ -93,6 +93,8 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
             method: 'POST',
             body: JSON.stringify({ completionTimeSeconds: completionTime }),
           });
+          // Invalidate analytics cache to refresh statistics
+          queryClient.invalidateQueries({ queryKey: ['/api/calculator-analytics'] });
         } catch (error) {
           console.error('Failed to record completion time:', error);
         }
