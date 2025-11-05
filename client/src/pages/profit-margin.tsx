@@ -32,6 +32,12 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
     revenue: "",
     rentUtilities: "",
     salaries: "",
+    depreciation: "",
+    insurance: "",
+    accountingFees: "",
+    kolFees: "",
+    customItemName: "",
+    customItemAmount: "",
     marketing: "",
     materials: "",
     others: "",
@@ -52,7 +58,13 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
   
   const calculateResults = () => {
     const revenue = parseFloat(formData.revenue) || 0;
-    const totalFixed = (parseFloat(formData.rentUtilities) || 0) + (parseFloat(formData.salaries) || 0);
+    const totalFixed = (parseFloat(formData.rentUtilities) || 0) + 
+                       (parseFloat(formData.salaries) || 0) +
+                       (parseFloat(formData.depreciation) || 0) +
+                       (parseFloat(formData.insurance) || 0) +
+                       (parseFloat(formData.accountingFees) || 0) +
+                       (parseFloat(formData.kolFees) || 0) +
+                       (parseFloat(formData.customItemAmount) || 0);
     const totalVariable = (parseFloat(formData.marketing) || 0) + (parseFloat(formData.materials) || 0) + (parseFloat(formData.others) || 0);
     
     const totalCosts = totalFixed + totalVariable;
@@ -242,13 +254,103 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                         />
                       </div>
                     </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="depreciation" className="text-base">折舊（選填）</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                        <Input
+                          id="depreciation"
+                          type="number"
+                          placeholder="例如：20000"
+                          value={formData.depreciation}
+                          onChange={(e) => handleInputChange("depreciation", e.target.value)}
+                          className="pl-10"
+                          data-testid="input-depreciation"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="insurance" className="text-base">保險費（選填）</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                        <Input
+                          id="insurance"
+                          type="number"
+                          placeholder="例如：15000"
+                          value={formData.insurance}
+                          onChange={(e) => handleInputChange("insurance", e.target.value)}
+                          className="pl-10"
+                          data-testid="input-insurance"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="accountingFees" className="text-base">會計/顧問費（選填）</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                        <Input
+                          id="accountingFees"
+                          type="number"
+                          placeholder="例如：10000"
+                          value={formData.accountingFees}
+                          onChange={(e) => handleInputChange("accountingFees", e.target.value)}
+                          className="pl-10"
+                          data-testid="input-accounting-fees"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="kolFees" className="text-base">KOL/網紅費用（選填）</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                        <Input
+                          id="kolFees"
+                          type="number"
+                          placeholder="例如：30000"
+                          value={formData.kolFees}
+                          onChange={(e) => handleInputChange("kolFees", e.target.value)}
+                          className="pl-10"
+                          data-testid="input-kol-fees"
+                        />
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">長期合作網紅、業配費用</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="customItemName" className="text-base">自訂項目（選填）</Label>
+                      <Input
+                        id="customItemName"
+                        type="text"
+                        placeholder="例如：其他固定成本"
+                        value={formData.customItemName}
+                        onChange={(e) => handleInputChange("customItemName", e.target.value)}
+                        className="mb-2"
+                        data-testid="input-custom-item-name"
+                      />
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                        <Input
+                          id="customItemAmount"
+                          type="number"
+                          placeholder="例如：5000"
+                          value={formData.customItemAmount}
+                          onChange={(e) => handleInputChange("customItemAmount", e.target.value)}
+                          className="pl-10"
+                          data-testid="input-custom-item-amount"
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
                 
                 {wizardStep === 3 && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="marketing" className="text-base">行銷成本（廣告費、KOL等）</Label>
+                      <Label htmlFor="marketing" className="text-base">網路廣告</Label>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <Input
@@ -261,6 +363,7 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                           data-testid="input-marketing"
                         />
                       </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Meta廣告、Google廣告、網紅分潤等</p>
                     </div>
                     
                     <div className="space-y-2">
