@@ -523,12 +523,21 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                   <Alert className="border-green-500 bg-green-50 dark:bg-green-950 dark:border-green-800">
                     <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
                     <AlertDescription className="text-gray-900 dark:text-gray-100">
-                      <div className="space-y-2">
-                        <p className="font-semibold text-lg text-green-700 dark:text-green-400">
-                          恭喜！您的營收遠超生存門檻（達 {revenueRatio.toFixed(1)} 倍）
+                      <div className="space-y-3">
+                        <p className="font-semibold text-sm text-green-700 dark:text-green-400">
+                          💬 小黑老師說
+                        </p>
+                        <p className="font-bold text-lg text-green-700 dark:text-green-400">
+                          太棒了！你上個月營收達生存門檻的 {revenueRatio.toFixed(1)} 倍 🎉
                         </p>
                         <p className="text-sm leading-relaxed">
-                          恭喜你，上個月的營收表現非常亮眼，已經遠遠超過生存門檻。當公司進入這樣的健康階段，就該開始思考「第二曲線」——例如投入新產品線、試探新的市場，或強化品牌與人才的基礎。這時也可以考慮建立一筆策略性儲備金，讓未來遇到機會或市場變化時，有更充裕的彈性去行動。
+                          你上個月的營收表現非常亮眼，已經遠遠超過生存門檻。能做到這樣的成績，代表你這段時間的努力和決策都是對的——這值得好好慶祝一下！
+                        </p>
+                        <p className="text-sm leading-relaxed">
+                          當公司進入這樣的健康階段，恭喜你，你已經有資格開始思考「第二曲線」了。可以試著投入新產品線、探索新市場，或者強化品牌與人才的基礎建設。這時候也建議你建立一筆策略性儲備金，這樣未來遇到好機會或市場變化時，你會有更充裕的彈性去抓住機會。
+                        </p>
+                        <p className="text-sm leading-relaxed font-medium text-green-700 dark:text-green-400">
+                          你做得很好，繼續保持！
                         </p>
                       </div>
                     </AlertDescription>
@@ -539,12 +548,21 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                   <Alert className="border-blue-500 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
                     <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     <AlertDescription className="text-gray-900 dark:text-gray-100">
-                      <div className="space-y-2">
-                        <p className="font-semibold text-lg text-blue-700 dark:text-blue-400">
-                          不錯！您的營收高於生存門檻（達 {revenueRatio.toFixed(1)} 倍）
+                      <div className="space-y-3">
+                        <p className="font-semibold text-sm text-blue-700 dark:text-blue-400">
+                          💬 小黑老師說
+                        </p>
+                        <p className="font-bold text-lg text-blue-700 dark:text-blue-400">
+                          做得不錯！你的營收達生存門檻的 {revenueRatio.toFixed(1)} 倍 ✅
                         </p>
                         <p className="text-sm leading-relaxed">
-                          不錯，上個月的營收表現穩健，已經超過生存門檻。這代表你目前的經營節奏與產品結構是健康的。接下來的重點不是擴張，而是「優化」。建議你持續打磨現有流程、建立 3 到 6 個月的安全緩衝金，確保現金流穩定。穩健的成長，比追求速度更能讓企業走得長遠。
+                          上個月的營收表現穩健，已經超過生存門檻了。這代表你目前的經營節奏、產品結構都是健康的，這份穩定是你一步步累積出來的成果。
+                        </p>
+                        <p className="text-sm leading-relaxed">
+                          接下來的重點不是急著擴張，而是「優化」。建議你持續打磨現有流程、建立 3 到 6 個月的安全緩衝金，把現金流穩穩抓住。記住，穩健的成長，永遠比盲目追求速度更能讓企業走得長遠。
+                        </p>
+                        <p className="text-sm leading-relaxed font-medium text-blue-700 dark:text-blue-400">
+                          你現在走的方向是對的，繼續往前走吧！
                         </p>
                       </div>
                     </AlertDescription>
@@ -555,12 +573,21 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                   <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800">
                     <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
                     <AlertDescription className="text-gray-900 dark:text-gray-100">
-                      <div className="space-y-2">
-                        <p className="font-semibold text-lg text-yellow-700 dark:text-yellow-400">
-                          注意！您的營收接近生存門檻（達 {(revenueRatio * 100).toFixed(0)}%）
+                      <div className="space-y-3">
+                        <p className="font-semibold text-sm text-yellow-700 dark:text-yellow-400">
+                          💬 小黑老師說
+                        </p>
+                        <p className="font-bold text-lg text-yellow-700 dark:text-yellow-400">
+                          注意！你的營收達生存門檻的 {(revenueRatio * 100).toFixed(0)}% ⚠️
                         </p>
                         <p className="text-sm leading-relaxed">
-                          要特別留意，上個月的營收已經接近生存門檻，代表目前的經營狀況還不算穩定。這時候不要急著衝量，而是要先確保「每一筆收入都有利可圖」。建議你優先檢視變動成本，看看是否有可以微調或談價的空間，同時關注廣告效益與生產、進貨成本。只要能守住微利區間，就能避免掉到門檻以下。
+                          要特別留意，上個月的營收已經很接近生存門檻，代表目前的經營狀況還不算穩定。這時候千萬不要急著衝量，而是要先確保「每一筆收入都有利可圖」。
+                        </p>
+                        <p className="text-sm leading-relaxed">
+                          建議你優先檢視變動成本，看看有沒有可以微調或重新談價的空間，同時也要關注一下廣告效益跟生產、進貨成本。只要能守住微利區間，你就能避免掉到門檻以下。
+                        </p>
+                        <p className="text-sm leading-relaxed font-medium text-yellow-700 dark:text-yellow-400">
+                          這個階段需要冷靜和精準，調整好了就能再往上走。
                         </p>
                       </div>
                     </AlertDescription>
@@ -571,12 +598,21 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                   <Alert variant="destructive">
                     <AlertCircle className="h-5 w-5" />
                     <AlertDescription>
-                      <div className="space-y-2">
-                        <p className="font-semibold text-lg">
-                          警告！您的營收低於生存門檻（僅達 {(revenueRatio * 100).toFixed(0)}%）
+                      <div className="space-y-3">
+                        <p className="font-semibold text-sm">
+                          💬 小黑老師說
+                        </p>
+                        <p className="font-bold text-lg">
+                          警告！你的營收僅達生存門檻的 {(revenueRatio * 100).toFixed(0)}% 🚨
                         </p>
                         <p className="text-sm leading-relaxed">
-                          目前的營收已經低於生存門檻，這是一個需要立刻處理的警訊。請先全面檢視所有變動成本，特別是網路廣告的 ROI，以及生產或進貨成本是否還有優化空間。如果這些部分已經壓到極限，也要開始評估固定成本是否能調整。短期內的重點是「止血」，先讓現金流回到正向，再談成長。
+                          目前的營收已經低於生存門檻，這是一個需要立刻處理的警訊。但別慌，問題被看見了，就有機會解決。
+                        </p>
+                        <p className="text-sm leading-relaxed">
+                          請先全面檢視所有變動成本，特別是網路廣告的 ROI，以及生產或進貨成本是否還有優化空間。如果這些部分已經壓到極限，也要開始評估固定成本能不能調整。短期內的重點是「止血」——先讓現金流回到正向，穩住了再談成長。
+                        </p>
+                        <p className="text-sm leading-relaxed font-medium">
+                          這個階段會辛苦一點，但只要方向對了，就能翻轉局面。
                         </p>
                       </div>
                     </AlertDescription>
