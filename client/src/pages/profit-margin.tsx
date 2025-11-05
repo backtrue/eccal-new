@@ -72,8 +72,11 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
   };
   
   const handleInputChange = (field: string, value: string) => {
-    // 對於數字欄位，先移除千分位符號再加上新的
-    const formattedValue = formatNumber(value);
+    // 只對數字欄位進行格式化，文字欄位（如 customItemName）保持原樣
+    const numericFields = ['revenue', 'rentUtilities', 'salaries', 'depreciation', 'insurance', 
+                           'accountingFees', 'kolFees', 'customItemAmount', 'marketing', 'materials', 'others'];
+    
+    const formattedValue = numericFields.includes(field) ? formatNumber(value) : value;
     setFormData(prev => ({ ...prev, [field]: formattedValue }));
   };
   
