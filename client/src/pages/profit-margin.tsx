@@ -299,11 +299,87 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
         {/* Result Page */}
         {step === "result" && (
           <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="text-center space-y-4">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-                您的「最低生存門檻」出爐了
-              </h2>
-            </div>
+            {results.profitMargin <= 0 ? (
+              <div className="space-y-6">
+                <div className="text-center space-y-4">
+                  <h2 className="text-3xl font-bold text-red-600 dark:text-red-400">
+                    無法計算
+                  </h2>
+                  <p className="text-lg text-gray-600 dark:text-gray-400">
+                    您的微利率為負數，表示公司目前處於虧損狀態
+                  </p>
+                </div>
+                
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    您的微利率為 {results.profitMargin.toFixed(1)}%，這表示您的總成本（固定成本 + 變動成本）已經超過營業額。
+                    在這種情況下，無法計算健康的營收目標。建議您：
+                    <ul className="mt-2 ml-4 list-disc space-y-1">
+                      <li>檢查並降低固定成本（租金、人事等）</li>
+                      <li>優化變動成本（廣告、材料等）</li>
+                      <li>提升營業額</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calculator className="h-5 w-5" />
+                      您的成本結構
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">總固定成本</p>
+                        <p className="text-2xl font-bold">
+                          NT$ {results.totalFixedCosts.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">總變動成本</p>
+                        <p className="text-2xl font-bold">
+                          NT$ {results.totalVariableCosts.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">上個月營業額</p>
+                        <p className="text-2xl font-bold">
+                          NT$ {parseFloat(formData.revenue).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">您的微利率</p>
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                          {results.profitMargin.toFixed(1)}%
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-4 border-t">
+                      <Button
+                        onClick={() => {
+                          setStep("wizard");
+                          setWizardStep(1);
+                        }}
+                        className="w-full"
+                        data-testid="button-recalculate"
+                      >
+                        重新填寫數據
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <>
+                <div className="text-center space-y-4">
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    您的「最低生存門檻」出爐了
+                  </h2>
+                </div>
             
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950 dark:to-gray-900">
@@ -421,6 +497,8 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                 </div>
               </CardContent>
             </Card>
+              </>
+            )}
           </div>
         )}
       </main>
