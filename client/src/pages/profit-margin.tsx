@@ -367,7 +367,7 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="materials" className="text-base">材料成本（進貨、包裝等）</Label>
+                      <Label htmlFor="materials" className="text-base">生產/進貨成本</Label>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <Input
@@ -380,6 +380,7 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                           data-testid="input-materials"
                         />
                       </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">原料、進貨、包裝材料等</p>
                     </div>
                     
                     <div className="space-y-2">
