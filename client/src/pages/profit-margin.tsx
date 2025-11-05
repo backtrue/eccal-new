@@ -80,7 +80,7 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
   };
   
   const handleGoToCalculator = () => {
-    // 自動帶入健康營收目標（15%利潤率）到預算計算機
+    // 自動帶入推薦營收目標到預算計算機
     setLocation(`/calculator?targetRevenue=${Math.ceil(results.requiredRevenue)}`);
   };
   
@@ -400,14 +400,14 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
               <Card className="border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-white dark:from-green-950 dark:to-gray-900">
                 <CardContent className="pt-8 pb-8 text-center">
                   <div className="space-y-2 mb-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">健康營收目標（15%利潤率）</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">推薦營收目標</p>
                     <div className="flex items-center justify-center gap-2">
                       <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
                       <div className="text-4xl font-bold text-green-600 dark:text-green-400" data-testid="text-required-revenue">
                         NT$ {Math.ceil(results.requiredRevenue).toLocaleString()}
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">（達到健康標準所需營收）</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">（建議達成的營收目標）</p>
                   </div>
                 </CardContent>
               </Card>
@@ -422,7 +422,7 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                   data-testid="button-go-to-calculator"
                 >
                   <Calculator className="mr-2 h-5 w-5" />
-                  用健康營收目標規劃廣告預算
+                  用推薦營收目標規劃廣告預算
                 </Button>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">
                   一鍵將 NT$ {Math.ceil(results.requiredRevenue).toLocaleString()} 帶入預算計算機
@@ -434,7 +434,7 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  警告：您的微利率僅 {results.profitMargin.toFixed(1)}%，低於健康標準（15%）。建議優先降低成本或提升營收。
+                  警告：您的微利率僅 {results.profitMargin.toFixed(1)}%，偏低。建議優先降低成本或提升營收。
                 </AlertDescription>
               </Alert>
             )}
