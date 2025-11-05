@@ -515,7 +515,7 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                       <div className="space-y-1">
                         <p className="text-sm text-gray-600 dark:text-gray-400">上個月營業額</p>
                         <p className="text-2xl font-bold">
-                          NT$ {parseFloat(formData.revenue).toLocaleString()}
+                          NT$ {parseFloat(parseFormattedNumber(formData.revenue)).toLocaleString()}
                         </p>
                       </div>
                       <div className="space-y-1">
@@ -550,7 +550,7 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                 </div>
             
             {(() => {
-              const revenue = parseFloat(formData.revenue) || 0;
+              const revenue = parseFloat(parseFormattedNumber(formData.revenue)) || 0;
               const revenueRatio = revenue / results.breakEvenRevenue;
               
               if (revenueRatio >= 1.5) {
@@ -776,7 +776,7 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                   <div className="space-y-1">
                     <p className="text-sm text-gray-600 dark:text-gray-400">上個月營業額</p>
                     <p className="text-2xl font-bold">
-                      NT$ {parseFloat(formData.revenue).toLocaleString()}
+                      NT$ {parseFloat(parseFormattedNumber(formData.revenue)).toLocaleString()}
                     </p>
                   </div>
                 </div>
