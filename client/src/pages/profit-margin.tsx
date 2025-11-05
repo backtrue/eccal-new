@@ -71,9 +71,9 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                        (parseFloat(formData.customItemAmount) || 0);
     const totalVariable = (parseFloat(formData.marketing) || 0) + (parseFloat(formData.materials) || 0) + (parseFloat(formData.others) || 0);
     
-    const totalCosts = totalFixed + totalVariable;
-    const profit = revenue - totalCosts;
-    const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
+    // 微利率公式：(營業額 - 總變動成本) / 營業額
+    // 這是「貢獻邊際率」，只扣除變動成本，不扣除固定成本
+    const profitMargin = revenue > 0 ? ((revenue - totalVariable) / revenue) * 100 : 0;
     
     // 公式：最低營收目標 = 總固定成本 / 微利率
     // 將百分比轉為小數（例如：15% -> 0.15）
