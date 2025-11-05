@@ -24,9 +24,8 @@ const strategies = {
 };
 
 const shippingOptions = {
-  home_delivery: { name: "宅配", cost: 100, feePercent: 3 },
-  convenience: { name: "超商取貨", cost: 60, feePercent: 3 },
-  convenience_cod: { name: "超商取貨付款", cost: 60, feePercent: 0 },
+  home_delivery: { name: "宅配", cost: 130, feePercent: 3 },
+  convenience: { name: "超取", cost: 60, feePercent: 3 },
   custom: { name: "自訂", cost: 0, feePercent: 0 },
 };
 
@@ -36,17 +35,17 @@ export default function PricingSimulator({ locale = "zh-TW" }: Props) {
   
   // 表單數據
   const [productCost, setProductCost] = useState("");
-  const [shippingMethod, setShippingMethod] = useState<keyof typeof shippingOptions>("convenience_cod");
+  const [shippingMethod, setShippingMethod] = useState<keyof typeof shippingOptions>("home_delivery");
   const [customShippingCost, setCustomShippingCost] = useState("");
   const [customPaymentFee, setCustomPaymentFee] = useState("");
-  const [taxPercent, setTaxPercent] = useState("5");
   
-  // 滑桿值（微利率）
-  const [profitMarginPercent, setProfitMarginPercent] = useState([33]);
+  // 滑桿值（建議售價的倍數）
+  const [priceMultiplier, setPriceMultiplier] = useState([2.0]);
   
   // 計算結果
   const [results, setResults] = useState({
     recommendedPrice: 0,
+    profitMarginPercent: 0,
     grossProfit: 0,
     recommendedCpa: 0,
     totalCost: 0,
@@ -57,34 +56,39 @@ export default function PricingSimulator({ locale = "zh-TW" }: Props) {
     if (step === 3 && productCost) {
       calculatePrice();
     }
-  }, [profitMarginPercent, productCost, shippingMethod, customShippingCost, customPaymentFee, taxPercent, step]);
+  }, [priceMultiplier, productCost, shippingMethod, customShippingCost, customPaymentFee, step]);
   
   const calculatePrice = () => {
     const cost = parseFloat(productCost) || 0;
     const shipping = shippingMethod === "custom" 
       ? (parseFloat(customShippingCost) || 0)
       : shippingOptions[shippingMethod].cost;
-    const paymentFee = shippingMethod === "custom"
+    const paymentFeePercent = shippingMethod === "custom"
       ? (parseFloat(customPaymentFee) || 0)
       : shippingOptions[shippingMethod].feePercent;
-    const tax = parseFloat(taxPercent) || 5;
-    const targetMargin = profitMarginPercent[0] / 100;
+    const taxPercent = 5; // 固定 5% 稅率
     
-    // 售價 = (成本 + 運費) / (1 - 微利率 - 稅率% - 金流%)
-    // 這是一個簡化版本，實際上金流費用是基於售價的，需要反算
-    // 使用迭代方式計算更準確
+    // 新邏輯：用戶拖動建議售價，計算微利率
+    // 建議售價 = 產品成本 × 倍數
+    const recommendedPrice = Math.ceil(cost * priceMultiplier[0]);
     
-    // 簡化計算：假設金流和稅是基於售價的
-    const otherCostRate = (tax / 100) + (paymentFee / 100);
-    const basePrice = (cost + shipping) / (1 - targetMargin - otherCostRate);
+    // 總成本 = 商品成本 + 運費 + (售價 × 金流%) + (售價 × 5% 稅)
+    const paymentFeeCost = recommendedPrice * (paymentFeePercent / 100);
+    const taxCost = recommendedPrice * (taxPercent / 100);
+    const totalCost = cost + shipping + paymentFeeCost + taxCost;
     
-    const recommendedPrice = Math.ceil(basePrice);
-    const totalCost = cost + shipping + (recommendedPrice * (tax / 100)) + (recommendedPrice * (paymentFee / 100));
+    // 毛利 = 售價 - 總成本
     const grossProfit = recommendedPrice - totalCost;
+    
+    // 微利率 = (售價 - 總成本) / 售價 × 100%
+    const profitMarginPercent = (grossProfit / recommendedPrice) * 100;
+    
+    // 建議 CPA = 毛利 × 策略百分比
     const strategyCpa = grossProfit * (strategies[strategy].cpaPercent / 100);
     
     setResults({
       recommendedPrice,
+      profitMarginPercent: Math.max(0, profitMarginPercent),
       grossProfit: Math.max(0, grossProfit),
       recommendedCpa: Math.max(0, strategyCpa),
       totalCost,
@@ -230,21 +234,6 @@ export default function PricingSimulator({ locale = "zh-TW" }: Props) {
                     </div>
                   )}
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="tax" className="text-base">稅率（預設 5%）</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="tax"
-                        type="number"
-                        value={taxPercent}
-                        onChange={(e) => setTaxPercent(e.target.value)}
-                        className="w-24"
-                        data-testid="input-tax"
-                      />
-                      <span className="text-gray-600 dark:text-gray-400">%</span>
-                    </div>
-                  </div>
-                  
                   <div className="flex gap-4 pt-4">
                     <Button variant="outline" onClick={() => setStep(1)} data-testid="button-previous">
                       <ArrowLeft className="mr-2 h-4 w-4" />
@@ -284,76 +273,117 @@ export default function PricingSimulator({ locale = "zh-TW" }: Props) {
                     <div className="space-y-6">
                       <div className="space-y-4">
                         <Label className="text-lg font-semibold">
-                          拖動以設定您的「目標微利率」
+                          拖動以設定您的「建議售價」
                         </Label>
                         
                         <div className="text-center">
-                          <div className="text-5xl font-bold text-blue-600 dark:text-blue-400" data-testid="text-profit-margin-slider">
-                            {profitMarginPercent[0]}%
+                          <div className="text-5xl font-bold text-blue-600 dark:text-blue-400" data-testid="text-recommended-price-slider">
+                            NT$ {results.recommendedPrice.toLocaleString()}
                           </div>
+                          <p className="text-sm text-gray-500 mt-2">
+                            （產品成本的 {priceMultiplier[0].toFixed(1)} 倍）
+                          </p>
                         </div>
                         
                         <div className="px-4">
                           <Slider
-                            value={profitMarginPercent}
-                            onValueChange={setProfitMarginPercent}
-                            min={20}
-                            max={50}
-                            step={1}
+                            value={priceMultiplier}
+                            onValueChange={setPriceMultiplier}
+                            min={1.1}
+                            max={20}
+                            step={0.1}
                             className="w-full"
-                            data-testid="slider-profit-margin"
+                            data-testid="slider-price-multiplier"
                           />
                           <div className="flex justify-between text-sm text-gray-500 mt-2">
-                            <span>20%</span>
-                            <span>50%</span>
+                            <span>1.1x</span>
+                            <span>20x</span>
                           </div>
                         </div>
                         
-                        {profitMarginPercent[0] < 25 && (
-                          <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                              警告：低於 25% 的微利率將難以負擔廣告支出！
-                            </AlertDescription>
-                          </Alert>
-                        )}
+                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">計算出的微利率：</p>
+                          <div className="text-4xl font-bold text-purple-600 dark:text-purple-400" data-testid="text-calculated-margin">
+                            {results.profitMarginPercent.toFixed(1)}%
+                          </div>
+                          {results.profitMarginPercent < 25 && (
+                            <Alert variant="destructive" className="mt-4">
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertDescription>
+                                警告：低於 25% 的微利率將難以負擔廣告支出！
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                          {results.profitMarginPercent >= 25 && results.profitMarginPercent < 35 && (
+                            <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
+                              ⚠️ 微利率偏低，廣告費用較緊張
+                            </p>
+                          )}
+                          {results.profitMarginPercent >= 35 && (
+                            <p className="text-sm text-green-600 dark:text-green-400 mt-2">
+                              ✅ 微利率健康，有充足的廣告預算空間
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
                     {/* 右欄：結果區 */}
                     <div className="space-y-6">
-                      <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950 dark:to-gray-900">
+                      <Card className="border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-white dark:from-green-950 dark:to-gray-900">
                         <CardContent className="pt-6 space-y-6">
                           <div className="space-y-2">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">您的「建議售價」應為：</p>
-                            <div className="flex items-center gap-2">
-                              <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                              <div className="text-4xl font-bold text-blue-600 dark:text-blue-400" data-testid="text-recommended-price">
-                                NT$ {results.recommendedPrice.toLocaleString()}
+                            <p className="text-sm text-gray-600 dark:text-gray-400">成本明細</p>
+                            <div className="space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">產品成本</span>
+                                <span>$ {parseFloat(productCost || "0").toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">運費</span>
+                                <span>$ {(shippingMethod === "custom" ? parseFloat(customShippingCost || "0") : shippingOptions[shippingMethod].cost).toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">金流費用 ({shippingMethod === "custom" ? (parseFloat(customPaymentFee || "0")) : shippingOptions[shippingMethod].feePercent}%)</span>
+                                <span>$ {Math.ceil(results.recommendedPrice * ((shippingMethod === "custom" ? (parseFloat(customPaymentFee || "0")) : shippingOptions[shippingMethod].feePercent) / 100)).toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">稅費 (5%)</span>
+                                <span>$ {Math.ceil(results.recommendedPrice * 0.05).toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between font-bold border-t pt-1 mt-1">
+                                <span>總成本</span>
+                                <span data-testid="text-total-cost">$ {Math.ceil(results.totalCost).toLocaleString()}</span>
                               </div>
                             </div>
                           </div>
                           
                           <div className="border-t pt-4 space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">毛額（元）</span>
-                              <span className="font-semibold" data-testid="text-gross-profit">
-                                $ {Math.ceil(results.grossProfit).toLocaleString()}
-                              </span>
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+                              <span className="text-sm text-gray-600 dark:text-gray-400">毛利</span>
                             </div>
-                            <p className="text-xs text-gray-500">（售價 ${results.recommendedPrice.toLocaleString()} 扣除所有成本 ${Math.ceil(results.totalCost).toLocaleString()}）</p>
+                            <div className="text-3xl font-bold text-green-600 dark:text-green-400" data-testid="text-gross-profit">
+                              NT$ {Math.ceil(results.grossProfit).toLocaleString()}
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              （售價 ${results.recommendedPrice.toLocaleString()} - 總成本 ${Math.ceil(results.totalCost).toLocaleString()}）
+                            </p>
                           </div>
                           
                           <div className="border-t pt-4 space-y-2">
                             <div className="bg-yellow-50 dark:bg-yellow-950 p-4 rounded-lg space-y-2">
                               <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                【{strategies[strategy].name}】建議 CPA 上限（毛額的 {strategies[strategy].cpaPercent}%）
+                                【{strategies[strategy].name}】建議 CPA 上限
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                （毛利的 {strategies[strategy].cpaPercent}%）
                               </p>
                               <div className="text-3xl font-bold text-yellow-700 dark:text-yellow-400" data-testid="text-recommended-cpa">
                                 NT$ {Math.ceil(results.recommendedCpa).toLocaleString()}
                               </div>
                               <p className="text-xs text-gray-600 dark:text-gray-400">
-                                （您每筆訂單的廣告費應控制在此金額以下）
+                                每筆訂單的廣告費應控制在此金額以下
                               </p>
                             </div>
                           </div>
