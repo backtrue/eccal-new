@@ -514,6 +514,77 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                   </h2>
                 </div>
             
+            {(() => {
+              const revenue = parseFloat(formData.revenue) || 0;
+              const revenueRatio = revenue / results.breakEvenRevenue;
+              
+              if (revenueRatio >= 1.5) {
+                return (
+                  <Alert className="border-green-500 bg-green-50 dark:bg-green-950 dark:border-green-800">
+                    <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    <AlertDescription className="text-gray-900 dark:text-gray-100">
+                      <div className="space-y-2">
+                        <p className="font-semibold text-lg text-green-700 dark:text-green-400">
+                          恭喜！您的營收遠超生存門檻（達 {revenueRatio.toFixed(1)} 倍）
+                        </p>
+                        <p className="text-sm leading-relaxed">
+                          恭喜你，上個月的營收表現非常亮眼，已經遠遠超過生存門檻。當公司進入這樣的健康階段，就該開始思考「第二曲線」——例如投入新產品線、試探新的市場，或強化品牌與人才的基礎。這時也可以考慮建立一筆策略性儲備金，讓未來遇到機會或市場變化時，有更充裕的彈性去行動。
+                        </p>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                );
+              } else if (revenueRatio >= 1.1) {
+                return (
+                  <Alert className="border-blue-500 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+                    <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <AlertDescription className="text-gray-900 dark:text-gray-100">
+                      <div className="space-y-2">
+                        <p className="font-semibold text-lg text-blue-700 dark:text-blue-400">
+                          不錯！您的營收高於生存門檻（達 {revenueRatio.toFixed(1)} 倍）
+                        </p>
+                        <p className="text-sm leading-relaxed">
+                          不錯，上個月的營收表現穩健，已經超過生存門檻。這代表你目前的經營節奏與產品結構是健康的。接下來的重點不是擴張，而是「優化」。建議你持續打磨現有流程、建立 3 到 6 個月的安全緩衝金，確保現金流穩定。穩健的成長，比追求速度更能讓企業走得長遠。
+                        </p>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                );
+              } else if (revenueRatio >= 0.9) {
+                return (
+                  <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800">
+                    <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                    <AlertDescription className="text-gray-900 dark:text-gray-100">
+                      <div className="space-y-2">
+                        <p className="font-semibold text-lg text-yellow-700 dark:text-yellow-400">
+                          注意！您的營收接近生存門檻（達 {(revenueRatio * 100).toFixed(0)}%）
+                        </p>
+                        <p className="text-sm leading-relaxed">
+                          要特別留意，上個月的營收已經接近生存門檻，代表目前的經營狀況還不算穩定。這時候不要急著衝量，而是要先確保「每一筆收入都有利可圖」。建議你優先檢視變動成本，看看是否有可以微調或談價的空間，同時關注廣告效益與生產、進貨成本。只要能守住微利區間，就能避免掉到門檻以下。
+                        </p>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                );
+              } else {
+                return (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-5 w-5" />
+                    <AlertDescription>
+                      <div className="space-y-2">
+                        <p className="font-semibold text-lg">
+                          警告！您的營收低於生存門檻（僅達 {(revenueRatio * 100).toFixed(0)}%）
+                        </p>
+                        <p className="text-sm leading-relaxed">
+                          目前的營收已經低於生存門檻，這是一個需要立刻處理的警訊。請先全面檢視所有變動成本，特別是網路廣告的 ROI，以及生產或進貨成本是否還有優化空間。如果這些部分已經壓到極限，也要開始評估固定成本是否能調整。短期內的重點是「止血」，先讓現金流回到正向，再談成長。
+                        </p>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                );
+              }
+            })()}
+            
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950 dark:to-gray-900">
                 <CardContent className="pt-8 pb-8 text-center">
