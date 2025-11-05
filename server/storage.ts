@@ -88,6 +88,9 @@ import {
   profitMarginCalculations,
   type ProfitMarginCalculation,
   type InsertProfitMarginCalculationType,
+  calculatorAnalytics,
+  type CalculatorAnalytics,
+  type InsertCalculatorAnalytics,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, count, avg, sum, inArray, gte, lt } from "drizzle-orm";
@@ -304,6 +307,10 @@ export interface IStorage {
   getUserProfitMarginCalculations(userId: string, calculationType?: string): Promise<ProfitMarginCalculation[]>;
   getProfitMarginCalculation(id: string, userId: string): Promise<ProfitMarginCalculation | undefined>;
   deleteProfitMarginCalculation(id: string, userId: string): Promise<boolean>;
+
+  // Calculator Analytics operations
+  getCalculatorAnalytics(): Promise<CalculatorAnalytics | undefined>;
+  recordCalculatorCompletion(completionTimeSeconds: number): Promise<CalculatorAnalytics>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2134,6 +2141,47 @@ export class DatabaseStorage implements IStorage {
       .delete(profitMarginCalculations)
       .where(and(eq(profitMarginCalculations.id, id), eq(profitMarginCalculations.userId, userId)));
     return !!result;
+  }
+
+  // Calculator Analytics operations
+  async getCalculatorAnalytics(): Promise<CalculatorAnalytics | undefined> {
+    const [analytics] = await db.select().from(calculatorAnalytics).limit(1);
+    
+    // If no analytics record exists, create one with default values
+    if (!analytics) {
+      const [newAnalytics] = await db.insert(calculatorAnalytics).values({
+        completedCount: 1024,
+        completionTimes: [],
+      }).returning();
+      return newAnalytics;
+    }
+    
+    return analytics;
+  }
+
+  async recordCalculatorCompletion(completionTimeSeconds: number): Promise<CalculatorAnalytics> {
+    // Get existing analytics
+    const analytics = await this.getCalculatorAnalytics();
+    
+    if (!analytics) {
+      throw new Error('Failed to initialize calculator analytics');
+    }
+    
+    // Update completed count and add completion time
+    const currentTimes = (analytics.completionTimes as number[]) || [];
+    const newTimes = [...currentTimes, completionTimeSeconds];
+    
+    const [updated] = await db
+      .update(calculatorAnalytics)
+      .set({
+        completedCount: analytics.completedCount + 1,
+        completionTimes: newTimes,
+        updatedAt: new Date(),
+      })
+      .where(eq(calculatorAnalytics.id, analytics.id))
+      .returning();
+    
+    return updated;
   }
 }
 

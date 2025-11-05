@@ -3216,6 +3216,57 @@ echo "Bulk import completed!"`;
     }
   });
 
+  // Calculator Analytics Routes
+  app.get('/api/calculator-analytics', async (req, res) => {
+    try {
+      const analytics = await storage.getCalculatorAnalytics();
+      
+      if (!analytics) {
+        return res.status(404).json({ error: 'Analytics not found' });
+      }
+      
+      // Calculate average completion time
+      const times = (analytics.completionTimes as number[]) || [];
+      const avgTime = times.length > 0 
+        ? Math.round(times.reduce((sum, time) => sum + time, 0) / times.length)
+        : 180; // Default to 3 minutes
+      
+      res.json({
+        completedCount: analytics.completedCount,
+        averageCompletionTime: avgTime,
+      });
+    } catch (error) {
+      console.error('Get calculator analytics error:', error);
+      res.status(500).json({ error: 'Failed to retrieve analytics' });
+    }
+  });
+
+  app.post('/api/calculator-analytics/record', async (req, res) => {
+    try {
+      const { completionTimeSeconds } = req.body;
+      
+      if (!completionTimeSeconds || typeof completionTimeSeconds !== 'number') {
+        return res.status(400).json({ error: 'Invalid completion time' });
+      }
+      
+      const updated = await storage.recordCalculatorCompletion(completionTimeSeconds);
+      
+      // Calculate average completion time
+      const times = (updated.completionTimes as number[]) || [];
+      const avgTime = times.length > 0 
+        ? Math.round(times.reduce((sum, time) => sum + time, 0) / times.length)
+        : 180;
+      
+      res.json({
+        completedCount: updated.completedCount,
+        averageCompletionTime: avgTime,
+      });
+    } catch (error) {
+      console.error('Record calculator completion error:', error);
+      res.status(500).json({ error: 'Failed to record completion' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
