@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { AlertCircle, TrendingUp, DollarSign, ArrowRight, Calculator } from "luc
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import NavigationBar from "@/components/NavigationBar";
 import Footer from "@/components/Footer";
+import { apiRequest } from "@/lib/queryClient";
 
 type Props = {
   locale?: string;
@@ -18,6 +20,12 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
   const [, setLocation] = useLocation();
   const [step, setStep] = useState<"landing" | "wizard" | "result">("landing");
   const [wizardStep, setWizardStep] = useState(1);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  
+  // Fetch calculator analytics from API
+  const { data: analytics } = useQuery<{ completedCount: number; averageCompletionTime: number }>({
+    queryKey: ['/api/calculator-analytics'],
+  });
   
   // 表單數據
   const [formData, setFormData] = useState({
@@ -68,7 +76,7 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
     });
   };
   
-  const handleNext = () => {
+  const handleNext = async () => {
     if (wizardStep === 1 && formData.revenue) {
       setWizardStep(2);
     } else if (wizardStep === 2 && (formData.rentUtilities || formData.salaries)) {
@@ -76,6 +84,19 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
     } else if (wizardStep === 3) {
       calculateResults();
       setStep("result");
+      
+      // Record completion time if startTime is set
+      if (startTime) {
+        const completionTime = Math.floor((Date.now() - startTime) / 1000);
+        try {
+          await apiRequest('/api/calculator-analytics/record', {
+            method: 'POST',
+            body: JSON.stringify({ completionTimeSeconds: completionTime }),
+          });
+        } catch (error) {
+          console.error('Failed to record completion time:', error);
+        }
+      }
     }
   };
   
@@ -111,12 +132,16 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
               <CardContent className="pt-6">
                 <div className="flex flex-col md:flex-row items-center justify-center gap-8 text-center">
                   <div className="space-y-2">
-                    <div className="text-4xl font-bold text-blue-600 dark:text-blue-400">1,500+</div>
+                    <div className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+                      {analytics ? `${analytics.completedCount.toLocaleString()}+` : '1,024+'}
+                    </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">位老闆已完成健檢</div>
                   </div>
                   <div className="hidden md:block h-16 w-px bg-gray-300 dark:bg-gray-600"></div>
                   <div className="space-y-2">
-                    <div className="text-4xl font-bold text-blue-600 dark:text-blue-400">3 分鐘</div>
+                    <div className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+                      {analytics ? `${Math.floor(analytics.averageCompletionTime / 60)} 分鐘` : '3 分鐘'}
+                    </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">平均完成時間</div>
                   </div>
                 </div>
@@ -126,7 +151,10 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
             <div className="flex justify-center">
               <Button
                 size="lg"
-                onClick={() => setStep("wizard")}
+                onClick={() => {
+                  setStartTime(Date.now());
+                  setStep("wizard");
+                }}
                 className="text-lg px-8 py-6"
                 data-testid="button-start-calculation"
               >
