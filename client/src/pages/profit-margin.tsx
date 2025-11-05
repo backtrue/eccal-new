@@ -56,20 +56,37 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
     requiredRevenue: 0,
   });
   
+  // 格式化數字加上千分位符號
+  const formatNumber = (value: string): string => {
+    // 移除所有非數字字元
+    const numericValue = value.replace(/[^\d]/g, '');
+    if (!numericValue) return '';
+    
+    // 加上千分位符號
+    return parseInt(numericValue, 10).toLocaleString('en-US');
+  };
+  
+  // 移除千分位符號，取得原始數字
+  const parseFormattedNumber = (value: string): string => {
+    return value.replace(/,/g, '');
+  };
+  
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // 對於數字欄位，先移除千分位符號再加上新的
+    const formattedValue = formatNumber(value);
+    setFormData(prev => ({ ...prev, [field]: formattedValue }));
   };
   
   const calculateResults = () => {
-    const revenue = parseFloat(formData.revenue) || 0;
-    const totalFixed = (parseFloat(formData.rentUtilities) || 0) + 
-                       (parseFloat(formData.salaries) || 0) +
-                       (parseFloat(formData.depreciation) || 0) +
-                       (parseFloat(formData.insurance) || 0) +
-                       (parseFloat(formData.accountingFees) || 0) +
-                       (parseFloat(formData.kolFees) || 0) +
-                       (parseFloat(formData.customItemAmount) || 0);
-    const totalVariable = (parseFloat(formData.marketing) || 0) + (parseFloat(formData.materials) || 0) + (parseFloat(formData.others) || 0);
+    const revenue = parseFloat(parseFormattedNumber(formData.revenue)) || 0;
+    const totalFixed = (parseFloat(parseFormattedNumber(formData.rentUtilities)) || 0) + 
+                       (parseFloat(parseFormattedNumber(formData.salaries)) || 0) +
+                       (parseFloat(parseFormattedNumber(formData.depreciation)) || 0) +
+                       (parseFloat(parseFormattedNumber(formData.insurance)) || 0) +
+                       (parseFloat(parseFormattedNumber(formData.accountingFees)) || 0) +
+                       (parseFloat(parseFormattedNumber(formData.kolFees)) || 0) +
+                       (parseFloat(parseFormattedNumber(formData.customItemAmount)) || 0);
+    const totalVariable = (parseFloat(parseFormattedNumber(formData.marketing)) || 0) + (parseFloat(parseFormattedNumber(formData.materials)) || 0) + (parseFloat(parseFormattedNumber(formData.others)) || 0);
     
     // 微利率公式：(營業額 - 總變動成本) / 營業額
     // 這是「貢獻邊際率」，只扣除變動成本，不扣除固定成本
