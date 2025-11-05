@@ -231,8 +231,9 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                       <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                       <Input
                         id="revenue"
-                        type="number"
-                        placeholder="例如：1000000"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="例如：1,000,000"
                         value={formData.revenue}
                         onChange={(e) => handleInputChange("revenue", e.target.value)}
                         className="pl-10 text-lg h-12"
@@ -250,8 +251,9 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                         <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <Input
                           id="rentUtilities"
-                          type="number"
-                          placeholder="例如：50000"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="例如：50,000"
                           value={formData.rentUtilities}
                           onChange={(e) => handleInputChange("rentUtilities", e.target.value)}
                           className="pl-10"
@@ -266,8 +268,9 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                         <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <Input
                           id="salaries"
-                          type="number"
-                          placeholder="例如：100000"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="例如：100,000"
                           value={formData.salaries}
                           onChange={(e) => handleInputChange("salaries", e.target.value)}
                           className="pl-10"
@@ -282,8 +285,9 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                         <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <Input
                           id="depreciation"
-                          type="number"
-                          placeholder="例如：20000"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="例如：20,000"
                           value={formData.depreciation}
                           onChange={(e) => handleInputChange("depreciation", e.target.value)}
                           className="pl-10"
@@ -298,8 +302,9 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                         <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <Input
                           id="insurance"
-                          type="number"
-                          placeholder="例如：15000"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="例如：15,000"
                           value={formData.insurance}
                           onChange={(e) => handleInputChange("insurance", e.target.value)}
                           className="pl-10"
@@ -314,8 +319,9 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                         <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <Input
                           id="accountingFees"
-                          type="number"
-                          placeholder="例如：10000"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="例如：10,000"
                           value={formData.accountingFees}
                           onChange={(e) => handleInputChange("accountingFees", e.target.value)}
                           className="pl-10"
@@ -330,8 +336,9 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                         <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <Input
                           id="kolFees"
-                          type="number"
-                          placeholder="例如：30000"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="例如：30,000"
                           value={formData.kolFees}
                           onChange={(e) => handleInputChange("kolFees", e.target.value)}
                           className="pl-10"
@@ -356,8 +363,9 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                         <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <Input
                           id="customItemAmount"
-                          type="number"
-                          placeholder="例如：5000"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="例如：5,000"
                           value={formData.customItemAmount}
                           onChange={(e) => handleInputChange("customItemAmount", e.target.value)}
                           className="pl-10"
@@ -376,8 +384,9 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                         <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <Input
                           id="marketing"
-                          type="number"
-                          placeholder="例如：80000"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="例如：80,000"
                           value={formData.marketing}
                           onChange={(e) => handleInputChange("marketing", e.target.value)}
                           className="pl-10"
@@ -393,8 +402,9 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                         <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <Input
                           id="materials"
-                          type="number"
-                          placeholder="例如：120000"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="例如：120,000"
                           value={formData.materials}
                           onChange={(e) => handleInputChange("materials", e.target.value)}
                           className="pl-10"
@@ -410,8 +420,9 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                         <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <Input
                           id="others"
-                          type="number"
-                          placeholder="例如：20000"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="例如：20,000"
                           value={formData.others}
                           onChange={(e) => handleInputChange("others", e.target.value)}
                           className="pl-10"
