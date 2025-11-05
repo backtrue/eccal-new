@@ -134,7 +134,7 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                 <div className="flex flex-col md:flex-row items-center justify-center gap-8 text-center">
                   <div className="space-y-2">
                     <div className="text-4xl font-bold text-blue-600 dark:text-blue-400">
-                      {analytics ? `${analytics.completedCount.toLocaleString()}+` : '1,024+'}
+                      {analytics ? analytics.completedCount.toLocaleString() : '1,024'}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">位老闆已完成健檢</div>
                   </div>
