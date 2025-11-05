@@ -2160,15 +2160,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async recordCalculatorCompletion(completionTimeSeconds: number): Promise<CalculatorAnalytics> {
-    // Use atomic SQL update to prevent race conditions
-    // This increments the counter and appends to the array in a single transaction
+    // Get existing analytics
+    const analytics = await this.getCalculatorAnalytics();
+    
+    if (!analytics) {
+      throw new Error('Failed to initialize calculator analytics');
+    }
+    
+    // Prepare updated data
+    const currentTimes = (analytics.completionTimes as number[]) || [];
+    const newTimes = [...currentTimes, completionTimeSeconds];
+    
+    // Update with new count and times
     const [updated] = await db
       .update(calculatorAnalytics)
       .set({
-        completedCount: sql`${calculatorAnalytics.completedCount} + 1`,
-        completionTimes: sql`array_append(${calculatorAnalytics.completionTimes}, ${completionTimeSeconds})`,
+        completedCount: analytics.completedCount + 1,
+        completionTimes: newTimes,
         updatedAt: new Date(),
       })
+      .where(eq(calculatorAnalytics.id, analytics.id))
       .returning();
     
     if (!updated) {
