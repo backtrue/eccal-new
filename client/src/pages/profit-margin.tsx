@@ -11,6 +11,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import NavigationBar from "@/components/NavigationBar";
 import Footer from "@/components/Footer";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import teacher1 from "@assets/1_1762321340844.png";
+import teacher2 from "@assets/2_1762321340845.png";
+import teacher3 from "@assets/3_1762321340845.png";
+import teacher4 from "@assets/4_1762321340845.png";
 
 type Props = {
   locale?: string;
