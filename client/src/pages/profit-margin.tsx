@@ -51,13 +51,13 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
     const profit = revenue - totalCosts;
     const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
     
-    // 損益平衡點 = 固定成本 / (1 - 變動成本率)
-    const variableCostRate = revenue > 0 ? totalVariable / revenue : 0;
-    const breakEvenRevenue = variableCostRate < 1 ? totalFixed / (1 - variableCostRate) : 0;
+    // 公式：最低營收目標 = 總固定成本 / 微利率
+    // 將百分比轉為小數（例如：15% -> 0.15）
+    const profitMarginDecimal = profitMargin / 100;
+    const breakEvenRevenue = profitMarginDecimal > 0 ? totalFixed / profitMarginDecimal : 0;
     
-    // 必需營收（達到15%健康利潤率）= 總成本 / (1 - 15%)
-    const targetProfitMargin = 0.15; // 15% 健康標準
-    const requiredRevenue = totalCosts / (1 - targetProfitMargin);
+    // 公式：推薦營收目標 = (總變動成本 × 1.1) / 微利率
+    const requiredRevenue = profitMarginDecimal > 0 ? (totalVariable * 1.1) / profitMarginDecimal : 0;
     
     setResults({
       totalFixedCosts: totalFixed,
