@@ -18,14 +18,14 @@ type Props = {
 type PricingStrategy = "crowdfunding" | "new_customer" | "regular";
 
 const strategies = {
-  crowdfunding: { name: "群眾募資", cpaPercent: 30, description: "建議 CPA 抓毛額 30%" },
-  new_customer: { name: "新客活動", cpaPercent: 20, description: "建議 CPA 抓毛額 20%" },
-  regular: { name: "常態銷售", cpaPercent: 15, description: "建議 CPA 抓毛額 15%" },
+  crowdfunding: { name: "群眾募資", cpaPercent: 30 },
+  new_customer: { name: "新客活動", cpaPercent: 20 },
+  regular: { name: "常態銷售", cpaPercent: 15 },
 };
 
 const shippingOptions = {
   home_delivery: { name: "宅配", cost: 130, feePercent: 3 },
-  convenience: { name: "超取", cost: 60, feePercent: 3 },
+  convenience: { name: "超取", cost: 60, feePercent: 0 },
   custom: { name: "自訂", cost: 0, feePercent: 0 },
 };
 
@@ -38,6 +38,7 @@ export default function PricingSimulator({ locale = "zh-TW" }: Props) {
   const [shippingMethod, setShippingMethod] = useState<keyof typeof shippingOptions>("home_delivery");
   const [customShippingCost, setCustomShippingCost] = useState("");
   const [customPaymentFee, setCustomPaymentFee] = useState("");
+  const [platformFee, setPlatformFee] = useState("");
   
   // 滑桿值（建議售價的倍數）
   const [priceMultiplier, setPriceMultiplier] = useState([2.0]);
@@ -56,7 +57,7 @@ export default function PricingSimulator({ locale = "zh-TW" }: Props) {
     if (step === 3 && productCost) {
       calculatePrice();
     }
-  }, [priceMultiplier, productCost, shippingMethod, customShippingCost, customPaymentFee, step]);
+  }, [priceMultiplier, productCost, shippingMethod, customShippingCost, customPaymentFee, platformFee, step]);
   
   const calculatePrice = () => {
     const cost = parseFloat(productCost) || 0;
@@ -66,16 +67,18 @@ export default function PricingSimulator({ locale = "zh-TW" }: Props) {
     const paymentFeePercent = shippingMethod === "custom"
       ? (parseFloat(customPaymentFee) || 0)
       : shippingOptions[shippingMethod].feePercent;
+    const platformFeePercent = parseFloat(platformFee) || 0;
     const taxPercent = 5; // 固定 5% 稅率
     
     // 新邏輯：用戶拖動建議售價，計算微利率
     // 建議售價 = 產品成本 × 倍數
     const recommendedPrice = Math.ceil(cost * priceMultiplier[0]);
     
-    // 總成本 = 商品成本 + 運費 + (售價 × 金流%) + (售價 × 5% 稅)
+    // 總成本 = 商品成本 + 運費 + (售價 × 金流%) + (售價 × 平台抽成%) + (售價 × 5% 稅)
     const paymentFeeCost = recommendedPrice * (paymentFeePercent / 100);
+    const platformFeeCost = recommendedPrice * (platformFeePercent / 100);
     const taxCost = recommendedPrice * (taxPercent / 100);
-    const totalCost = cost + shipping + paymentFeeCost + taxCost;
+    const totalCost = cost + shipping + paymentFeeCost + platformFeeCost + taxCost;
     
     // 毛利 = 售價 - 總成本
     const grossProfit = recommendedPrice - totalCost;
@@ -143,7 +146,6 @@ export default function PricingSimulator({ locale = "zh-TW" }: Props) {
                       >
                         <CardHeader>
                           <CardTitle className="text-lg">{value.name}</CardTitle>
-                          <CardDescription className="text-xs">{value.description}</CardDescription>
                         </CardHeader>
                       </Card>
                     ))}
@@ -233,6 +235,25 @@ export default function PricingSimulator({ locale = "zh-TW" }: Props) {
                       </div>
                     </div>
                   )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="platformFee" className="text-base font-semibold">
+                      平台抽成（包含官網平台跟電商平台）
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="platformFee"
+                        type="number"
+                        placeholder="例如：8（代表 8%）"
+                        value={platformFee}
+                        onChange={(e) => setPlatformFee(e.target.value)}
+                        className="w-32"
+                        data-testid="input-platform-fee"
+                      />
+                      <span className="text-gray-600 dark:text-gray-400">%</span>
+                      <span className="text-sm text-gray-500">（若無平台抽成請填 0）</span>
+                    </div>
+                  </div>
                   
                   <div className="flex gap-4 pt-4">
                     <Button variant="outline" onClick={() => setStep(1)} data-testid="button-previous">
@@ -347,8 +368,14 @@ export default function PricingSimulator({ locale = "zh-TW" }: Props) {
                                 <span className="text-gray-600 dark:text-gray-400">金流費用 ({shippingMethod === "custom" ? (parseFloat(customPaymentFee || "0")) : shippingOptions[shippingMethod].feePercent}%)</span>
                                 <span>$ {Math.ceil(results.recommendedPrice * ((shippingMethod === "custom" ? (parseFloat(customPaymentFee || "0")) : shippingOptions[shippingMethod].feePercent) / 100)).toLocaleString()}</span>
                               </div>
+                              {platformFee && parseFloat(platformFee) > 0 && (
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600 dark:text-gray-400">平台抽成 ({parseFloat(platformFee)}%)</span>
+                                  <span>$ {Math.ceil(results.recommendedPrice * (parseFloat(platformFee) / 100)).toLocaleString()}</span>
+                                </div>
+                              )}
                               <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-gray-400">稅費 (5%)</span>
+                                <span className="text-gray-600 dark:text-gray-400">預留稅款 (5%)</span>
                                 <span>$ {Math.ceil(results.recommendedPrice * 0.05).toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between font-bold border-t pt-1 mt-1">
