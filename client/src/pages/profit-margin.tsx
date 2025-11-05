@@ -89,9 +89,8 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
       if (startTime) {
         const completionTime = Math.floor((Date.now() - startTime) / 1000);
         try {
-          await apiRequest('/api/calculator-analytics/record', {
-            method: 'POST',
-            body: JSON.stringify({ completionTimeSeconds: completionTime }),
+          await apiRequest('POST', '/api/calculator-analytics/record', {
+            completionTimeSeconds: completionTime
           });
           // Invalidate analytics cache to refresh statistics
           queryClient.invalidateQueries({ queryKey: ['/api/calculator-analytics'] });
