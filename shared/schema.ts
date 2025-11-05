@@ -1060,3 +1060,14 @@ export const insertProfitMarginCalculationSchema = createInsertSchema(profitMarg
 });
 
 export type InsertProfitMarginCalculationType = z.infer<typeof insertProfitMarginCalculationSchema>;
+
+// Calculator Analytics - Global statistics for profit margin calculator
+export const calculatorAnalytics = pgTable("calculator_analytics", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  completedCount: integer("completed_count").notNull().default(1024), // Start from 1024
+  completionTimes: jsonb("completion_times").notNull().default([]), // Array of completion times in seconds
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type CalculatorAnalytics = typeof calculatorAnalytics.$inferSelect;
+export type InsertCalculatorAnalytics = typeof calculatorAnalytics.$inferInsert;
