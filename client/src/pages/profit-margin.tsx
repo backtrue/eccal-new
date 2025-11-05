@@ -11,6 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import NavigationBar from "@/components/NavigationBar";
 import Footer from "@/components/Footer";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
+import { trackMetaEvent } from "@/lib/meta-pixel";
 import teacher1 from "@assets/1_1762321340844.png";
 import teacher2 from "@assets/2_1762321340845.png";
 import teacher3 from "@assets/3_1762321340845.png";
@@ -115,11 +117,35 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
   const handleNext = async () => {
     if (wizardStep === 1 && formData.revenue) {
       setWizardStep(2);
+      
+      // Track step 1 completion
+      trackEvent('profit_margin_step_1', 'calculator', 'revenue_entered');
+      trackMetaEvent('Lead', {
+        content_name: '微利率計算機 - 步驟 1',
+        content_category: 'Calculator Tool',
+        value: parseFloat(parseFormattedNumber(formData.revenue)),
+        currency: 'TWD'
+      });
     } else if (wizardStep === 2 && (formData.rentUtilities || formData.salaries)) {
       setWizardStep(3);
+      
+      // Track step 2 completion
+      trackEvent('profit_margin_step_2', 'calculator', 'fixed_costs_entered');
     } else if (wizardStep === 3) {
       calculateResults();
       setStep("result");
+      
+      // Track step 3 completion and calculation finished
+      trackEvent('profit_margin_step_3', 'calculator', 'variable_costs_entered');
+      trackEvent('profit_margin_completed', 'calculator', 'calculation_finished', parseFloat(parseFormattedNumber(formData.revenue)));
+      
+      // Track Meta CompleteRegistration event for conversion
+      trackMetaEvent('CompleteRegistration', {
+        content_name: '微利率計算機完成',
+        content_category: 'Calculator Tool',
+        value: parseFloat(parseFormattedNumber(formData.revenue)),
+        currency: 'TWD'
+      });
       
       // Record completion time if startTime is set
       if (startTime) {
@@ -140,7 +166,16 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
   const handleGoToCalculator = () => {
     // 自動帶入推薦營收目標到預算計算機
     setLocation(`/calculator?targetRevenue=${Math.ceil(results.requiredRevenue)}`);
+    
+    // Track navigation to budget calculator
+    trackEvent('navigate_to_budget_calculator', 'calculator', 'profit_margin_page');
   };
+  
+  // Track page view on component mount
+  useEffect(() => {
+    trackEvent('page_view', 'calculator', 'profit_margin_calculator');
+    trackMetaEvent('PageView');
+  }, []);
   
   const progress = (wizardStep / 3) * 100;
   
@@ -191,6 +226,13 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                 onClick={() => {
                   setStartTime(Date.now());
                   setStep("wizard");
+                  
+                  // Track calculator start
+                  trackEvent('profit_margin_start', 'calculator', 'button_clicked');
+                  trackMetaEvent('ViewContent', {
+                    content_name: '微利率計算機開始',
+                    content_category: 'Calculator Tool'
+                  });
                 }}
                 className="text-lg px-8 py-6"
                 data-testid="button-start-calculation"
