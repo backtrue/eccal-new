@@ -526,12 +526,12 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                 return (
                   <Alert className="border-green-500 bg-green-50 dark:bg-green-950 dark:border-green-800">
                     <AlertDescription className="text-gray-900 dark:text-gray-100">
-                      <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex flex-row gap-4">
                         <div className="flex-shrink-0">
                           <img 
                             src={teacher1} 
                             alt="小黑老師" 
-                            className="w-20 h-20 rounded-full object-cover"
+                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover"
                           />
                         </div>
                         <div className="flex-1 space-y-3">
@@ -559,12 +559,12 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                 return (
                   <Alert className="border-blue-500 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
                     <AlertDescription className="text-gray-900 dark:text-gray-100">
-                      <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex flex-row gap-4">
                         <div className="flex-shrink-0">
                           <img 
                             src={teacher2} 
                             alt="小黑老師" 
-                            className="w-20 h-20 rounded-full object-cover"
+                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover"
                           />
                         </div>
                         <div className="flex-1 space-y-3">
@@ -592,12 +592,12 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                 return (
                   <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800">
                     <AlertDescription className="text-gray-900 dark:text-gray-100">
-                      <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex flex-row gap-4">
                         <div className="flex-shrink-0">
                           <img 
                             src={teacher3} 
                             alt="小黑老師" 
-                            className="w-20 h-20 rounded-full object-cover"
+                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover"
                           />
                         </div>
                         <div className="flex-1 space-y-3">
@@ -625,12 +625,12 @@ export default function ProfitMarginCalculator({ locale = "zh-TW" }: Props) {
                 return (
                   <Alert variant="destructive">
                     <AlertDescription>
-                      <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex flex-row gap-4">
                         <div className="flex-shrink-0">
                           <img 
                             src={teacher4} 
                             alt="小黑老師" 
-                            className="w-20 h-20 rounded-full object-cover"
+                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover"
                           />
                         </div>
                         <div className="flex-1 space-y-3">
