@@ -43,6 +43,31 @@
 - **用戶資料**: `/api/account-center/user/:userId` (GET)
 - **點數扣除**: `/api/account-center/credits/:userId/deduct` (POST)
 
+### 環境變數配置
+
+#### 主站 (eccal.thinkwithblack.com)
+主站使用以下環境變數來簽發和驗證 JWT token：
+```bash
+JWT_SECRET=your_secure_jwt_secret_key
+```
+
+#### 子服務 (Cloudflare Workers / 其他平台)
+子服務在驗證主站簽發的 JWT token 時，必須使用相同的密鑰，但命名為：
+```bash
+ECCAL_JWT_SECRET=your_secure_jwt_secret_key
+```
+
+**⚠️ 重要提醒**：
+- `JWT_SECRET`（主站）和 `ECCAL_JWT_SECRET`（子服務）的值**必須完全相同**
+- 這是跨域身份驗證的核心安全機制
+- 如果兩者不一致，token 驗證將會失敗
+- 建議使用強隨機字串作為密鑰（至少 32 字元）
+
+**命名規範說明**：
+- 主站使用 `JWT_SECRET` 是因為它是 JWT 的簽發方
+- 子服務使用 `ECCAL_JWT_SECRET` 是為了明確標示這是用來驗證 ECCAL 主站簽發的 token
+- 這種命名方式有助於在子服務中區分不同來源的 JWT（例如子服務可能還有自己的 JWT_SECRET）
+
 ## 🚀 快速整合
 
 ### 方法一：使用 Authentication SDK（推薦）

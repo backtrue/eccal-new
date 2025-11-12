@@ -119,15 +119,31 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ## 🚀 生產環境部署
 
-### 環境變數檢查
-確保以下環境變數已設定：
-- `JWT_SECRET` - 與 Cloudflare Worker 的 `ECCAL_JWT_SECRET` 必須一致
+### 環境變數配置
+
+#### 主站 (eccal.thinkwithblack.com)
+主站使用以下環境變數來簽發 scope token：
+```bash
+JWT_SECRET=your_secure_jwt_secret_key
+```
+
+#### 子服務 (Cloudflare Workers / 其他平台)
+子服務在驗證主站簽發的 scope token 時，必須使用相同的密鑰：
+```bash
+ECCAL_JWT_SECRET=your_secure_jwt_secret_key
+```
+
+**⚠️ 重要提醒**：
+- `JWT_SECRET`（主站）和 `ECCAL_JWT_SECRET`（子服務）的值**必須完全相同**
+- 這是 scope token 驗證的核心安全機制
+- 如果兩者不一致，token 驗證將會失敗
 
 ### Cloudflare Worker 整合
 Worker 端需要：
-1. 使用相同的 `ECCAL_JWT_SECRET` 驗證 token
-2. 實作 scope 檢查中間件
-3. 根據 scope 控制 API 存取權限
+1. 設定環境變數 `ECCAL_JWT_SECRET`（與主站的 `JWT_SECRET` 值相同）
+2. 使用 `ECCAL_JWT_SECRET` 驗證 token
+3. 實作 scope 檢查中間件
+4. 根據 scope 控制 API 存取權限
 
 ## 🔧 故障排除
 
