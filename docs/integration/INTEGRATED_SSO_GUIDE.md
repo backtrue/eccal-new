@@ -9,6 +9,7 @@
 - `fabe.thinkwithblack.com`
 - `galine.thinkwithblack.com`
 - `serp.thinkwithblack.com`
+- `andromeda.thinkwithblack.com`
 - `sub3.thinkwithblack.com`
 - `sub4.thinkwithblack.com`
 - `sub5.thinkwithblack.com`
