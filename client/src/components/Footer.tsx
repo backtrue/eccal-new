@@ -252,6 +252,15 @@ export default function Footer() {
                 >
                   數據投廣專家綠界大數據
                 </a>
+                <span>｜</span>
+                <a 
+                  href="https://smartecourse.pse.is/8abxkq" 
+                  target="_blank" 
+                  rel="noopener noreferrer nofollow"
+                  className="hover:text-gray-300 transition-colors"
+                >
+                  如何用好AI行銷工具
+                </a>
               </div>
             </div>
             
