@@ -9,7 +9,7 @@ interface TokenData {
   refreshToken?: string;
   expiresAt?: Date;
   userId: string;
-  provider: 'google' | 'facebook';
+  provider: 'google' | 'facebook' | 'google_analytics';
 }
 
 class SecureTokenService {
@@ -27,7 +27,7 @@ class SecureTokenService {
   /**
    * 儲存 OAuth token (安全方式)
    */
-  async storeToken(userId: string, provider: 'google' | 'facebook', tokenData: {
+  async storeToken(userId: string, provider: 'google' | 'facebook' | 'google_analytics', tokenData: {
     accessToken: string;
     refreshToken?: string;
     expiresAt?: Date;
@@ -47,7 +47,7 @@ class SecureTokenService {
   /**
    * 獲取 OAuth token
    */
-  async getToken(userId: string, provider: 'google' | 'facebook'): Promise<TokenData | null> {
+  async getToken(userId: string, provider: 'google' | 'facebook' | 'google_analytics'): Promise<TokenData | null> {
     const cacheKey = `${provider}_${userId}`;
     
     // 從快取獲取
@@ -68,7 +68,7 @@ class SecureTokenService {
   /**
    * 刪除 token
    */
-  async deleteToken(userId: string, provider: 'google' | 'facebook'): Promise<void> {
+  async deleteToken(userId: string, provider: 'google' | 'facebook' | 'google_analytics'): Promise<void> {
     const cacheKey = `${provider}_${userId}`;
     this.tokenCache.delete(cacheKey);
     console.log(`🗑️ Token deleted for user ${userId} provider ${provider}`);
@@ -77,7 +77,7 @@ class SecureTokenService {
   /**
    * 檢查 token 是否存在且有效
    */
-  async hasValidToken(userId: string, provider: 'google' | 'facebook'): Promise<boolean> {
+  async hasValidToken(userId: string, provider: 'google' | 'facebook' | 'google_analytics'): Promise<boolean> {
     const token = await this.getToken(userId, provider);
     return token !== null;
   }

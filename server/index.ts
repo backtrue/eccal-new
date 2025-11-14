@@ -4,6 +4,7 @@ import passport from 'passport';
 import { registerRoutes } from './routes';
 import { setupVite, serveStatic } from './vite';
 import { setupJWTGoogleAuth, jwtMiddleware } from './jwtAuth';
+import { setupGAConnection } from './gaConnection';
 
 // -------------------- 1. 基礎設定 --------------------
 const app = express();
@@ -2234,6 +2235,9 @@ app.use(passport.initialize());
 
 // -------------------- 5. Google OAuth 設定 --------------------
 setupJWTGoogleAuth(app);
+
+// -------------------- 5.5. Google Analytics 連結設定 --------------------
+setupGAConnection(app);
 
 // -------------------- 6. 註冊路由 --------------------
 (async () => {

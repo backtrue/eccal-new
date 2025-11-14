@@ -1071,3 +1071,25 @@ export const calculatorAnalytics = pgTable("calculator_analytics", {
 
 export type CalculatorAnalytics = typeof calculatorAnalytics.$inferSelect;
 export type InsertCalculatorAnalytics = typeof calculatorAnalytics.$inferInsert;
+
+// Google Analytics Connections - Separate GA4 OAuth connections
+// NOTE: Sensitive OAuth tokens are stored in secureTokenService, not in database
+export const googleAnalyticsConnections = pgTable("google_analytics_connections", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  googleEmail: varchar("google_email").notNull(), // GA4 account email
+  googleId: varchar("google_id"), // Google user ID
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type GoogleAnalyticsConnection = typeof googleAnalyticsConnections.$inferSelect;
+export type InsertGoogleAnalyticsConnection = typeof googleAnalyticsConnections.$inferInsert;
+
+export const insertGoogleAnalyticsConnectionSchema = createInsertSchema(googleAnalyticsConnections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertGoogleAnalyticsConnectionType = z.infer<typeof insertGoogleAnalyticsConnectionSchema>;
