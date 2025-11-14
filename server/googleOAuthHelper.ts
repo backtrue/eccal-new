@@ -1,5 +1,36 @@
 import { google } from 'googleapis';
-import { secureTokenService } from './secureTokenService';
+import { secureTokenService, type TokenData } from './secureTokenService';
+
+/**
+ * Build OAuth2 client from token data without validity checks
+ * Allows expired access tokens with valid refresh tokens to be refreshed
+ */
+export function buildOAuthClientFromToken(tokenData: TokenData | null): any {
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
+
+  if (tokenData) {
+    const credentials: any = {
+      access_token: tokenData.accessToken,
+      refresh_token: tokenData.refreshToken,
+    };
+
+    // Set expiry_date from stored token
+    if (tokenData.expiresAt) {
+      // Google's expiry_date is in milliseconds, use it directly
+      credentials.expiry_date = tokenData.expiresAt.getTime();
+    } else {
+      // Default to 1 hour from now
+      credentials.expiry_date = Date.now() + 3600000;
+    }
+
+    oauth2Client.setCredentials(credentials);
+  }
+
+  return oauth2Client;
+}
 
 /**
  * NEW: Create OAuth2 client using secure token service
@@ -20,14 +51,13 @@ export async function createSecureOAuth2Client(userId: string): Promise<any> {
       refresh_token: tokenData.refreshToken,
     };
 
-    // Handle expiry_date with 32-bit safety
+    // Set expiry_date from stored token
     if (tokenData.expiresAt) {
-      const expiryValue = tokenData.expiresAt.getTime();
-      // Cap at 32-bit signed integer maximum (2147483647)
-      safeCredentials.expiry_date = Math.min(expiryValue, 2147483647);
+      // Google's expiry_date is in milliseconds, use it directly
+      safeCredentials.expiry_date = tokenData.expiresAt.getTime();
     } else {
-      // Default to 1 hour from now, but still within 32-bit range
-      safeCredentials.expiry_date = Math.min(Date.now() + 3600000, 2147483647);
+      // Default to 1 hour from now
+      safeCredentials.expiry_date = Date.now() + 3600000;
     }
 
     oauth2Client.setCredentials(safeCredentials);

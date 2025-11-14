@@ -1,7 +1,8 @@
 import { google } from 'googleapis';
 import { storage } from './storage';
-import { createSecureOAuth2Client, sanitizeGoogleApiResponse, safeGoogleApiCall } from './googleOAuthHelper';
+import { buildOAuthClientFromToken, sanitizeGoogleApiResponse, safeGoogleApiCall } from './googleOAuthHelper';
 import { secureTokenService } from './secureTokenService';
+import { getGAOAuthClient } from './gaConnection';
 
 export interface AnalyticsData {
   averageOrderValue: number;
@@ -25,8 +26,8 @@ export class GoogleAnalyticsService {
         throw new Error('User not found');
       }
 
-      // Set up OAuth2 client using secure token service
-      const oauth2Client = await createSecureOAuth2Client(userId);
+      // Set up OAuth2 client: prioritize GA4-specific token, fallback to main account
+      const oauth2Client = await getGAOAuthClient(userId);
 
       // Use Google Analytics Data API (GA4)
       const analyticsData = google.analyticsdata('v1beta');
@@ -188,25 +189,49 @@ export class GoogleAnalyticsService {
 
   private async refreshAccessToken(userId: string): Promise<void> {
     try {
-      // 使用安全 token 服務進行 token 刷新
-      const oauth2Client = await createSecureOAuth2Client(userId);
+      // Check which token source to refresh: GA4-specific or main account
+      // Fetch both tokens and prefer GA4
+      const gaToken = await secureTokenService.getToken(userId, 'google_analytics');
+      const mainToken = await secureTokenService.getToken(userId, 'google');
       
-      // 檢查是否有有效的 refresh token
-      if (!await secureTokenService.hasValidToken(userId, 'google')) {
-        throw new Error('No valid tokens available for refresh');
+      // Determine token source and validate refresh token exists
+      let tokenSource: 'google_analytics' | 'google';
+      let tokenToUse;
+      
+      if (gaToken && gaToken.refreshToken) {
+        // Prefer GA4-specific token if it has a refresh token
+        tokenSource = 'google_analytics';
+        tokenToUse = gaToken;
+      } else if (mainToken && mainToken.refreshToken) {
+        // Fallback to main account token if it has a refresh token
+        tokenSource = 'google';
+        tokenToUse = mainToken;
+      } else {
+        throw new Error('No refresh token available for either GA4-specific or main account');
       }
 
+      console.log(`Refreshing ${tokenSource} token for user ${userId}`);
+
+      // Build OAuth client directly from token data without validity checks
+      const oauth2Client = buildOAuthClientFromToken(tokenToUse);
+
+      // Refresh the access token
       const { credentials } = await oauth2Client.refreshAccessToken();
       
       if (credentials.access_token) {
-        // 更新安全 token 儲存
-        await secureTokenService.storeToken(userId, 'google', {
+        // Preserve existing refresh token if Google doesn't return a new one
+        const refreshTokenToStore = credentials.refresh_token || tokenToUse.refreshToken;
+        
+        // Update the appropriate token store
+        await secureTokenService.storeToken(userId, tokenSource, {
           accessToken: credentials.access_token,
-          refreshToken: credentials.refresh_token || undefined,
+          refreshToken: refreshTokenToStore,
+          // Google's expiry_date is in milliseconds, use it directly
           expiresAt: credentials.expiry_date ? 
-            new Date(Math.min(credentials.expiry_date, 2147483647)) : // 32-bit safe max
+            new Date(credentials.expiry_date) :
             new Date(Date.now() + 3600000),
         });
+        console.log(`✅ Refreshed ${tokenSource} token for user ${userId}`);
       }
     } catch (error) {
       console.error('Error refreshing access token:', error);
@@ -222,14 +247,20 @@ export class GoogleAnalyticsService {
         throw new Error('User not found');
       }
 
-      // 檢查是否有有效的 token
-      const hasValidToken = await secureTokenService.hasValidToken(userId, 'google');
-      if (!hasValidToken) {
-        throw new Error('No valid Google OAuth token found');
+      // 檢查是否有儲存的 token（GA4 專用或主帳號）
+      // 使用 getToken 而非 hasValidToken，允許過期但有 refresh token 的情況
+      const gaToken = await secureTokenService.getToken(userId, 'google_analytics');
+      const mainToken = await secureTokenService.getToken(userId, 'google');
+      
+      if (!gaToken && !mainToken) {
+        throw new Error('No Google OAuth tokens found (neither GA4-specific nor main account)');
       }
 
-      console.log(`[GA-DEBUG] User ${userId} - Secure token available:`, {
-        hasValidToken,
+      const tokenSource = gaToken ? 'google_analytics (GA4-specific)' : 'google (main account)';
+      console.log(`[GA-DEBUG] User ${userId} - Token available:`, {
+        hasGAToken: !!gaToken,
+        hasMainToken: !!mainToken,
+        tokenSource,
         userEmail: user.email,
         userName: user.name
       });
@@ -240,8 +271,8 @@ export class GoogleAnalyticsService {
       
       console.log(`[GA-DEBUG] Token refreshed for user: ${userId}`);
       
-      // Use secure OAuth2 client for API calls
-      const oauth2Client = await createSecureOAuth2Client(userId);
+      // Use OAuth2 client: prioritize GA4-specific token, fallback to main account
+      const oauth2Client = await getGAOAuthClient(userId);
 
       const analyticsAdmin = google.analyticsadmin('v1beta');
       

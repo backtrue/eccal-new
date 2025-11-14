@@ -216,48 +216,95 @@ export function setupGAConnection(app: Express) {
 /**
  * Helper function to get OAuth client for GA4 operations
  * Checks for dedicated GA4 connection first, falls back to main account
- * Uses secureTokenService and safe OAuth2 client creation with 32-bit expiry guard
+ * Automatically refreshes when only refresh token is available
  */
 export async function getGAOAuthClient(userId: string): Promise<any> {
-  // Try to get dedicated GA4 connection metadata first
-  const gaConnection = await db
-    .select()
-    .from(googleAnalyticsConnections)
-    .where(eq(googleAnalyticsConnections.userId, userId))
-    .limit(1);
-
-  if (gaConnection.length > 0) {
-    // Fetch tokens from secure storage
-    const tokenData = await secureTokenService.getToken(userId, 'google_analytics');
+  const { buildOAuthClientFromToken } = require('./googleOAuthHelper');
+  
+  // Try to get dedicated GA4 connection token first
+  const gaToken = await secureTokenService.getToken(userId, 'google_analytics');
+  
+  if (gaToken) {
+    // Check if we need to refresh (no access token or expired)
+    const needsRefresh = !gaToken.accessToken || 
+      (gaToken.expiresAt && gaToken.expiresAt < new Date());
     
-    if (tokenData) {
-      const oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET
-      );
-
-      // Set credentials with Google's expiry_date
-      const credentials: any = {
-        access_token: tokenData.accessToken,
-        refresh_token: tokenData.refreshToken,
-      };
-
-      if (tokenData.expiresAt) {
-        // Google's expiry_date is in milliseconds, use it directly
-        credentials.expiry_date = tokenData.expiresAt.getTime();
-      } else {
-        // Default to 1 hour from now
-        credentials.expiry_date = Date.now() + 3600000;
+    if (needsRefresh && gaToken.refreshToken) {
+      console.log(`🔄 GA4 token needs refresh for user ${userId}, refreshing now...`);
+      const oauth2Client = buildOAuthClientFromToken(gaToken);
+      
+      try {
+        const { credentials } = await oauth2Client.refreshAccessToken();
+        
+        // Store refreshed tokens
+        await secureTokenService.storeToken(userId, 'google_analytics', {
+          accessToken: credentials.access_token!,
+          refreshToken: credentials.refresh_token || gaToken.refreshToken,
+          expiresAt: credentials.expiry_date ? 
+            new Date(credentials.expiry_date) :
+            new Date(Date.now() + 3600000),
+        });
+        
+        console.log(`✅ GA4 token refreshed for user ${userId}`);
+        // Return client with fresh credentials
+        return oauth2Client;
+      } catch (error) {
+        console.error(`Failed to refresh GA4 token for user ${userId}:`, error);
+        console.log(`⚠️ GA4 token refresh failed, falling back to main account for user ${userId}`);
+        // Don't throw - fall through to try main account token
       }
-
-      oauth2Client.setCredentials(credentials);
-      console.log(`✅ Using dedicated GA4 connection for user ${userId} (${gaConnection[0].googleEmail})`);
+    } else if (!needsRefresh) {
+      // Token is valid, use it directly
+      const oauth2Client = buildOAuthClientFromToken(gaToken);
+      const gaConnection = await db
+        .select()
+        .from(googleAnalyticsConnections)
+        .where(eq(googleAnalyticsConnections.userId, userId))
+        .limit(1);
+      
+      const email = gaConnection.length > 0 ? gaConnection[0].googleEmail : 'unknown';
+      console.log(`✅ Using dedicated GA4 connection for user ${userId} (${email})`);
       return oauth2Client;
     }
   }
 
-  // Fall back to main account via secure token service
-  const { createSecureOAuth2Client } = require('./googleOAuthHelper');
-  console.log(`⚠️ No dedicated GA4 connection, falling back to main account for user ${userId}`);
-  return await createSecureOAuth2Client(userId);
+  // Fall back to main account token
+  const mainToken = await secureTokenService.getToken(userId, 'google');
+  if (mainToken) {
+    // Check if we need to refresh main account token
+    const needsRefresh = !mainToken.accessToken || 
+      (mainToken.expiresAt && mainToken.expiresAt < new Date());
+    
+    if (needsRefresh && mainToken.refreshToken) {
+      console.log(`🔄 Main account token needs refresh for user ${userId}, refreshing now...`);
+      const oauth2Client = buildOAuthClientFromToken(mainToken);
+      
+      try {
+        const { credentials } = await oauth2Client.refreshAccessToken();
+        
+        // Store refreshed tokens
+        await secureTokenService.storeToken(userId, 'google', {
+          accessToken: credentials.access_token!,
+          refreshToken: credentials.refresh_token || mainToken.refreshToken,
+          expiresAt: credentials.expiry_date ? 
+            new Date(credentials.expiry_date) :
+            new Date(Date.now() + 3600000),
+        });
+        
+        console.log(`✅ Main account token refreshed for user ${userId}`);
+        // Return client with fresh credentials
+        return oauth2Client;
+      } catch (error) {
+        console.error(`Failed to refresh main account token for user ${userId}:`, error);
+        throw error;
+      }
+    }
+    
+    const oauth2Client = buildOAuthClientFromToken(mainToken);
+    console.log(`⚠️ Using main account for user ${userId}`);
+    return oauth2Client;
+  }
+
+  // No tokens available
+  throw new Error(`No Google OAuth tokens found for user ${userId}`);
 }
