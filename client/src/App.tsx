@@ -43,6 +43,7 @@ import FacebookTestDemo from "./pages/facebook-test-demo";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 import ProfitMargin from "./pages/profit-margin";
 import PricingSimulator from "./pages/pricing-simulator";
+import Settings from "./pages/settings";
 
 // 🔧 Lazy load pages with Stripe to prevent unnecessary loading
 const Checkout = lazy(() => import("./pages/checkout"));
@@ -134,6 +135,7 @@ function Router() {
       <Route path="/zh-tw/pricing" component={() => <Pricing locale="zh-TW" />} />
       <Route path="/zh-tw/dashboard" component={() => <Dashboard locale="zh-TW" />} />
       <Route path="/zh-tw/about" component={() => <About locale="zh-TW" />} />
+      <Route path="/zh-tw/settings" component={() => <Settings locale="zh-TW" />} />
       <Route path="/calculator" component={() => <Calculator locale="zh-TW" />} />
       <Route path="/campaign-planner" component={() => <CampaignPlannerV2 locale="zh-TW" />} />
       <Route path="/fbaudit" component={() => <FbAudit locale="zh-TW" />} />
@@ -175,6 +177,7 @@ function Router() {
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
       <Route path="/about" component={() => <About locale="zh-TW" />} />
+      <Route path="/settings" component={() => <Settings locale="zh-TW" />} />
       <Route path="/recruitment" component={() => <Recruitment locale="zh-TW" />} />
       <Route path="/zh-tw/recruitment" component={() => <Recruitment locale="zh-TW" />} />
       <Route path="/facebook-test-demo" component={() => <FacebookTestDemo locale="zh-TW" />} />
@@ -212,6 +215,7 @@ function Router() {
       <Route path="/en/privacy" component={Privacy} />
       <Route path="/en/terms" component={Terms} />
       <Route path="/en/about" component={() => <About locale="en" />} />
+      <Route path="/en/settings" component={() => <Settings locale="en" />} />
       <Route path="/en/recruitment" component={() => <RecruitmentEn locale="en" />} />
 
       {/* Japanese routes */}
@@ -247,6 +251,7 @@ function Router() {
       <Route path="/jp/privacy" component={Privacy} />
       <Route path="/jp/terms" component={Terms} />
       <Route path="/jp/about" component={() => <About locale="ja" />} />
+      <Route path="/jp/settings" component={() => <Settings locale="ja" />} />
       <Route path="/jp/recruitment" component={() => <RecruitmentJa locale="ja" />} />
 
       {/* Debug routes */}
