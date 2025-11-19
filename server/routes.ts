@@ -3009,6 +3009,7 @@ echo "Bulk import completed!"`;
       
       let processed = 0;
       let upgraded = 0;
+      let skippedFounders = 0;
       const results = [];
       
       // Process each email individually
@@ -3029,6 +3030,13 @@ echo "Bulk import completed!"`;
           }
           
           const user = userResult[0];
+          
+          // CRITICAL: Prevent downgrading founders to pro
+          if (user.membershipLevel === 'founders' && membershipLevel === 'pro') {
+            skippedFounders++;
+            results.push({ email, success: false, error: '該用戶為 founders 等級，不能降級為 pro' });
+            continue;
+          }
           
           // Check if user is already at the target membership level
           if (user.membershipLevel === membershipLevel) {
@@ -3054,12 +3062,13 @@ echo "Bulk import completed!"`;
         }
       }
       
-      console.log(`Bulk email upgrade completed: ${upgraded}/${processed} emails processed successfully`);
+      console.log(`Bulk email upgrade completed: ${upgraded}/${processed} emails processed successfully (skipped ${skippedFounders} founders)`);
       
       res.json({ 
         success: true, 
         processed, 
-        upgraded, 
+        upgraded,
+        skippedFounders,
         results 
       });
     } catch (error) {
