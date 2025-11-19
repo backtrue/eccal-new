@@ -103,6 +103,7 @@ export default function AdminDashboard() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [bulkEmails, setBulkEmails] = useState("");
   const [isProcessingEmails, setIsProcessingEmails] = useState(false);
+  const [bulkUpgradeDuration, setBulkUpgradeDuration] = useState<number>(365); // Default: 1 year
 
   // Fetch user statistics
   const { data: userStats, isLoading: statsLoading } = useQuery<UserStats>({
@@ -352,13 +353,15 @@ export default function AdminDashboard() {
       const failedResults = data.results?.filter((r: any) => !r.success) || [];
       const notExistCount = failedResults.filter((r: any) => r.error === '用戶不存在').length;
       const alreadyProCount = failedResults.filter((r: any) => r.error === '用戶已經是該會員等級').length;
-      const otherErrorCount = failedResults.length - notExistCount - alreadyProCount;
+      const foundersCount = failedResults.filter((r: any) => r.error?.includes('founders')).length;
+      const otherErrorCount = failedResults.length - notExistCount - alreadyProCount - foundersCount;
       
       let detailMessage = `總共處理 ${data.processed || 0} 個郵箱\n✅ 成功升級: ${data.upgraded || 0} 個`;
       if (failedResults.length > 0) {
         detailMessage += `\n❌ 未處理: ${failedResults.length} 個`;
         if (notExistCount > 0) detailMessage += `\n   • 用戶未註冊: ${notExistCount} 個`;
         if (alreadyProCount > 0) detailMessage += `\n   • 已是 Pro 會員: ${alreadyProCount} 個`;
+        if (foundersCount > 0) detailMessage += `\n   • Founders 會員（不可降級）: ${foundersCount} 個`;
         if (otherErrorCount > 0) detailMessage += `\n   • 其他錯誤: ${otherErrorCount} 個`;
       }
       
@@ -444,7 +447,7 @@ export default function AdminDashboard() {
     bulkEmailUpgradeMutation.mutate({
       emails,
       membershipLevel: 'pro',
-      duration: 365
+      duration: bulkUpgradeDuration
     });
   };
 
@@ -812,10 +815,24 @@ export default function AdminDashboard() {
                   批量 Email 升級 Pro 會員
                 </CardTitle>
                 <CardDescription>
-                  輸入郵箱地址（每行一個），系統將自動升級現有用戶為 Pro 會員（一年有效期）
+                  輸入郵箱地址（每行一個），系統將自動升級現有用戶為 Pro 會員
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-medium text-blue-900 mb-1">重要提醒</h4>
+                      <p className="text-sm text-blue-800">
+                        • Founders 會員是最高級別，系統會自動跳過，不會降級為 Pro
+                      </p>
+                      <p className="text-sm text-blue-800">
+                        • 已經是 Pro 會員的用戶也會被跳過
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
@@ -834,6 +851,25 @@ export default function AdminDashboard() {
                       </Button>
                     </div>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="upgrade-duration">會員有效期</Label>
+                  <Select 
+                    value={bulkUpgradeDuration.toString()} 
+                    onValueChange={(value) => setBulkUpgradeDuration(parseInt(value))}
+                  >
+                    <SelectTrigger id="upgrade-duration" data-testid="select-upgrade-duration">
+                      <SelectValue placeholder="選擇有效期" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30" data-testid="duration-option-month">一個月（30天）</SelectItem>
+                      <SelectItem value="90" data-testid="duration-option-quarter">一季（90天）</SelectItem>
+                      <SelectItem value="365" data-testid="duration-option-year">一年（365天）</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500">
+                    選擇升級後的 Pro 會員有效期限
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bulk-emails">郵箱地址列表</Label>
@@ -863,6 +899,7 @@ user3@example.com"
                     onClick={handleBulkEmailUpgrade}
                     disabled={isProcessingEmails || !bulkEmails.trim()}
                     className="flex items-center gap-2"
+                    data-testid="button-bulk-upgrade"
                   >
                     {isProcessingEmails ? (
                       <>
