@@ -61,35 +61,52 @@ Preferred communication style: Simple, everyday language.
 - Added yellow status card for "already logged in but no GA properties" state
 - Clarified GA4 flow: users use their main login Google account to access GA4, no secondary account connection needed
 - `getGAOAuthClient()` already supports fallback to main account token if no dedicated GA4 token exists
+- **CRITICAL FIX**: Added OAuth token persistence to database with AES-256-GCM encryption
+  - Created `oauth_tokens` table to store tokens persistently
+  - Tokens survive production restarts (previously lost on restart)
+  - Uses `TOKEN_ENCRYPTION_KEY` secret for encryption
+  - Falls back to `JWT_SECRET` if encryption key not set
+- Added orange "re-authorization required" card when user is logged in but GA tokens are missing/expired
+- Fixed `/api/analytics/properties` to check both `google` and `google_analytics` provider tokens
+
+## OAuth Token Persistence Architecture
+
+**Problem Solved**: OAuth tokens were stored only in memory, lost on production restart.
+
+**Solution**:
+- `oauth_tokens` database table stores encrypted tokens
+- `secureTokenService` now has dual storage: memory cache + database
+- `storeToken()`: Writes to both memory and database (encrypted)
+- `getToken()`: First checks memory, falls back to database recovery
+- Tokens encrypted with AES-256-GCM using `TOKEN_ENCRYPTION_KEY`
+- Backward compatible: Can decrypt old plaintext tokens gracefully
+
+**Environment Variables Required**:
+- `TOKEN_ENCRYPTION_KEY`: Required for token encryption (32+ character secret)
 
 ## Core Problem & Fixes Applied (2025-11-30)
 
 **Problem**: Why does "no resources" scenario appear in `/calculator` flow?
 
-**All Possible Causes of "No Resources":**
-1. **isAuthenticated is false** → useAnalyticsProperties hook not executed (enabled=false) → no data fetched
-2. **isAuthenticated is true, but /api/analytics/properties returns empty array []**
-   - User's Google account has no GA4 resources configured
-   - Google token expired or invalid → backend can't call Google Analytics API
-   - Google token format error
-   - Backend /api/analytics/properties implementation bug
-3. **isAuthenticated is true, but /api/analytics/properties returns error**
-   - Backend returns error response instead of data array
-4. **Frontend has condition checking properties?.length > 0**
-   - If condition is false, green card not displayed even if data returned
+**Root Causes Identified**:
+1. **Token not persisted** → Production restart clears all OAuth tokens from memory
+2. **isAuthenticated is true, but no OAuth token** → JWT cookie valid but Google token lost
+3. **Backend only checked `google` provider** → Missed users with `google_analytics` provider tokens
 
 **Fixes Applied**:
 - [x] Fixed calculator.tsx: Changed condition from `properties.length > 0` to only `Array.isArray(properties)`
 - [x] Added loading state: Shows yellow card with loading indicator while fetching GA properties
-- [x] Added error handling: Properly displays states when loading, loaded with data, or empty
-- [x] Verified useAnalyticsProperties hook is enabled when isAuthenticated is true
-- [x] Verified /api/analytics/properties endpoint has requireJWTAuth middleware
+- [x] Added orange "re-authorization" card when properties array is empty
+- [x] Fixed `/api/analytics/properties` to check both `google` AND `google_analytics` tokens
+- [x] Added `oauth_tokens` table for token persistence
+- [x] Updated `secureTokenService` to use database + memory hybrid storage
+- [x] Added AES-256-GCM encryption for stored tokens
 
-**Flow Now Correct**:
+**Calculator Flow Now Correct**:
 1. Component initializes → gets isAuthenticated and properties (hook enabled=isAuthenticated)
 2. If isAuthenticated=true and propertiesLoading=true → show yellow loading card
-3. If isAuthenticated=true and properties array returned → show green card with selections
-4. If isAuthenticated=true and properties empty → show nothing (user has no GA4 resources)
+3. If isAuthenticated=true and properties array returned with data → show green card with selections
+4. If isAuthenticated=true and properties empty → show orange "re-authorization required" card
 5. If isAuthenticated=false → show blue login card
 
 ## External Dependencies

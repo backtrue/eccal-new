@@ -23,10 +23,11 @@ const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
 
 /**
- * 獲取加密密鑰（從環境變量派生）
+ * 獲取加密密鑰（從專用環境變量，優先使用 TOKEN_ENCRYPTION_KEY）
  */
 function getEncryptionKey(): Buffer {
-  const secret = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
+  // 優先使用專用的 token 加密密鑰
+  const secret = process.env.TOKEN_ENCRYPTION_KEY || process.env.JWT_SECRET || 'fallback-secret-key-for-development';
   // 使用 SHA-256 hash 確保密鑰長度為 32 bytes (256 bits)
   return crypto.createHash('sha256').update(secret).digest();
 }
