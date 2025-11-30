@@ -14,11 +14,8 @@ import { Progress } from "@/components/ui/progress";
 import Footer from "@/components/Footer";
 import NavigationBar from "@/components/NavigationBar";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
-import FacebookLoginButton from "@/components/FacebookLoginButton";
-import FacebookAccountSelector from "@/components/FacebookAccountSelector";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalyticsProperties, useAnalyticsData } from "@/hooks/useAnalyticsData";
-import { useFacebookConnection, useFacebookDiagnosis } from "@/hooks/useFacebookDiagnosis";
 import { getTranslations, type Locale } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
 import { trackCalculatorUsage, trackMetaEvent } from "@/lib/meta-pixel";
@@ -63,9 +60,6 @@ export default function Calculator({ locale }: CalculatorProps) {
   
   // Connection status checks
   const isGoogleConnected = isAuthenticated && user;
-  // Temporarily disabled useFacebookConnection to debug rendering
-  // const { data: facebookConnectionData } = useFacebookConnection(isGoogleConnected);
-  const isFacebookConnected = false; // Temporarily hardcoded
   
   // GA Analytics hooks
   const { data: properties } = useAnalyticsProperties(isAuthenticated);
@@ -73,9 +67,6 @@ export default function Calculator({ locale }: CalculatorProps) {
     selectedProperty, 
     { enabled: false } // 不自動載入，需手動觸發
   );
-  
-  // Facebook diagnosis mutation
-  const diagnosisMutation = useFacebookDiagnosis();
 
   const form = useForm<CalculatorFormData>({
     resolver: zodResolver(createCalculatorSchema(locale)),
@@ -205,66 +196,8 @@ export default function Calculator({ locale }: CalculatorProps) {
                   {!isGoogleConnected && <GoogleLoginButton locale={locale} />}
                 </div>
 
-                {/* Facebook Connection */}
-                <div className="flex items-center justify-between p-4 bg-white rounded-lg border">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full ${isFacebookConnected ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <div>
-                      <div className="font-medium text-gray-900">{t.facebookAds}</div>
-                      <div className={`text-sm ${isFacebookConnected ? 'text-green-600' : 'text-gray-500'}`}>
-                        {isFacebookConnected ? t.connected : t.notConnected}
-                      </div>
-                    </div>
-                  </div>
-                  {!isFacebookConnected && <FacebookLoginButton />}
-                </div>
               </div>
 
-              {/* Account Selection */}
-              {(isGoogleConnected || isFacebookConnected) && (
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">選擇要使用的帳戶</h3>
-                  
-                  {/* Google Analytics Property Selection */}
-                  {isGoogleConnected && (
-                    <div className="p-4 bg-white rounded-lg border">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Google Analytics 資源
-                      </label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="選擇 Google Analytics 資源" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">請先載入 GA 資源</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {/* Facebook Ad Account Selection */}
-                  {isFacebookConnected && (
-                    <div className="p-4 bg-white rounded-lg border">
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-gray-700">
-                          Facebook 廣告帳戶
-                        </label>
-                        <Button 
-                          type="button"
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            window.open('/facebook-permissions', '_blank');
-                          }}
-                        >
-                          檢查權限
-                        </Button>
-                      </div>
-                      <FacebookAccountSelector />
-                    </div>
-                  )}
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -315,8 +248,6 @@ export default function Calculator({ locale }: CalculatorProps) {
                         </div>
                       )}
                       
-                      {/* Facebook Account Selection */}
-                      <FacebookAccountSelector />
                     </div>
                   )}
 
@@ -442,54 +373,6 @@ export default function Calculator({ locale }: CalculatorProps) {
                   </div>
                 </div>
 
-                {/* Facebook Diagnosis Section */}
-                {isAuthenticated && results && (
-                  <div className="mt-8 pt-6 border-t">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Facebook className="h-5 w-5 text-blue-600" />
-                      <h3 className="text-lg font-semibold">{t.facebookDiagnosis}</h3>
-                    </div>
-                    
-                    <div className="text-center py-6">
-                      <p className="text-gray-600 mb-4">
-                        {t.diagnosisDescription}
-                      </p>
-                      <Button 
-                        onClick={handleDiagnosis}
-                        disabled={diagnosisMutation.isPending}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        {diagnosisMutation.isPending ? (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                            {t.analyzing}
-                          </>
-                        ) : (
-                          t.startFacebookDiagnosis
-                        )}
-                      </Button>
-                    </div>
-
-                    {/* Diagnosis Results */}
-                    {diagnosisMutation.data && (
-                      <div className="mt-6 p-6 bg-gray-50 rounded-lg">
-                        <h4 className="font-semibold text-gray-900 mb-3">{t.diagnosisResults}</h4>
-                        <div className="space-y-2 text-sm text-gray-600">
-                          <p>{t.account}: {diagnosisMutation.data.accountName}</p>
-                          <p>{t.healthScore}: {diagnosisMutation.data.healthScore}/100</p>
-                          <div className="mt-4">
-                            <h5 className="font-medium mb-2">{t.recommendations}:</h5>
-                            <ul className="list-disc list-inside space-y-1">
-                              {diagnosisMutation.data.recommendations?.map((rec: string, index: number) => (
-                                <li key={index}>{rec}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}
