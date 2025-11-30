@@ -274,6 +274,32 @@ export default function Calculator({ locale }: CalculatorProps) {
                 </CardContent>
               </Card>
             )}
+            
+            {/* No GA properties found - need to re-authorize */}
+            {!propertiesLoading && Array.isArray(properties) && properties.length === 0 && (
+              <Card className="mb-6 border-orange-200 bg-orange-50">
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-orange-100 p-2 rounded-lg">
+                      <RefreshCw className="text-orange-600 w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-orange-900 mb-2">
+                        {locale === 'zh-TW' ? '需要重新授權 Google Analytics' : 
+                         locale === 'ja' ? 'Google Analytics の再認証が必要です' : 
+                         'Google Analytics Re-authorization Required'}
+                      </h3>
+                      <p className="text-sm text-orange-700 mb-4">
+                        {locale === 'zh-TW' ? '您的 Google Analytics 授權已過期，請重新登入以取得最新的 GA4 資源。' : 
+                         locale === 'ja' ? 'Google Analytics の認証が期限切れです。最新の GA4 リソースを取得するには、再度ログインしてください。' : 
+                         'Your Google Analytics authorization has expired. Please log in again to access your GA4 properties.'}
+                      </p>
+                      <GoogleLoginButton locale={locale} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
 

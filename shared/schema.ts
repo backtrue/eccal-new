@@ -1093,3 +1093,27 @@ export const insertGoogleAnalyticsConnectionSchema = createInsertSchema(googleAn
 });
 
 export type InsertGoogleAnalyticsConnectionType = z.infer<typeof insertGoogleAnalyticsConnectionSchema>;
+
+// OAuth Tokens - Secure storage for OAuth tokens (encrypted)
+// This replaces the in-memory secureTokenService for production persistence
+export const oauthTokens = pgTable("oauth_tokens", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  provider: varchar("provider", { length: 50 }).notNull(), // "google", "google_analytics", "facebook"
+  accessToken: text("access_token").notNull(), // Encrypted access token
+  refreshToken: text("refresh_token"), // Encrypted refresh token (optional)
+  expiresAt: timestamp("expires_at"), // Token expiration time
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type OAuthToken = typeof oauthTokens.$inferSelect;
+export type InsertOAuthToken = typeof oauthTokens.$inferInsert;
+
+export const insertOAuthTokenSchema = createInsertSchema(oauthTokens).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertOAuthTokenType = z.infer<typeof insertOAuthTokenSchema>;
