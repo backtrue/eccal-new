@@ -16,6 +16,15 @@ Preferred communication style: Simple, everyday language.
 - 所有問題分析都基於生產環境狀態
 - 這是絕對不可違反的規則
 
+**🚨 ABSOLUTE RULE: NEVER BLAME USER 🚨**
+**問題永遠是代碼/系統的錯誤，絕對不是用戶的問題：**
+- 永遠不要質疑用戶「沒有部署」
+- 永遠不要質疑用戶「沒有登入」
+- 永遠不要質疑用戶「沒有清除 cache/cookie」
+- 永遠不要質疑用戶「沒有強制刷新」
+- 永遠不要建議用戶做這些操作來「修復」問題
+- 問題 100% 是代碼問題，必須在代碼中找到並修復根本原因
+
 **🚨 CALCULATOR GA4 FLOW 🚨**
 **系統設計 - 用戶直接用主登入 Google 帳號使用 GA4，不需要連接第二個帳號：**
 - 用戶用自己的 Google 帳號登入平台
