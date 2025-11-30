@@ -16,6 +16,14 @@ Preferred communication style: Simple, everyday language.
 - 所有問題分析都基於生產環境狀態
 - 這是絕對不可違反的規則
 
+**🚨 CALCULATOR GA4 FLOW 🚨**
+**系統設計 - 用戶直接用主登入 Google 帳號使用 GA4，不需要連接第二個帳號：**
+- 用戶用自己的 Google 帳號登入平台
+- 系統直接使用該登入帳號的 Google token 調用 Google Analytics API
+- `/api/analytics/properties` 返回該帳號下的所有 GA4 資源
+- `/calculator` 顯示綠色卡讓用戶選擇並載入 GA 資料
+- 不需要連接/授權第二個 Google 帳號
+
 ## System Architecture
 
 ### UI/UX Decisions
@@ -46,6 +54,13 @@ Preferred communication style: Simple, everyday language.
 - **Database Schema**: Normalized relational design for core entities like users, sessions, campaigns, daily budgets, and marketing plans.
 - **API Structure**: Versioned REST API endpoints with a `/api` prefix, service layer for business logic, and centralized error handling.
 - **Data Flow**: Client-side input validation, API communication via TanStack Query, and Drizzle ORM for database operations.
+
+## Recent Changes (2025-11-30)
+
+- Removed incorrect `/settings` redirect from Calculator page
+- Added yellow status card for "already logged in but no GA properties" state
+- Clarified GA4 flow: users use their main login Google account to access GA4, no secondary account connection needed
+- `getGAOAuthClient()` already supports fallback to main account token if no dedicated GA4 token exists
 
 ## External Dependencies
 

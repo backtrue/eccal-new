@@ -180,7 +180,7 @@ export default function Calculator({ locale }: CalculatorProps) {
           </p>
         </div>
 
-        {/* Google Analytics 連接區塊 */}
+        {/* Not logged in - show login button */}
         {!isAuthenticated && (
           <Card className="mb-6 border-blue-200 bg-blue-50">
             <CardContent className="p-6">
@@ -194,6 +194,25 @@ export default function Calculator({ locale }: CalculatorProps) {
                     {t.connectAccountDescription}
                   </p>
                   <GoogleLoginButton locale={locale} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Already logged in but no GA properties */}
+        {isAuthenticated && (!Array.isArray(properties) || properties.length === 0) && (
+          <Card className="mb-6 border-yellow-200 bg-yellow-50">
+            <CardContent className="p-6">
+              <div className="flex items-start space-x-3">
+                <div className="bg-yellow-100 p-3 rounded-lg">
+                  <BarChart3 className="text-yellow-600 w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-yellow-900 mb-2">尚未偵測到 Google Analytics</h3>
+                  <p className="text-sm text-yellow-700 mb-2">
+                    {properties === undefined ? '載入中...' : '您的 Google 帳戶尚未連結 Google Analytics，或沒有可用的 GA4 資源。請在 Google Analytics 中設定您的資源後再試。'}
+                  </p>
                 </div>
               </div>
             </CardContent>
