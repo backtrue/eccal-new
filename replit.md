@@ -62,14 +62,35 @@ Preferred communication style: Simple, everyday language.
 - Clarified GA4 flow: users use their main login Google account to access GA4, no secondary account connection needed
 - `getGAOAuthClient()` already supports fallback to main account token if no dedicated GA4 token exists
 
-## Core Problem to Fix (2025-11-30)
+## Core Problem & Fixes Applied (2025-11-30)
 
-**Problem in `/calculator` flow logic:**
-- Current recorded flow: "Step 3: 前端根据返回的 properties 显示 UI → 有资源显示绿色卡，无资源不显示"
-- **Issue**: The "no resources" scenario is logically impossible
-- **Why**: If user is already authenticated, their Google account must have at least one GA4 resource
-- **Correct behavior**: Should always show green card when properties are returned (no condition for "no resources")
-- **Current flow Step 3 should be**: "前端根据返回的 properties 显示 UI → 显示绿色卡让用户选择"
+**Problem**: Why does "no resources" scenario appear in `/calculator` flow?
+
+**All Possible Causes of "No Resources":**
+1. **isAuthenticated is false** → useAnalyticsProperties hook not executed (enabled=false) → no data fetched
+2. **isAuthenticated is true, but /api/analytics/properties returns empty array []**
+   - User's Google account has no GA4 resources configured
+   - Google token expired or invalid → backend can't call Google Analytics API
+   - Google token format error
+   - Backend /api/analytics/properties implementation bug
+3. **isAuthenticated is true, but /api/analytics/properties returns error**
+   - Backend returns error response instead of data array
+4. **Frontend has condition checking properties?.length > 0**
+   - If condition is false, green card not displayed even if data returned
+
+**Fixes Applied**:
+- [x] Fixed calculator.tsx: Changed condition from `properties.length > 0` to only `Array.isArray(properties)`
+- [x] Added loading state: Shows yellow card with loading indicator while fetching GA properties
+- [x] Added error handling: Properly displays states when loading, loaded with data, or empty
+- [x] Verified useAnalyticsProperties hook is enabled when isAuthenticated is true
+- [x] Verified /api/analytics/properties endpoint has requireJWTAuth middleware
+
+**Flow Now Correct**:
+1. Component initializes → gets isAuthenticated and properties (hook enabled=isAuthenticated)
+2. If isAuthenticated=true and propertiesLoading=true → show yellow loading card
+3. If isAuthenticated=true and properties array returned → show green card with selections
+4. If isAuthenticated=true and properties empty → show nothing (user has no GA4 resources)
+5. If isAuthenticated=false → show blue login card
 
 ## External Dependencies
 

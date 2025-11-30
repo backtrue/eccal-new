@@ -65,7 +65,7 @@ export default function Calculator({ locale }: CalculatorProps) {
   const { trackCalculation } = useCalculatorTracking('/calculator');
   
   // GA Analytics hooks
-  const { data: properties } = useAnalyticsProperties(isAuthenticated);
+  const { data: properties, isLoading: propertiesLoading } = useAnalyticsProperties(isAuthenticated);
   const { data: analyticsData, refetch: refetchAnalytics } = useAnalyticsData(
     selectedProperty, 
     { enabled: false }
@@ -200,59 +200,81 @@ export default function Calculator({ locale }: CalculatorProps) {
           </Card>
         )}
 
-        {/* GA Property Selection */}
-        {isAuthenticated && Array.isArray(properties) && properties.length > 0 && (
-          <Card className="mb-6 border-green-200 bg-green-50">
-            <CardContent className="p-4">
-              <div className="flex items-start space-x-3">
-                <div className="bg-green-100 p-2 rounded-lg">
-                  <BarChart3 className="text-green-600 w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-green-900">{t.loadGaData}</h3>
+        {/* GA Property Selection - Show when authenticated */}
+        {isAuthenticated && (
+          <>
+            {propertiesLoading && (
+              <Card className="mb-6 border-yellow-200 bg-yellow-50">
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-yellow-100 p-2 rounded-lg">
+                      <RefreshCw className="text-yellow-600 w-5 h-5 animate-spin" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-yellow-900">{t.loading}...</h3>
+                      <p className="text-sm text-yellow-700">
+                        正在載入您的 GA4 資源
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-sm text-green-700 mb-4">
-                    {t.autoFill}
-                  </p>
+                </CardContent>
+              </Card>
+            )}
+            
+            {!propertiesLoading && Array.isArray(properties) && properties.length > 0 && (
+              <Card className="mb-6 border-green-200 bg-green-50">
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-green-100 p-2 rounded-lg">
+                      <BarChart3 className="text-green-600 w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold text-green-900">{t.loadGaData}</h3>
+                      </div>
+                      <p className="text-sm text-green-700 mb-4">
+                        {t.autoFill}
+                      </p>
 
-                  <div className="space-y-3">
-                    <Select value={selectedProperty} onValueChange={setSelectedProperty}>
-                      <SelectTrigger className="bg-white">
-                        <SelectValue placeholder={t.selectGaProperty} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(properties as any[]).map((property: any) => (
-                          <SelectItem key={property.id} value={property.id}>
-                            {property.displayName} ({property.accountName})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <div className="space-y-3">
+                        <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+                          <SelectTrigger className="bg-white">
+                            <SelectValue placeholder={t.selectGaProperty} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(properties as any[]).map((property: any) => (
+                              <SelectItem key={property.id} value={property.id}>
+                                {property.displayName} ({property.accountName})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
 
-                    <Button
-                      type="button"
-                      onClick={handleLoadGaData}
-                      disabled={!selectedProperty || loadingGaData}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {loadingGaData ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          {t.loading}...
-                        </>
-                      ) : (
-                        <>
-                          <BarChart3 className="w-4 h-4 mr-2" />
-                          {t.loadGaData}
-                        </>
-                      )}
-                    </Button>
+                        <Button
+                          type="button"
+                          onClick={handleLoadGaData}
+                          disabled={!selectedProperty || loadingGaData}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {loadingGaData ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              {t.loading}...
+                            </>
+                          ) : (
+                            <>
+                              <BarChart3 className="w-4 h-4 mr-2" />
+                              {t.loadGaData}
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
 
         <Card className="mb-8">
