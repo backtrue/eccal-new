@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Calculator as CalcIcon, TrendingUp, Target, ShoppingCart, BarChart3, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
-import { Facebook } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,16 +127,6 @@ export default function Calculator({ locale }: CalculatorProps) {
     }
   };
 
-  const handleDiagnosis = () => {
-    if (!results) return;
-    
-    diagnosisMutation.mutate({
-      targetRevenue: form.getValues('targetRevenue'),
-      targetAov: form.getValues('averageOrderValue'),
-      targetConversionRate: form.getValues('conversionRate'),
-      cpc: 5
-    });
-  };
 
   const formatNumber = (num: number) => {
     const localeMap = {
@@ -243,7 +232,8 @@ export default function Calculator({ locale }: CalculatorProps) {
                             disabled={!selectedProperty || loadingGaData}
                             className="mt-6"
                           >
-                            {loadingGaData ? <RefreshCw className="h-4 w-4 animate-spin" /> : '載入數據'}
+                            {loadingGaData && <RefreshCw className="h-4 w-4 animate-spin mr-2" />}
+                            {loadingGaData ? '載入中...' : '載入數據'}
                           </Button>
                         </div>
                       )}
