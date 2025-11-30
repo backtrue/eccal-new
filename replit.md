@@ -62,6 +62,15 @@ Preferred communication style: Simple, everyday language.
 - Clarified GA4 flow: users use their main login Google account to access GA4, no secondary account connection needed
 - `getGAOAuthClient()` already supports fallback to main account token if no dedicated GA4 token exists
 
+## Core Problem to Fix (2025-11-30)
+
+**Problem in `/calculator` flow logic:**
+- Current recorded flow: "Step 3: 前端根据返回的 properties 显示 UI → 有资源显示绿色卡，无资源不显示"
+- **Issue**: The "no resources" scenario is logically impossible
+- **Why**: If user is already authenticated, their Google account must have at least one GA4 resource
+- **Correct behavior**: Should always show green card when properties are returned (no condition for "no resources")
+- **Current flow Step 3 should be**: "前端根据返回的 properties 显示 UI → 显示绿色卡让用户选择"
+
 ## External Dependencies
 
 - **@neondatabase/serverless**: Neon PostgreSQL driver.
