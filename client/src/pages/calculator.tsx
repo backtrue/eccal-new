@@ -14,8 +14,11 @@ import { Progress } from "@/components/ui/progress";
 import Footer from "@/components/Footer";
 import NavigationBar from "@/components/NavigationBar";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
+import FacebookLoginButton from "@/components/FacebookLoginButton";
+import FacebookAccountSelector from "@/components/FacebookAccountSelector";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalyticsProperties, useAnalyticsData } from "@/hooks/useAnalyticsData";
+import { useFacebookConnection, useFacebookDiagnosis } from "@/hooks/useFacebookDiagnosis";
 import { getTranslations, type Locale } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
 import { trackCalculatorUsage, trackMetaEvent } from "@/lib/meta-pixel";
@@ -58,12 +61,20 @@ export default function Calculator({ locale }: CalculatorProps) {
   const [loadingGaData, setLoadingGaData] = useState(false);
   const { isAuthenticated, user } = useAuth();
   
+  // Connection status checks
+  const isGoogleConnected = isAuthenticated && user;
+  const { data: facebookConnectionData } = useFacebookConnection(isGoogleConnected);
+  const isFacebookConnected = (facebookConnectionData as any)?.connected || false;
+  
   // GA Analytics hooks
   const { data: properties } = useAnalyticsProperties(isAuthenticated);
   const { data: analyticsData, refetch: refetchAnalytics } = useAnalyticsData(
     selectedProperty, 
     { enabled: false } // 不自動載入，需手動觸發
   );
+  
+  // Facebook diagnosis mutation
+  const diagnosisMutation = useFacebookDiagnosis();
 
   const form = useForm<CalculatorFormData>({
     resolver: zodResolver(createCalculatorSchema(locale)),
@@ -190,7 +201,7 @@ export default function Calculator({ locale }: CalculatorProps) {
                       </div>
                     </div>
                   </div>
-                  {!isGoogleConnected && <GoogleLoginButton />}
+                  {!isGoogleConnected && <GoogleLoginButton locale={locale} />}
                 </div>
 
                 {/* Facebook Connection */}
@@ -283,9 +294,9 @@ export default function Calculator({ locale }: CalculatorProps) {
                                 <SelectValue placeholder="選擇 Google Analytics 資源" />
                               </SelectTrigger>
                               <SelectContent>
-                                {properties.map((property: any) => (
+                                {(properties as any[]).map((property: any) => (
                                   <SelectItem key={property.id} value={property.id}>
-                                    {property.displayName || property.name}
+                                    {String(property.displayName || property.name)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
