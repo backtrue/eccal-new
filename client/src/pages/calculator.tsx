@@ -63,8 +63,9 @@ export default function Calculator({ locale }: CalculatorProps) {
   
   // Connection status checks
   const isGoogleConnected = isAuthenticated && user;
-  const { data: facebookConnectionData } = useFacebookConnection(isGoogleConnected);
-  const isFacebookConnected = (facebookConnectionData as any)?.connected || false;
+  // Temporarily disabled useFacebookConnection to debug rendering
+  // const { data: facebookConnectionData } = useFacebookConnection(isGoogleConnected);
+  const isFacebookConnected = false; // Temporarily hardcoded
   
   // GA Analytics hooks
   const { data: properties } = useAnalyticsProperties(isAuthenticated);
