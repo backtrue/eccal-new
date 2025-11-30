@@ -193,7 +193,7 @@ export default function Calculator({ locale }: CalculatorProps) {
                   <p className="text-sm text-blue-700 mb-4">
                     {t.connectAccountDescription}
                   </p>
-                  <GoogleLoginButton />
+                  <GoogleLoginButton locale={locale} />
                 </div>
               </div>
             </CardContent>
