@@ -1,36 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Calculator as CalcIcon, TrendingUp, Target, ShoppingCart, BarChart3, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
+import { Calculator as CalcIcon, TrendingUp, Target, ShoppingCart, BarChart3, RefreshCw, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import Footer from "@/components/Footer";
 import NavigationBar from "@/components/NavigationBar";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
+import SavePlanDialog from "@/components/SavePlanDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalyticsProperties, useAnalyticsData } from "@/hooks/useAnalyticsData";
 import { getTranslations, type Locale } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
 import { trackCalculatorUsage, trackMetaEvent } from "@/lib/meta-pixel";
+import { usePageViewTracking, useCalculatorTracking } from "@/hooks/useBehaviorTracking";
 
-const createCalculatorSchema = (locale: Locale) => z.object({
+const createCalculatorSchema = (t: any) => z.object({
   targetRevenue: z.preprocess(
     (a) => (a === '' ? undefined : a),
-    z.number({ invalid_type_error: locale === 'zh-TW' ? "目標營業額必須是數字" : locale === 'en' ? "Target revenue must be a number" : "目標売上は数値である必要があります" }).positive(locale === 'zh-TW' ? "目標營業額必須大於 0" : locale === 'en' ? "Target revenue must be greater than 0" : "目標売上は0より大きい必要があります")
+    z.number({ invalid_type_error: t.targetMonthlyRevenue + " must be a number" }).positive(t.targetMonthlyRevenue + " must be greater than 0")
   ),
   averageOrderValue: z.preprocess(
     (a) => (a === '' ? undefined : a),
-    z.number({ invalid_type_error: locale === 'zh-TW' ? "客單價必須是數字" : locale === 'en' ? "Average order value must be a number" : "平均注文額は数値である必要があります" }).positive(locale === 'zh-TW' ? "客單價必須大於 0" : locale === 'en' ? "Average order value must be greater than 0" : "平均注文額は0より大きい必要があります")
+    z.number({ invalid_type_error: t.averageOrderValue + " must be a number" }).positive(t.averageOrderValue + " must be greater than 0")
   ),
   conversionRate: z.preprocess(
     (a) => (a === '' ? undefined : a),
-    z.number({ invalid_type_error: locale === 'zh-TW' ? "轉換率必須是數字" : locale === 'en' ? "Conversion rate must be a number" : "コンバージョン率は数値である必要があります" }).positive(locale === 'zh-TW' ? "轉換率必須大於 0" : locale === 'en' ? "Conversion rate must be greater than 0" : "コンバージョン率は0より大きい必要があります").max(100, locale === 'zh-TW' ? "轉換率不能超過 100%" : locale === 'en' ? "Conversion rate cannot exceed 100%" : "コンバージョン率は100%を超えることはできません")
+    z.number({ invalid_type_error: t.conversionRate + " must be a number" }).positive(t.conversionRate + " must be greater than 0").max(100, t.conversionRate + " cannot exceed 100%")
   ),
   selectedGaProperty: z.string().optional(),
 });
@@ -55,20 +56,23 @@ export default function Calculator({ locale }: CalculatorProps) {
   const [results, setResults] = useState<CalculationResults | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<string>('');
   const [loadingGaData, setLoadingGaData] = useState(false);
+  const [formData, setFormData] = useState<any>(null); // 儲存表單數據
+  const [returnTo, setReturnTo] = useState<string>(''); // 儲存返回 URL
   const { isAuthenticated, user } = useAuth();
-  
-  // Connection status checks
-  const isGoogleConnected = isAuthenticated && user;
+
+  // 追蹤頁面瀏覽和計算器使用
+  usePageViewTracking('/calculator', 'calculator', { locale, returnTo });
+  const { trackCalculation } = useCalculatorTracking('/calculator');
   
   // GA Analytics hooks
-  const { data: properties = [] } = useAnalyticsProperties(isAuthenticated);
+  const { data: properties } = useAnalyticsProperties(isAuthenticated);
   const { data: analyticsData, refetch: refetchAnalytics } = useAnalyticsData(
     selectedProperty, 
-    { enabled: false } // 不自動載入，需手動觸發
+    { enabled: false }
   );
 
   const form = useForm<CalculatorFormData>({
-    resolver: zodResolver(createCalculatorSchema(locale)),
+    resolver: zodResolver(createCalculatorSchema(t)),
     defaultValues: {
       targetRevenue: undefined,
       averageOrderValue: undefined,
@@ -77,10 +81,47 @@ export default function Calculator({ locale }: CalculatorProps) {
     },
   });
 
-  const onSubmit = (data: CalculatorFormData) => {
-    const cpc = 5; // 固定 CPC 值
+  // 檢查是否有 returnTo 參數和 targetRevenue 參數（從損益計算機傳來）
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnToParam = urlParams.get('returnTo');
+    const targetRevenueParam = urlParams.get('targetRevenue');
     
-    // 計算步驟
+    if (returnToParam) {
+      setReturnTo(decodeURIComponent(returnToParam));
+    }
+    
+    // 如果有 targetRevenue 參數，自動填入表單
+    if (targetRevenueParam) {
+      const revenue = parseInt(targetRevenueParam);
+      if (!isNaN(revenue) && revenue > 0) {
+        form.setValue('targetRevenue', revenue);
+      }
+    }
+  }, [form]);
+
+  const handleLoadGaData = async () => {
+    if (!selectedProperty) return;
+    
+    setLoadingGaData(true);
+    try {
+      const result = await refetchAnalytics();
+      if (result.data) {
+        // 自動填入表單
+        form.setValue('averageOrderValue', Math.round(result.data.averageOrderValue));
+        form.setValue('conversionRate', Math.round(result.data.conversionRate * 100) / 100);
+      }
+    } catch (error) {
+      console.error('Failed to load GA data:', error);
+    } finally {
+      setLoadingGaData(false);
+    }
+  };
+
+  const onSubmit = (data: CalculatorFormData) => {
+    const cpc = t.cpcValue; // CPC value based on locale
+    
+    // Calculation steps
     const requiredOrders = Math.ceil(data.targetRevenue / data.averageOrderValue);
     const monthlyTraffic = Math.ceil(requiredOrders / (data.conversionRate / 100));
     const dailyTraffic = Math.ceil(monthlyTraffic / 30);
@@ -94,167 +135,176 @@ export default function Calculator({ locale }: CalculatorProps) {
       dailyTraffic,
       monthlyAdBudget,
       dailyAdBudget,
-      targetRoas,
+      targetRoas
     };
 
     setResults(calculationResults);
-
-    // 追蹤事件
-    trackEvent('calculate_budget', 'calculator', 'budget_calculation', data.targetRevenue);
-    trackCalculatorUsage({
-      targetRevenue: data.targetRevenue,
-      averageOrderValue: data.averageOrderValue,
-      conversionRate: data.conversionRate,
-      monthlyAdBudget,
-      dailyAdBudget
-    });
-  };
-
-  const handleLoadGaData = async () => {
-    if (!selectedProperty) return;
     
-    setLoadingGaData(true);
-    try {
-      const result = await refetchAnalytics();
-      if (result.data) {
-        form.setValue("averageOrderValue", Math.round(result.data.averageOrderValue));
-        form.setValue("conversionRate", parseFloat(result.data.conversionRate.toFixed(2)));
-      }
-    } catch (error) {
-      console.error('載入 GA 數據失敗:', error);
-    } finally {
-      setLoadingGaData(false);
-    }
-  };
+    // Store form data for later plan saving
+    const selectedGaProperty = Array.isArray(properties) ? properties.find((p: any) => p.id === selectedProperty) : null;
+    setFormData({
+      targetRevenue: data.targetRevenue!,
+      averageOrderValue: data.averageOrderValue!,
+      conversionRate: data.conversionRate!,
+      results: calculationResults,
+      gaPropertyId: selectedProperty || undefined,
+      gaPropertyName: selectedGaProperty?.displayName || undefined,
+      dataSource: selectedProperty ? 'google_analytics' : 'manual',
+    });
 
-
-  const formatNumber = (num: number) => {
-    const localeMap = {
-      'zh-TW': 'zh-TW',
-      'en': 'en-US', 
-      'ja': 'ja-JP'
-    };
-    return num.toLocaleString(localeMap[locale]);
+    // Track calculation events
+    trackEvent('calculator_calculation', 'Calculator');
+    trackCalculatorUsage({
+      targetRevenue: data.targetRevenue!,
+      averageOrderValue: data.averageOrderValue!,
+      conversionRate: data.conversionRate!,
+      monthlyAdBudget: calculationResults.monthlyAdBudget,
+      dailyAdBudget: calculationResults.dailyAdBudget
+    });
+    
+    // 追蹤用戶行為 - 計算器使用
+    trackCalculation(data, calculationResults);
   };
 
   return (
-    <div className="bg-gray-50 font-sans min-h-screen">
+    <div className="min-h-screen bg-gray-50">
       <NavigationBar locale={locale} />
       
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center space-x-3 mb-4">
-              <div className="bg-blue-600 p-3 rounded-lg">
-                <CalcIcon className="text-white w-8 h-8" />
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900">{t.calculator}</h1>
-            </div>
-            <p className="text-lg text-gray-600">{t.calculatorDescription}</p>
-          </div>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {t.calculatorTitle}
+          </h1>
+          <p className="text-gray-600">
+            {t.calculatorDescription}
+          </p>
         </div>
-      </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="grid gap-8">
-          
-          {/* Account Connection Section */}
-          <Card className="border-blue-200 bg-blue-50">
+        {/* Google Analytics 連接區塊 */}
+        {!isAuthenticated && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold text-blue-900 mb-3 text-center">
-                {t.connectAccountTitle}
-              </h2>
-              <p className="text-blue-700 mb-6 text-center">
-                {t.connectAccountDescription}
-              </p>
-              
-              {/* Platform Connection Status */}
-              <div className="grid md:grid-cols-2 gap-4 mb-6">
-                {/* Google Connection */}
-                <div className="flex items-center justify-between p-4 bg-white rounded-lg border">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full ${isGoogleConnected ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <div>
-                      <div className="font-medium text-gray-900">{t.googleAnalytics}</div>
-                      <div className={`text-sm ${isGoogleConnected ? 'text-green-600' : 'text-gray-500'}`}>
-                        {isGoogleConnected ? t.connected : t.notConnected}
-                      </div>
-                    </div>
-                  </div>
-                  {!isGoogleConnected && <GoogleLoginButton locale={locale} />}
+              <div className="flex items-start space-x-3">
+                <div className="bg-blue-100 p-3 rounded-lg">
+                  <BarChart3 className="text-blue-600 w-6 h-6" />
                 </div>
-
+                <div className="flex-1">
+                  <h3 className="font-semibold text-blue-900 mb-2">{t.connectAccountTitle}</h3>
+                  <p className="text-sm text-blue-700 mb-4">
+                    {t.connectAccountDescription}
+                  </p>
+                  <GoogleLoginButton locale={locale} />
+                </div>
               </div>
-
             </CardContent>
           </Card>
+        )}
 
-          {/* Calculator Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                計算廣告預算
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  
-                  {/* Account Selection Section */}
-                  {isAuthenticated && (
-                    <div className="space-y-4">
-                      {/* GA Property Selection */}
-                      {properties && Array.isArray(properties) && properties.length > 0 && (
-                        <div className="flex items-center gap-4">
-                          <div className="flex-1">
-                            <label className="text-sm font-medium text-gray-700 mb-2 block">
-                              選擇 GA 資源（選填）
-                            </label>
-                            <Select value={selectedProperty} onValueChange={setSelectedProperty}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="選擇 Google Analytics 資源" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {(properties as any[]).map((property: any) => (
-                                  <SelectItem key={property.id} value={property.id}>
-                                    {String(property.displayName || property.name)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <Button 
-                            type="button"
-                            variant="outline"
-                            onClick={handleLoadGaData}
-                            disabled={!selectedProperty || loadingGaData}
-                            className="mt-6"
-                          >
-                            {loadingGaData && <RefreshCw className="h-4 w-4 animate-spin mr-2" />}
-                            {loadingGaData ? '載入中...' : '載入數據'}
-                          </Button>
-                        </div>
+        {/* Already logged in but no GA resources */}
+        {isAuthenticated && (!Array.isArray(properties) || properties.length === 0) && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
+            <CardContent className="p-6">
+              <div className="flex items-start space-x-3">
+                <div className="bg-blue-100 p-3 rounded-lg">
+                  <BarChart3 className="text-blue-600 w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-blue-900 mb-2">連接 Google Analytics</h3>
+                  <p className="text-sm text-blue-700 mb-4">
+                    請先在設定中連接您的 Google Analytics 帳號，即可使用自動填充功能
+                  </p>
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.location.href = '/settings'}
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                  >
+                    前往設定
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* GA Property Selection */}
+        {isAuthenticated && Array.isArray(properties) && properties.length > 0 && (
+          <Card className="mb-6 border-green-200 bg-green-50">
+            <CardContent className="p-4">
+              <div className="flex items-start space-x-3">
+                <div className="bg-green-100 p-2 rounded-lg">
+                  <BarChart3 className="text-green-600 w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold text-green-900">{t.loadGaData}</h3>
+                  </div>
+                  <p className="text-sm text-green-700 mb-4">
+                    {t.autoFill}
+                  </p>
+
+                  <div className="space-y-3">
+                    <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder={t.selectGaProperty} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(properties as any[]).map((property: any) => (
+                          <SelectItem key={property.id} value={property.id}>
+                            {property.displayName} ({property.accountName})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Button
+                      type="button"
+                      onClick={handleLoadGaData}
+                      disabled={!selectedProperty || loadingGaData}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {loadingGaData ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          {t.loading}...
+                        </>
+                      ) : (
+                        <>
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          {t.loadGaData}
+                        </>
                       )}
-                      
-                    </div>
-                  )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-                  {/* Form Fields */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalcIcon className="w-5 h-5" />
+              {t.targetMonthlyRevenue}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <FormField
                     control={form.control}
                     name="targetRevenue"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4" />
+                          <Target className="w-4 h-4" />
                           {t.targetMonthlyRevenue} ({t.targetMonthlyRevenueUnit})
                         </FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder={t.targetRevenuePlaceholder} 
+                          <Input
+                            type="number"
+                            placeholder={t.targetRevenuePlaceholder}
                             {...field}
                             onChange={(e) => {
                               const value = e.target.value;
@@ -273,13 +323,13 @@ export default function Calculator({ locale }: CalculatorProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
-                          <ShoppingCart className="h-4 w-4" />
+                          <ShoppingCart className="w-4 h-4" />
                           {t.averageOrderValue} ({t.averageOrderValueUnit})
                         </FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder={t.aovPlaceholder} 
+                          <Input
+                            type="number"
+                            placeholder={t.aovPlaceholder}
                             {...field}
                             onChange={(e) => {
                               const value = e.target.value;
@@ -298,14 +348,14 @@ export default function Calculator({ locale }: CalculatorProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
-                          <BarChart3 className="h-4 w-4" />
+                          <TrendingUp className="w-4 h-4" />
                           {t.conversionRate} ({t.conversionRateUnit})
                         </FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
+                          <Input
+                            type="number"
                             step="0.01"
-                            placeholder={t.conversionRatePlaceholder} 
+                            placeholder={t.conversionRatePlaceholder}
                             {...field}
                             onChange={(e) => {
                               const value = e.target.value;
@@ -317,58 +367,74 @@ export default function Calculator({ locale }: CalculatorProps) {
                       </FormItem>
                     )}
                   />
-
-                  <Button type="submit" className="w-full" size="lg">
-                    {t.calculateBudget}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          {/* Results */}
-          {results && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t.calculationResults}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <h3 className="font-semibold text-blue-900 mb-2">{t.monthlyRequiredOrders}</h3>
-                      <p className="text-2xl font-bold text-blue-600">{formatNumber(results.requiredOrders)} {t.ordersUnit}</p>
-                      <p className="text-sm text-blue-700">{t.dailyApprox} {formatNumber(Math.round(results.requiredOrders / 30))} {t.ordersUnit}</p>
-                    </div>
-                    
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <h3 className="font-semibold text-green-900 mb-2">{t.monthlyRequiredTraffic}</h3>
-                      <p className="text-2xl font-bold text-green-600">{formatNumber(results.monthlyTraffic)} {t.visitorsUnit}</p>
-                      <p className="text-sm text-green-700">{t.dailyApprox} {formatNumber(results.dailyTraffic)} {t.visitorsUnit}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <h3 className="font-semibold text-purple-900 mb-2">{t.suggestedDailyBudget}</h3>
-                      <p className="text-2xl font-bold text-purple-600">{t.currency === 'USD' ? '$' : t.currency === 'JPY' ? '¥' : 'NT$'} {formatNumber(results.dailyAdBudget)}</p>
-                      <p className="text-sm text-purple-700">{t.monthlyBudgetApprox} {t.currency === 'USD' ? '$' : t.currency === 'JPY' ? '¥' : 'NT$'} {formatNumber(results.monthlyAdBudget)}</p>
-                    </div>
-                    
-                    <div className="bg-orange-50 p-4 rounded-lg">
-                      <h3 className="font-semibold text-orange-900 mb-2">{t.suggestedTargetRoas}</h3>
-                      <p className="text-2xl font-bold text-orange-600">{results.targetRoas.toFixed(1)}x</p>
-                      <p className="text-sm text-orange-700">{t.roasDescription.replace('{roas}', results.targetRoas.toFixed(1))}</p>
-                    </div>
-                  </div>
                 </div>
 
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
+                  <CalcIcon className="w-4 h-4 mr-2" />
+                  {t.calculate}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
 
+        {/* Calculation Results */}
+        {results && (
+          <Card className="mb-8 border-green-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-green-800">{t.calculationResults}</CardTitle>
+              {isAuthenticated && formData && (
+                <SavePlanDialog calculationData={formData} returnTo={returnTo} locale={locale}>
+                  <Button variant="outline" size="sm">
+                    <Save className="w-4 h-4 mr-2" />
+                    {t.save}
+                  </Button>
+                </SavePlanDialog>
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <ShoppingCart className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-blue-900">{results.requiredOrders}</div>
+                  <div className="text-sm text-blue-700">{t.requiredOrders}</div>
+                </div>
+                
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <Target className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-purple-900">{results.dailyTraffic}</div>
+                  <div className="text-sm text-purple-700">{t.dailyTrafficNeeded}</div>
+                </div>
+                
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <TrendingUp className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-green-900">{results.targetRoas.toFixed(1)}x</div>
+                  <div className="text-sm text-green-700">{t.targetRoasValue}</div>
+                </div>
+                
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <BarChart3 className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-orange-900">{t.currency} {results.monthlyAdBudget.toLocaleString()}</div>
+                  <div className="text-sm text-orange-700">{t.monthlyAdBudgetNeeded}</div>
+                </div>
+                
+                <div className="text-center p-4 bg-red-50 rounded-lg">
+                  <CalcIcon className="w-8 h-8 text-red-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-red-900">{t.currency} {results.dailyAdBudget.toLocaleString()}</div>
+                  <div className="text-sm text-red-700">{t.dailyAdBudgetNeeded}</div>
+                </div>
+                
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <Target className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-gray-900">{results.monthlyTraffic.toLocaleString()}</div>
+                  <div className="text-sm text-gray-700">{t.monthlyTrafficNeeded}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+      
       <Footer />
     </div>
   );
