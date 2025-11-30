@@ -16,7 +16,7 @@ export interface AnalyticsData {
 }
 
 export function useAnalyticsProperties(enabled: boolean = true) {
-  return useQuery({
+  return useQuery<AnalyticsProperty[]>({
     queryKey: ["/api/analytics/properties"],
     enabled,
     staleTime: 30 * 60 * 1000, // 30分鐘

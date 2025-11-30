@@ -61,7 +61,7 @@ export default function Calculator({ locale }: CalculatorProps) {
   const isGoogleConnected = isAuthenticated && user;
   
   // GA Analytics hooks
-  const { data: properties } = useAnalyticsProperties(isAuthenticated);
+  const { data: properties = [] } = useAnalyticsProperties(isAuthenticated);
   const { data: analyticsData, refetch: refetchAnalytics } = useAnalyticsData(
     selectedProperty, 
     { enabled: false } // 不自動載入，需手動觸發
