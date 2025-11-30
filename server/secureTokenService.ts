@@ -1,12 +1,13 @@
 /**
  * 安全 Token 管理服務
- * 使用數據庫持久化和運行時快取來安全管理 OAuth tokens
+ * 使用數據庫持久化（加密）和運行時快取來安全管理 OAuth tokens
  * 支持生產環境重啟後恢復 tokens
  */
 
 import { db } from './db';
 import { oauthTokens } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
+import crypto from 'crypto';
 
 interface TokenData {
   accessToken: string;
@@ -14,6 +15,66 @@ interface TokenData {
   expiresAt?: Date;
   userId: string;
   provider: 'google' | 'facebook' | 'google_analytics';
+}
+
+// 加密配置
+const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 16;
+const AUTH_TAG_LENGTH = 16;
+
+/**
+ * 獲取加密密鑰（從環境變量派生）
+ */
+function getEncryptionKey(): Buffer {
+  const secret = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
+  // 使用 SHA-256 hash 確保密鑰長度為 32 bytes (256 bits)
+  return crypto.createHash('sha256').update(secret).digest();
+}
+
+/**
+ * 加密文本
+ */
+function encrypt(text: string): string {
+  const key = getEncryptionKey();
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, key, iv);
+  
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  
+  const authTag = cipher.getAuthTag();
+  
+  // 格式: iv:authTag:encryptedData
+  return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+}
+
+/**
+ * 解密文本
+ */
+function decrypt(encryptedText: string): string {
+  try {
+    const key = getEncryptionKey();
+    const parts = encryptedText.split(':');
+    
+    if (parts.length !== 3) {
+      throw new Error('Invalid encrypted format');
+    }
+    
+    const iv = Buffer.from(parts[0], 'hex');
+    const authTag = Buffer.from(parts[1], 'hex');
+    const encrypted = parts[2];
+    
+    const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
+    
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return decrypted;
+  } catch (error) {
+    console.error('Token decryption failed:', error);
+    throw new Error('Failed to decrypt token');
+  }
 }
 
 class SecureTokenService {
@@ -29,7 +90,7 @@ class SecureTokenService {
   }
 
   /**
-   * 儲存 OAuth token (安全方式) - 同時存到內存和數據庫
+   * 儲存 OAuth token (安全方式) - 同時存到內存和數據庫（加密）
    */
   async storeToken(userId: string, provider: 'google' | 'facebook' | 'google_analytics', tokenData: {
     accessToken: string;
@@ -38,15 +99,19 @@ class SecureTokenService {
   }): Promise<void> {
     const cacheKey = `${provider}_${userId}`;
     
-    // 存儲到內存快取
+    // 存儲到內存快取（明文，用於快速訪問）
     this.tokenCache.set(cacheKey, {
       ...tokenData,
       userId,
       provider,
     });
 
-    // 存儲到數據庫（持久化）
+    // 存儲到數據庫（加密）
     try {
+      // 加密 tokens
+      const encryptedAccessToken = encrypt(tokenData.accessToken);
+      const encryptedRefreshToken = tokenData.refreshToken ? encrypt(tokenData.refreshToken) : null;
+
       // 檢查是否已有記錄
       const existing = await db
         .select()
@@ -62,8 +127,8 @@ class SecureTokenService {
         await db
           .update(oauthTokens)
           .set({
-            accessToken: tokenData.accessToken,
-            refreshToken: tokenData.refreshToken || null,
+            accessToken: encryptedAccessToken,
+            refreshToken: encryptedRefreshToken,
             expiresAt: tokenData.expiresAt || null,
             updatedAt: new Date(),
           })
@@ -71,17 +136,17 @@ class SecureTokenService {
             eq(oauthTokens.userId, userId),
             eq(oauthTokens.provider, provider)
           ));
-        console.log(`✅ Token updated in DB for user ${userId} provider ${provider}`);
+        console.log(`✅ Token updated in DB (encrypted) for user ${userId} provider ${provider}`);
       } else {
         // 插入新記錄
         await db.insert(oauthTokens).values({
           userId,
           provider,
-          accessToken: tokenData.accessToken,
-          refreshToken: tokenData.refreshToken || null,
+          accessToken: encryptedAccessToken,
+          refreshToken: encryptedRefreshToken,
           expiresAt: tokenData.expiresAt || null,
         });
-        console.log(`✅ Token inserted in DB for user ${userId} provider ${provider}`);
+        console.log(`✅ Token inserted in DB (encrypted) for user ${userId} provider ${provider}`);
       }
     } catch (error) {
       console.error(`❌ Failed to persist token to DB for user ${userId} provider ${provider}:`, error);
@@ -92,7 +157,7 @@ class SecureTokenService {
   }
 
   /**
-   * 獲取 OAuth token - 先從內存快取獲取，失敗則從數據庫恢復
+   * 獲取 OAuth token - 先從內存快取獲取，失敗則從數據庫恢復（解密）
    */
   async getToken(userId: string, provider: 'google' | 'facebook' | 'google_analytics'): Promise<TokenData | null> {
     const cacheKey = `${provider}_${userId}`;
@@ -110,7 +175,7 @@ class SecureTokenService {
       }
     }
 
-    // 2. 從數據庫恢復 token
+    // 2. 從數據庫恢復 token（解密）
     try {
       const dbToken = await db
         .select()
@@ -123,9 +188,24 @@ class SecureTokenService {
 
       if (dbToken.length > 0) {
         const token = dbToken[0];
+        
+        // 解密 tokens
+        let decryptedAccessToken: string;
+        let decryptedRefreshToken: string | undefined;
+        
+        try {
+          decryptedAccessToken = decrypt(token.accessToken);
+          decryptedRefreshToken = token.refreshToken ? decrypt(token.refreshToken) : undefined;
+        } catch (decryptError) {
+          // 如果解密失敗，可能是舊的未加密數據，嘗試直接使用
+          console.log(`⚠️ Decryption failed for user ${userId}, trying as plaintext`);
+          decryptedAccessToken = token.accessToken;
+          decryptedRefreshToken = token.refreshToken || undefined;
+        }
+        
         const tokenData: TokenData = {
-          accessToken: token.accessToken,
-          refreshToken: token.refreshToken || undefined,
+          accessToken: decryptedAccessToken,
+          refreshToken: decryptedRefreshToken,
           expiresAt: token.expiresAt || undefined,
           userId,
           provider,
@@ -133,7 +213,7 @@ class SecureTokenService {
 
         // 存入內存快取
         this.tokenCache.set(cacheKey, tokenData);
-        console.log(`🔄 Token recovered from DB for user ${userId} provider ${provider}`);
+        console.log(`🔄 Token recovered from DB (decrypted) for user ${userId} provider ${provider}`);
         
         return tokenData;
       }
