@@ -560,9 +560,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[ANALYTICS-API] Properties request from user: ${userId}, email: ${req.user.email}`);
       
-      // 只有 Google 用戶才能查詢 GA 屬性
-      if (!user || !user.googleAccessToken) {
-        console.log(`[ANALYTICS-API] User ${userId} has no Google access token, returning empty array`);
+      // Check if user has Google token in secureTokenService
+      const googleToken = await secureTokenService.getToken(userId, 'google');
+      if (!user || !googleToken) {
+        console.log(`[ANALYTICS-API] User ${userId} has no Google token in secureTokenService, returning empty array`);
         return res.json([]);
       }
       
