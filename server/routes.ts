@@ -7,6 +7,7 @@ import { db } from "./db";
 import { users as usersTable, userMetrics, userCredits } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { brevoService } from "./brevoService";
+import { secureTokenService } from "./secureTokenService";
 import { setupCampaignPlannerRoutes } from "./campaignPlannerRoutes";
 import { setupDiagnosisRoutes } from "./diagnosisRoutes";
 import { setupFbAuditRoutes } from "./fbAuditRoutes";
@@ -552,6 +553,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Note: /api/auth/user route is handled in jwtAuth.ts
+  
+  // Token diagnostics endpoint - for debugging token persistence issues
+  app.get('/api/debug/token-status', requireJWTAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      console.log(`[TOKEN-DEBUG] Token status check for user ${userId}`);
+      
+      // Check secureTokenService for tokens
+      const googleToken = await secureTokenService.getToken(userId, 'google');
+      const gaToken = await secureTokenService.getToken(userId, 'google_analytics');
+      
+      // Build response with token info (no sensitive data exposed)
+      const response = {
+        userId,
+        email: req.user.email,
+        timestamp: new Date().toISOString(),
+        tokens: {
+          google: googleToken ? {
+            hasAccessToken: !!googleToken.accessToken,
+            accessTokenLength: googleToken.accessToken?.length || 0,
+            hasRefreshToken: !!googleToken.refreshToken,
+            expiresAt: googleToken.expiresAt,
+            isExpired: googleToken.expiresAt ? new Date(googleToken.expiresAt) < new Date() : 'unknown',
+          } : null,
+          google_analytics: gaToken ? {
+            hasAccessToken: !!gaToken.accessToken,
+            accessTokenLength: gaToken.accessToken?.length || 0,
+            hasRefreshToken: !!gaToken.refreshToken,
+            expiresAt: gaToken.expiresAt,
+            isExpired: gaToken.expiresAt ? new Date(gaToken.expiresAt) < new Date() : 'unknown',
+          } : null,
+        },
+        hasAnyToken: !!googleToken || !!gaToken,
+      };
+      
+      console.log(`[TOKEN-DEBUG] Token status for user ${userId}:`, JSON.stringify(response, null, 2));
+      res.json(response);
+    } catch (error) {
+      console.error(`[TOKEN-DEBUG] Error checking token status:`, error);
+      res.status(500).json({ 
+        error: 'Failed to check token status',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+  
   // Analytics routes
   app.get('/api/analytics/properties', requireJWTAuth, async (req: any, res) => {
     try {
