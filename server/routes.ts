@@ -560,12 +560,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[ANALYTICS-API] Properties request from user: ${userId}, email: ${req.user.email}`);
       
-      // Check if user has Google token in secureTokenService
+      // Check if user has any Google token in secureTokenService (either google or google_analytics)
       const googleToken = await secureTokenService.getToken(userId, 'google');
-      if (!user || !googleToken) {
-        console.log(`[ANALYTICS-API] User ${userId} has no Google token in secureTokenService, returning empty array`);
+      const gaToken = await secureTokenService.getToken(userId, 'google_analytics');
+      
+      if (!user) {
+        console.log(`[ANALYTICS-API] User ${userId} not found in database, returning empty array`);
         return res.json([]);
       }
+      
+      if (!googleToken && !gaToken) {
+        console.log(`[ANALYTICS-API] User ${userId} has no Google token (neither 'google' nor 'google_analytics'), returning empty array`);
+        return res.json([]);
+      }
+      
+      console.log(`[ANALYTICS-API] User ${userId} has tokens: google=${!!googleToken}, google_analytics=${!!gaToken}`);
       
       const properties = await analyticsService.getUserAnalyticsProperties(userId);
       console.log(`[ANALYTICS-API] Successfully returned ${properties?.length || 0} properties for user: ${userId}`);
