@@ -200,6 +200,32 @@ export default function Calculator({ locale }: CalculatorProps) {
           </Card>
         )}
 
+        {/* Already logged in but no GA resources */}
+        {isAuthenticated && (!Array.isArray(properties) || properties.length === 0) && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
+            <CardContent className="p-6">
+              <div className="flex items-start space-x-3">
+                <div className="bg-blue-100 p-3 rounded-lg">
+                  <BarChart3 className="text-blue-600 w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-blue-900 mb-2">連接 Google Analytics</h3>
+                  <p className="text-sm text-blue-700 mb-4">
+                    請先在設定中連接您的 Google Analytics 帳號，即可使用自動填充功能
+                  </p>
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.location.href = '/settings'}
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                  >
+                    前往設定
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* GA Property Selection */}
         {isAuthenticated && Array.isArray(properties) && properties.length > 0 && (
           <Card className="mb-6 border-green-200 bg-green-50">
