@@ -18,6 +18,10 @@ export interface AnalyticsData {
 export function useAnalyticsProperties(enabled: boolean = true) {
   return useQuery<AnalyticsProperty[]>({
     queryKey: ["/api/analytics/properties"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/analytics/properties");
+      return response.json();
+    },
     enabled,
     staleTime: 30 * 60 * 1000, // 30分鐘
     gcTime: 60 * 60 * 1000, // 1小時快取
