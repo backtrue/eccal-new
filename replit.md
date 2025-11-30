@@ -66,6 +66,8 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (2025-11-30)
 
+### ✅ /calculator GA資源功能修正完畢
+
 - Removed incorrect `/settings` redirect from Calculator page
 - Added yellow status card for "already logged in but no GA properties" state
 - Clarified GA4 flow: users use their main login Google account to access GA4, no secondary account connection needed
@@ -77,6 +79,10 @@ Preferred communication style: Simple, everyday language.
   - Falls back to `JWT_SECRET` if encryption key not set
 - Added orange "re-authorization required" card when user is logged in but GA tokens are missing/expired
 - Fixed `/api/analytics/properties` to check both `google` and `google_analytics` provider tokens
+- **2025-11-30 18:56 修正**: 添加缺失的 `secureTokenService` import 到 `/server/routes.ts`
+  - 修復 `/api/analytics/properties` 端點的 ReferenceError
+  - 添加 `/api/debug/token-status` 診斷端點用於 token 狀態檢查
+  - 生產環境重新部署後生效
 
 ## OAuth Token Persistence Architecture
 
