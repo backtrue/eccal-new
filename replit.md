@@ -64,6 +64,20 @@ Preferred communication style: Simple, everyday language.
 - **API Structure**: Versioned REST API endpoints with a `/api` prefix, service layer for business logic, and centralized error handling.
 - **Data Flow**: Client-side input validation, API communication via TanStack Query, and Drizzle ORM for database operations.
 
+## Recent Changes (2025-12-17)
+
+### ✅ Facebook Marketing API 升級至 v24.0
+
+- 升級所有 Facebook/Meta API 調用從 v23.0 至 v24.0
+- 影響文件：
+  - `server/fbAuditService.ts`
+  - `server/metaService.ts`
+  - `server/metaAccountService.ts`
+  - `server/diagnosisRoutes.ts`
+  - `server/fbAuditRoutes.ts`
+- v24.0 變更主要影響寫入操作（創建/更新廣告活動），我們只使用讀取操作所以完全兼容
+- 使用的端點：`GET /me/adaccounts`, `GET /{ad-account-id}/insights` 等讀取 API
+
 ## Recent Changes (2025-11-30)
 
 ### ✅ /calculator GA資源功能修正完畢
