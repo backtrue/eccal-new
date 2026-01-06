@@ -6,7 +6,7 @@ interface ProtectedAdminRouteProps {
   children: React.ReactNode;
 }
 
-const ADMIN_EMAILS = ['backtrue@gmail.com', 'backtrue@seo-tw.org'];
+const ADMIN_EMAILS = ['backtrue@gmail.com', 'backtrue@seo-tw.org', 'service@achange.com.tw'];
 
 export default function ProtectedAdminRoute({ children }: ProtectedAdminRouteProps) {
   const { user, isLoading, isAuthenticated, checkAuth } = useAuth();
