@@ -93,7 +93,7 @@ import {
   type InsertCalculatorAnalytics,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql, and, count, avg, sum, inArray, gte, lt } from "drizzle-orm";
+import { eq, desc, sql, and, count, avg, sum, inArray, gte, lt, or, ilike } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -204,7 +204,7 @@ export interface IStorage {
   deleteProject(projectId: string, userId: string): Promise<boolean>;
 
   // Admin operations for management dashboard
-  getAllUsers(limit?: number, offset?: number): Promise<{ users: User[], total: number }>;
+  getAllUsers(limit?: number, offset?: number, search?: string): Promise<{ users: User[], total: number }>;
   getUserStats(): Promise<{
     totalUsers: number;
     newUsersToday: number;
@@ -916,13 +916,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Admin operations for management dashboard
-  async getAllUsers(limit: number = 50, offset: number = 0): Promise<{ users: User[], total: number }> {
+  async getAllUsers(limit: number = 50, offset: number = 0, search?: string): Promise<{ users: User[], total: number }> {
+    // Build search condition if search query provided
+    const searchCondition = search
+      ? or(
+          ilike(users.email, `%${search}%`),
+          ilike(users.firstName, `%${search}%`),
+          ilike(users.lastName, `%${search}%`),
+          ilike(users.name, `%${search}%`)
+        )
+      : undefined;
+
     const [users_result, total_result] = await Promise.all([
-      db.select().from(users)
-        .orderBy(desc(users.createdAt))
-        .limit(limit)
-        .offset(offset),
-      db.select({ count: count() }).from(users)
+      searchCondition
+        ? db.select().from(users)
+            .where(searchCondition)
+            .orderBy(desc(users.createdAt))
+            .limit(limit)
+            .offset(offset)
+        : db.select().from(users)
+            .orderBy(desc(users.createdAt))
+            .limit(limit)
+            .offset(offset),
+      searchCondition
+        ? db.select({ count: count() }).from(users).where(searchCondition)
+        : db.select({ count: count() }).from(users)
     ]);
 
     return {

@@ -106,6 +106,7 @@ export default function AdminDashboard() {
   const [bulkUpgradeDuration, setBulkUpgradeDuration] = useState<number>(365); // Default: 1 year
   const [userPage, setUserPage] = useState(0);
   const [userPageSize] = useState(100);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
 
   // Fetch user statistics
   const { data: userStats, isLoading: statsLoading } = useQuery<UserStats>({
@@ -113,11 +114,18 @@ export default function AdminDashboard() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fetch all users with pagination
+  // Fetch all users with pagination and search
   const { data: usersData, isLoading: usersLoading } = useQuery<{ users: User[], total: number }>({
-    queryKey: ['/api/bdmin/users', userPage, userPageSize],
+    queryKey: ['/api/bdmin/users', userPage, userPageSize, userSearchQuery],
     queryFn: async () => {
-      const response = await fetch(`/api/bdmin/users?limit=${userPageSize}&offset=${userPage * userPageSize}`, {
+      const params = new URLSearchParams({
+        limit: userPageSize.toString(),
+        offset: (userPage * userPageSize).toString(),
+      });
+      if (userSearchQuery.trim()) {
+        params.append('search', userSearchQuery.trim());
+      }
+      const response = await fetch(`/api/bdmin/users?${params.toString()}`, {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch users');
@@ -935,6 +943,32 @@ user3@example.com"
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
+                  {/* Search Box */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="搜尋 Email 或姓名..."
+                      value={userSearchQuery}
+                      onChange={(e) => {
+                        setUserSearchQuery(e.target.value);
+                        setUserPage(0); // Reset to first page on search
+                      }}
+                      className="max-w-md"
+                      data-testid="input-user-search"
+                    />
+                    {userSearchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setUserSearchQuery("");
+                          setUserPage(0);
+                        }}
+                      >
+                        清除
+                      </Button>
+                    )}
+                  </div>
+
                   {/* Batch Operations */}
                   <div className="flex gap-4 p-4 bg-gray-50 rounded-lg">
                     <div className="flex gap-2">

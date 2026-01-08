@@ -2235,8 +2235,9 @@ echo "Bulk import completed!"`;
     try {
       const limit = parseInt(req.query.limit) || 50;
       const offset = parseInt(req.query.offset) || 0;
+      const search = req.query.search as string | undefined;
       
-      const result = await storage.getAllUsers(limit, offset);
+      const result = await storage.getAllUsers(limit, offset, search);
       // Return complete result object to match frontend expectations
       res.json(result);
     } catch (error) {
