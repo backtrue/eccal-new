@@ -104,6 +104,8 @@ export default function AdminDashboard() {
   const [bulkEmails, setBulkEmails] = useState("");
   const [isProcessingEmails, setIsProcessingEmails] = useState(false);
   const [bulkUpgradeDuration, setBulkUpgradeDuration] = useState<number>(365); // Default: 1 year
+  const [userPage, setUserPage] = useState(0);
+  const [userPageSize] = useState(100);
 
   // Fetch user statistics
   const { data: userStats, isLoading: statsLoading } = useQuery<UserStats>({
@@ -111,9 +113,16 @@ export default function AdminDashboard() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fetch all users
+  // Fetch all users with pagination
   const { data: usersData, isLoading: usersLoading } = useQuery<{ users: User[], total: number }>({
-    queryKey: ['/api/bdmin/users'],
+    queryKey: ['/api/bdmin/users', userPage, userPageSize],
+    queryFn: async () => {
+      const response = await fetch(`/api/bdmin/users?limit=${userPageSize}&offset=${userPage * userPageSize}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch users');
+      return response.json();
+    },
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
@@ -1041,6 +1050,50 @@ user3@example.com"
                           )}
                         </tbody>
                       </table>
+                    </div>
+                    
+                    {/* Pagination Controls */}
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                      <div className="text-sm text-gray-600">
+                        顯示 {userPage * userPageSize + 1} - {Math.min((userPage + 1) * userPageSize, usersData?.total || 0)} / 共 {usersData?.total || 0} 位用戶
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setUserPage(0)}
+                          disabled={userPage === 0}
+                        >
+                          首頁
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setUserPage(p => Math.max(0, p - 1))}
+                          disabled={userPage === 0}
+                        >
+                          上一頁
+                        </Button>
+                        <span className="text-sm px-2">
+                          第 {userPage + 1} / {Math.ceil((usersData?.total || 0) / userPageSize)} 頁
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setUserPage(p => p + 1)}
+                          disabled={(userPage + 1) * userPageSize >= (usersData?.total || 0)}
+                        >
+                          下一頁
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setUserPage(Math.ceil((usersData?.total || 0) / userPageSize) - 1)}
+                          disabled={(userPage + 1) * userPageSize >= (usersData?.total || 0)}
+                        >
+                          末頁
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
