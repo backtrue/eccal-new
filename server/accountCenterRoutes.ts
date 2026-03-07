@@ -58,6 +58,8 @@ const ALLOWED_ORIGINS = [
   'https://sub5.thinkwithblack.com',
   'https://member.thinkwithblack.com',
   'https://andromeda.thinkwithblack.com',
+  'https://sbir.thinkwithblack.com',
+  'https://sbir-api.thinkwithblack.com',
   'http://localhost:3000', // 開發環境
   'http://localhost:5000', // 開發環境
 ];

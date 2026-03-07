@@ -395,7 +395,7 @@ app.get('/sso-guide', (req, res) => {
     </tbody>
 </table>
 <div class="note ok">
-    <strong>現行白名單（2025-03）：</strong>eccal · audai · quote · fabe · galine · serp · sub3 · sub4 · sub5 · member · andromeda（均為 thinkwithblack.com）+ localhost:3000/5000
+    <strong>現行白名單（2025-03）：</strong>eccal · audai · quote · fabe · galine · serp · sub3 · sub4 · sub5 · member · andromeda · sbir · sbir-api（均為 thinkwithblack.com）+ localhost:3000/5000
 </div>
 
 <h2 id="s2s-support">S2S 官方支援聲明</h2>
@@ -1947,6 +1947,8 @@ app.get('/api/auth/google-sso', async (req, res) => {
       'https://sub5.thinkwithblack.com',
       'https://member.thinkwithblack.com',
       'https://andromeda.thinkwithblack.com',
+      'https://sbir.thinkwithblack.com',
+      'https://sbir-api.thinkwithblack.com',
       'http://localhost:3000',
       'http://localhost:5000'
     ];
@@ -2321,6 +2323,8 @@ app.get('/api/account-center/user/:userId', async (req, res) => {
       'https://sub5.thinkwithblack.com',
       'https://member.thinkwithblack.com',
       'https://andromeda.thinkwithblack.com',
+      'https://sbir.thinkwithblack.com',
+      'https://sbir-api.thinkwithblack.com',
       'http://localhost:3000',
       'http://localhost:5000'
     ];
@@ -2412,6 +2416,8 @@ app.get('/api/account-center/user/:userId/credits', async (req, res) => {
       'https://sub5.thinkwithblack.com',
       'https://member.thinkwithblack.com',
       'https://andromeda.thinkwithblack.com',
+      'https://sbir.thinkwithblack.com',
+      'https://sbir-api.thinkwithblack.com',
       'http://localhost:3000',
       'http://localhost:5000'
     ];
@@ -2473,6 +2479,8 @@ app.get('/api/account-center/user/:userId/membership', async (req, res) => {
       'https://sub5.thinkwithblack.com',
       'https://member.thinkwithblack.com',
       'https://andromeda.thinkwithblack.com',
+      'https://sbir.thinkwithblack.com',
+      'https://sbir-api.thinkwithblack.com',
       'http://localhost:3000',
       'http://localhost:5000'
     ];
@@ -2546,6 +2554,8 @@ app.post('/api/sso/verify-token', express.json(), async (req, res) => {
       'https://sub5.thinkwithblack.com',
       'https://member.thinkwithblack.com',
       'https://andromeda.thinkwithblack.com',
+      'https://sbir.thinkwithblack.com',
+      'https://sbir-api.thinkwithblack.com',
       'http://localhost:3000',
       'http://localhost:5000'
     ];
@@ -2688,6 +2698,8 @@ app.post('/api/sso/login', express.json(), async (req, res) => {
       'https://sub5.thinkwithblack.com',
       'https://member.thinkwithblack.com',
       'https://andromeda.thinkwithblack.com',
+      'https://sbir.thinkwithblack.com',
+      'https://sbir-api.thinkwithblack.com',
       'http://localhost:3000',
       'http://localhost:5000'
     ];
