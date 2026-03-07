@@ -355,7 +355,7 @@ app.get('/sso-guide', (req, res) => {
 <nav class="sidebar">
     <div class="sidebar-logo">
         <h2>報數據 SSO</h2>
-        <p>子服務整合指南 v3.0</p>
+        <p>子服務整合指南 v3.2</p>
     </div>
     <div class="sec">入門</div>
     <a href="#overview">系統概覽</a>
@@ -379,9 +379,11 @@ app.get('/sso-guide', (req, res) => {
     <a href="#api-user">取得用戶資料</a>
     <a href="#api-credits">點數 API</a>
     <div class="sec">進階</div>
+    <a href="#membership-logic">Membership 判斷邏輯</a>
     <a href="#token-structure">JWT Token 結構</a>
     <a href="#diag-headers">診斷 Headers</a>
     <a href="#curl-examples">curl / Worker 範例</a>
+    <a href="#troubleshoot">常見問題排查</a>
     <a href="#live-test">線上測試</a>
 </nav>
 
@@ -389,7 +391,7 @@ app.get('/sso-guide', (req, res) => {
 
 <h1>報數據 SSO 整合指南</h1>
 <p class="lead">本文件說明子服務如何透過報數據統一身份認證（SSO）實現登入共用、會員等級同步與點數共享。</p>
-<div class="note info"><strong>SSO 服務基礎網址：</strong><code>https://eccal.thinkwithblack.com</code> &nbsp;｜&nbsp; 本指南版本：v3.0（2025-03，依實際程式碼驗證）</div>
+<div class="note info"><strong>SSO 服務基礎網址：</strong><code>https://eccal.thinkwithblack.com</code> &nbsp;｜&nbsp; 本指南版本：<strong>v3.2</strong>（2026-03，依實際程式碼驗證）</div>
 
 <h2 id="overview">系統概覽</h2>
 <p>報數據 SSO 基於 <strong>Google OAuth 2.0 + JWT（HS256）</strong> 實現。用戶用 Google 帳號登入一次，即可在所有子服務中認證，無需重複註冊。JWT Token 由 ECCAL 簽發（有效期 7 天），子服務透過 verify-token API 或自行用 JWT_SECRET 驗證身份，並可透過 Account Center API 查詢會員等級和點數。</p>
@@ -464,6 +466,29 @@ app.get('/sso-guide', (req, res) => {
 </table>
 <div class="note ok">
     <strong>全域 middleware 說明：</strong>ECCAL Express app 的全域 middleware 為 <code>cookieParser</code>、<code>jwtMiddleware</code>（只讀取 Cookie 附加 req.user，不阻擋請求）、<code>passport.initialize()</code>。<strong>無 helmet、無 rate limit、無 Cloudflare bot protection 配置</strong>。Worker S2S 呼叫不會被任何全域 middleware 阻擋。
+</div>
+
+<h2 id="membership-logic">Membership 判斷邏輯（v3.2 起）</h2>
+<p><code>verify-token</code> 與 <code>account-center/user</code> 這兩個端點共用同一個 <strong>AccountSnapshot</strong> 服務，保證回傳的 <code>membership</code> 欄位完全一致。</p>
+
+<h3>isPro 判斷規則</h3>
+<table class="param-table">
+    <thead><tr><th>DB 狀態</th><th>回傳 membership</th><th>說明</th></tr></thead>
+    <tbody>
+        <tr><td><code>level = "pro"</code>，<code>expires = null</code></td><td><span class="tag yes">pro</span></td><td>無到期日 = 終身 Pro（老帳號或手動升級）</td></tr>
+        <tr><td><code>level = "pro"</code>，expires 在未來</td><td><span class="tag yes">pro</span></td><td>定期訂閱，仍在有效期內</td></tr>
+        <tr><td><code>level = "founders"</code>，任何 expires</td><td><span class="tag yes">pro</span></td><td>創始成員，永遠視為 Pro</td></tr>
+        <tr><td><code>level = "pro"</code>，expires 在過去</td><td><span class="tag no">free</span></td><td>訂閱已到期</td></tr>
+        <tr><td><code>level = "free"</code></td><td><span class="tag no">free</span></td><td>免費方案</td></tr>
+    </tbody>
+</table>
+
+<h3>資料一致性保證</h3>
+<div class="note ok">
+    <strong>v3.2 起：</strong><code>POST /api/sso/verify-token</code> 與 <code>GET /api/account-center/user/:id</code> 都呼叫同一個 <strong>getAccountSnapshot()</strong> 函數，使用相同的 isPro 邏輯。兩個端點回傳的 <code>membership</code>、<code>membershipExpires</code>、<code>credits</code> 保證一致，子服務可放心以任一端點的結果為準。
+</div>
+<div class="note warn">
+    <strong>注意：</strong>JWT Token 本身的 <code>membership</code> 欄位是<strong>簽發當下的快照</strong>，不會自動更新。建議每次使用前都呼叫 <code>verify-token</code> 或 <code>account-center/user</code> 取得即時資料，尤其在扣除點數或判斷功能權限前。
 </div>
 
 <h2 id="mode-a-flow">模式 A：前端直連 — 登入流程</h2>
@@ -818,7 +843,7 @@ init();</pre>
         <tr><td>X-ECCAL-Route</td><td><code>/sso/verify-token</code></td><td>實際命中的路由路徑</td></tr>
         <tr><td>X-ECCAL-Auth-Mode</td><td><code>bearer</code> / <code>cookie</code> / <code>none</code></td><td>本次請求的認證來源</td></tr>
         <tr><td>X-ECCAL-Redirect-Bypassed</td><td><code>true</code> / <code>false</code> / <code>n/a</code></td><td>true = 某處想 redirect 但已被攔截並轉為 JSON；n/a = 此路徑允許 redirect（OAuth 流程）</td></tr>
-        <tr><td>X-ECCAL-Version</td><td><code>3.1</code></td><td>API middleware 版本</td></tr>
+        <tr><td>X-ECCAL-Version</td><td><code>3.2</code></td><td>API middleware 版本</td></tr>
     </tbody>
 </table>
 <div class="note ok">如果你看到 <code>X-ECCAL-Redirect-Bypassed: true</code>，表示某個內部 middleware 試圖 redirect 但被攔截了。請到 ECCAL 伺服器 log 搜尋 <code>[API-REDIRECT-BLOCKED]</code> 找到具體路由。</div>
@@ -954,6 +979,39 @@ curl -X POST https://eccal.thinkwithblack.com/api/account-center/credits/abc123/
     <span class="k">return</span> <span class="k">new</span> Response(<span class="s">'Not found'</span>, { status: 404 });
   }
 };</pre>
+
+<h2 id="troubleshoot">常見問題排查</h2>
+
+<h3>問題一：membership 顯示 "free" 但帳號應為 Pro</h3>
+<table class="param-table">
+    <thead><tr><th>可能原因</th><th>診斷方式</th><th>解決</th></tr></thead>
+    <tbody>
+        <tr><td>訂閱到期（<code>membershipExpires</code> 是過去時間）</td><td>呼叫 <code>/api/account-center/user/:id</code> 檢查 <code>membershipExpires</code> 欄位</td><td>更新訂閱或延長到期日</td></tr>
+        <tr><td>讀取的是 JWT Token 裡的舊快照</td><td>直接呼叫 <code>verify-token</code>，比較 token payload 和 API 回傳是否不同</td><td>以 API 回傳值為準，捨棄 Token 裡的 membership 快照</td></tr>
+        <tr><td>呼叫的是兩個端點且結果不一致（v3.1 以前的 bug）</td><td>檢查 <code>X-ECCAL-Version</code> header，確認是否 &lt; 3.2</td><td>ECCAL 已在 v3.2 修復，需確認正式環境已部署最新版</td></tr>
+    </tbody>
+</table>
+
+<h3>問題二：Cloudflare Worker 呼叫 verify-token 出現 "Too many redirects"</h3>
+<div class="note warn">
+    <strong>必要確認：</strong>Worker 的 fetch URL 是否使用 <code>https://</code>（不是 http://）？使用 http 會被 Google 基礎設施重導向至 https，可能觸發 redirect loop。
+</div>
+<table class="param-table">
+    <thead><tr><th>檢查項目</th><th>說明</th></tr></thead>
+    <tbody>
+        <tr><td>確認 URL 使用 https://</td><td><code>fetch('https://eccal.thinkwithblack.com/api/sso/verify-token', ...)</code></td></tr>
+        <tr><td>確認 Content-Type header</td><td><code>headers: { 'Content-Type': 'application/json' }</code> 不可省略</td></tr>
+        <tr><td>確認 body 有正確序列化</td><td><code>body: JSON.stringify({ token })</code></td></tr>
+        <tr><td>檢查 X-ECCAL-Redirect-Bypassed</td><td>若值為 <code>true</code>，表示 ECCAL 某路由嘗試 redirect 被攔截，請通知 ECCAL 管理員</td></tr>
+        <tr><td>確認 X-ECCAL-Version 為 3.2</td><td>低於 3.2 的版本有 redirect blocker 尚未完整覆蓋所有路由的問題</td></tr>
+    </tbody>
+</table>
+
+<h3>問題三：verify-token 回傳 404（ACCOUNT_NOT_FOUND）</h3>
+<p>從 v3.2 起，verify-token 在 JWT 簽章有效但資料庫找不到對應用戶時，會回傳 <code>404 { valid: false, error: "ACCOUNT_NOT_FOUND" }</code>。此情況代表 JWT 是舊的有效 token，但帳號已被刪除或 ID 不符。子服務應清除本地 token 並導向重新登入。</p>
+
+<h3>問題四：credits 扣除後 verify-token 還是回傳舊值</h3>
+<div class="note info">verify-token 和 account-center/user 都是即時查詢 DB，不使用快取。扣除點數後立即呼叫即可取得最新值。只有 JWT Token 本身（存在 localStorage 或 cookie 中）是快照，不會自動更新。</div>
 
 <h2 id="live-test">線上測試工具</h2>
 <h3>測試 SSO 登入流程</h3>
