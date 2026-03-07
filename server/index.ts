@@ -229,7 +229,7 @@ app.get('/sso-guide', (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>報數據 SSO 整合指南 v2</title>
+    <title>報數據 SSO 整合指南 v3</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; color: #212529; line-height: 1.6; }
@@ -296,6 +296,7 @@ app.get('/sso-guide', (req, res) => {
         .tag.yes { background: #dcfce7; color: #166534; }
         .tag.no { background: #fee2e2; color: #991b1b; }
         .tag.cond { background: #fef3c7; color: #92400e; }
+        .verified { display: inline-flex; align-items: center; gap: 4px; background: #f0fdf4; border: 1px solid #86efac; color: #166534; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
         @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; padding: 24px; } .grid2 { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -304,13 +305,14 @@ app.get('/sso-guide', (req, res) => {
 <nav class="sidebar">
     <div class="sidebar-logo">
         <h2>報數據 SSO</h2>
-        <p>子服務整合指南 v2.0</p>
+        <p>子服務整合指南 v3.0</p>
     </div>
     <div class="sec">入門</div>
     <a href="#overview">系統概覽</a>
     <a href="#two-modes">兩種整合模式</a>
     <a href="#prerequisites">前置需求</a>
     <a href="#cors-rules">CORS / 白名單規則</a>
+    <a href="#s2s-support">S2S 支援說明</a>
     <div class="sec">模式 A：直連</div>
     <a href="#mode-a-flow">登入流程</a>
     <a href="#mode-a-callback">Callback 規格</a>
@@ -318,7 +320,6 @@ app.get('/sso-guide', (req, res) => {
     <a href="#mode-a-code">完整範例</a>
     <div class="sec">模式 B：Worker 轉接</div>
     <a href="#mode-b-flow">登入流程</a>
-    <a href="#mode-b-server">Server-to-Server 呼叫</a>
     <a href="#mode-b-code">完整範例</a>
     <div class="sec">API 參考</div>
     <a href="#api-login">啟動登入</a>
@@ -336,10 +337,10 @@ app.get('/sso-guide', (req, res) => {
 
 <h1>報數據 SSO 整合指南</h1>
 <p class="lead">本文件說明子服務如何透過報數據統一身份認證（SSO）實現登入共用、會員等級同步與點數共享。</p>
-<div class="note info"><strong>SSO 服務基礎網址：</strong><code>https://eccal.thinkwithblack.com</code></div>
+<div class="note info"><strong>SSO 服務基礎網址：</strong><code>https://eccal.thinkwithblack.com</code> &nbsp;｜&nbsp; 本指南版本：v3.0（2025-03，依實際程式碼驗證）</div>
 
 <h2 id="overview">系統概覽</h2>
-<p>報數據 SSO 基於 <strong>Google OAuth 2.0 + JWT</strong> 實現。用戶用 Google 帳號登入一次，即可在所有子服務中認證，無需重複註冊。JWT Token 由 ECCAL 簽發，子服務透過驗證 Token 確認用戶身份，並可透過 Account Center API 查詢會員等級和點數。</p>
+<p>報數據 SSO 基於 <strong>Google OAuth 2.0 + JWT（HS256）</strong> 實現。用戶用 Google 帳號登入一次，即可在所有子服務中認證，無需重複註冊。JWT Token 由 ECCAL 簽發（有效期 7 天），子服務透過 verify-token API 或自行用 JWT_SECRET 驗證身份，並可透過 Account Center API 查詢會員等級和點數。</p>
 
 <h2 id="two-modes">兩種整合模式</h2>
 <p>根據子服務架構，有兩種整合方式，差異在於 <strong>Token 驗證在哪裡發生</strong>。</p>
@@ -349,90 +350,129 @@ app.get('/sso-guide', (req, res) => {
         <ul>
             <li>適合：純前端 SPA、靜態網站</li>
             <li>瀏覽器直接呼叫 ECCAL API</li>
-            <li>Token 存在 localStorage</li>
-            <li>verify-token 由前端發起</li>
-            <li>需要在 CORS 白名單中</li>
+            <li>Token 存在 localStorage（key: <code>eccal_auth_token</code>）</li>
+            <li>verify-token 由前端瀏覽器發起</li>
+            <li>子服務 origin 需在 CORS 白名單</li>
         </ul>
     </div>
     <div class="card purple">
         <h4>模式 B：經子服務 Worker 轉接</h4>
         <ul>
-            <li>適合：有後端 Worker 的服務</li>
-            <li>Worker 負責 server-to-server 驗證</li>
+            <li>適合：有後端 Worker 的服務（含 Cloudflare Workers）</li>
+            <li>Worker 後端 server-to-server 呼叫 verify-token</li>
             <li>Token 可存在 Worker 管理的 httpOnly cookie</li>
             <li>前端完全感知不到 JWT 存在</li>
-            <li>Worker origin 也需在白名單中</li>
+            <li>Worker origin 或 IP 不需在 CORS 白名單</li>
         </ul>
     </div>
 </div>
-<div class="note warn"><strong>請確認使用哪種模式，兩種模式的 Callback 處理和 Token 儲存方式不同，混用會造成問題。</strong></div>
+
+<h3>推薦模式選擇</h3>
+<table class="param-table">
+    <thead><tr><th>情境</th><th>推薦模式</th><th>理由</th></tr></thead>
+    <tbody>
+        <tr><td>純前端 SPA（無 Worker）</td><td>模式 A</td><td>實作最簡單，JWT 存 localStorage</td></tr>
+        <tr><td>有 Cloudflare Worker 或 Node.js 後端</td><td>模式 B</td><td>安全性更高，JWT 不暴露給前端，Worker 可設 httpOnly session cookie</td></tr>
+        <tr><td>需要 SSR / 伺服器端渲染</td><td>模式 B</td><td>服務端取得用戶資料，前端無感</td></tr>
+    </tbody>
+</table>
 
 <h2 id="prerequisites">前置需求</h2>
 <ol style="padding-left:20px; color:#475569; font-size:14px;">
-    <li style="margin-bottom:10px;"><strong>申請網域加入白名單：</strong>將子服務網域（含 Worker origin）告知報數據，需加入兩份清單：CORS 允許清單 和 SSO 登入 Origin 允許清單。</li>
-    <li style="margin-bottom:10px;"><strong>取得 JWT_SECRET（模式 B 選用）：</strong>若子服務 Worker 要自行用 jsonwebtoken 驗證 Token 而不呼叫 verify-token API，需向報數據索取 JWT 密鑰。一般情況建議直接呼叫 verify-token，不需要密鑰。</li>
-    <li style="margin-bottom:10px;"><strong>取得 SERVICE_API_KEY（選用）：</strong>僅呼叫「增加點數」API 時需要，向報數據申請。</li>
+    <li style="margin-bottom:10px;"><strong>申請網域加入白名單：</strong>聯絡報數據，將子服務 origin 加入兩份清單：① CORS 允許清單，② SSO 登入 Origin 允許清單。模式 B 的 Worker S2S 呼叫不需要加入白名單。</li>
+    <li style="margin-bottom:10px;"><strong>JWT_SECRET（選用）：</strong>若子服務 Worker 要自行用 <code>jsonwebtoken.verify()</code> 驗證 Token 而不呼叫 verify-token API，需向報數據索取。一般情況直接呼叫 verify-token 即可，不需要密鑰。</li>
+    <li style="margin-bottom:10px;"><strong>SERVICE_API_KEY（選用）：</strong>僅呼叫「增加點數」API 時需要，向報數據申請。</li>
 </ol>
 
 <h2 id="cors-rules">CORS / 白名單規則</h2>
-<p>報數據所有 SSO 端點都執行 <strong>Origin 白名單檢查</strong>。規則如下：</p>
 <table class="param-table">
     <thead><tr><th>情況</th><th>結果</th><th>說明</th></tr></thead>
     <tbody>
         <tr><td>瀏覽器請求，Origin 在白名單</td><td><span class="tag yes">允許</span></td><td>回應包含 Access-Control-Allow-Origin</td></tr>
-        <tr><td>瀏覽器請求，Origin 不在白名單</td><td><span class="tag no">拒絕</span></td><td>回傳 403 Unauthorized origin</td></tr>
-        <tr><td>Server-to-Server（無 Origin header）</td><td><span class="tag cond">通過</span></td><td>Worker 後端呼叫不帶 Origin，不受 CORS 限制，請求正常處理</td></tr>
-        <tr><td>OPTIONS Preflight</td><td><span class="tag yes">允許</span></td><td>直接回傳 200，允許所有 CORS 預檢</td></tr>
+        <tr><td>瀏覽器請求，Origin 不在白名單</td><td><span class="tag no">拒絕</span></td><td>SSO 登入端點回 403；verify-token 設不到 CORS header 但請求本身仍處理</td></tr>
+        <tr><td>Server-to-Server（無 Origin header）</td><td><span class="tag yes">通過</span></td><td>Worker 後端呼叫不帶 Origin，不受 CORS 邏輯影響，請求正常處理</td></tr>
+        <tr><td>OPTIONS Preflight</td><td><span class="tag yes">允許</span></td><td>直接回傳 200，允許所有預檢</td></tr>
     </tbody>
 </table>
 <div class="note ok">
-    <strong>現行白名單（2025-03 版）：</strong><br>
-    eccal · audai · quote · fabe · galine · serp · sub3 · sub4 · sub5 · member · <strong>andromeda</strong>（均為 thinkwithblack.com 子域）+ localhost:3000 / localhost:5000
+    <strong>現行白名單（2025-03）：</strong>eccal · audai · quote · fabe · galine · serp · sub3 · sub4 · sub5 · member · andromeda（均為 thinkwithblack.com）+ localhost:3000/5000
 </div>
-<div class="note warn">
-    CORS 白名單 與 SSO 登入 Origin 允許清單 是兩份獨立的清單，新增子服務時請聯絡報數據確認兩邊都有加入。
+
+<h2 id="s2s-support">S2S 官方支援聲明</h2>
+<p>以下為經程式碼直接驗證的官方聲明：</p>
+<table class="param-table">
+    <thead><tr><th>API 端點</th><th>S2S 呼叫</th><th>認證要求</th><th>Bot/Rate 保護</th><th>說明</th></tr></thead>
+    <tbody>
+        <tr><td><code>POST /api/sso/verify-token</code></td><td><span class="tag yes">正式支援</span></td><td><span class="tag no">不需要</span></td><td><span class="tag no">無</span></td><td>無認證 middleware，無 rate limit，Worker 直接 POST</td></tr>
+        <tr><td><code>GET /api/account-center/user/:id</code></td><td><span class="tag yes">正式支援</span></td><td><span class="tag no">不需要</span></td><td><span class="tag no">無</span></td><td>公開端點，可用 ID 或 Email 查詢</td></tr>
+        <tr><td><code>GET /api/account-center/credits/:id</code></td><td><span class="tag yes">正式支援</span></td><td><span class="tag no">不需要</span></td><td><span class="tag no">無</span></td><td>公開端點</td></tr>
+        <tr><td><code>POST /api/account-center/credits/:id/deduct</code></td><td><span class="tag yes">正式支援</span></td><td><span class="tag no">不需要</span></td><td><span class="tag no">無</span></td><td>建議在 Worker 後端呼叫</td></tr>
+        <tr><td><code>POST /api/account-center/credits/:id/add</code></td><td><span class="tag yes">正式支援</span></td><td><span class="tag yes">需要 API Key</span></td><td><span class="tag no">無</span></td><td>需 <code>x-api-key</code> Header</td></tr>
+    </tbody>
+</table>
+<div class="note ok">
+    <strong>全域 middleware 說明：</strong>ECCAL Express app 的全域 middleware 為 <code>cookieParser</code>、<code>jwtMiddleware</code>（只讀取 Cookie 附加 req.user，不阻擋請求）、<code>passport.initialize()</code>。<strong>無 helmet、無 rate limit、無 Cloudflare bot protection 配置</strong>。Worker S2S 呼叫不會被任何全域 middleware 阻擋。
 </div>
 
 <h2 id="mode-a-flow">模式 A：前端直連 — 登入流程</h2>
 <ul class="flow">
-    <li><div class="fc"><h4>前端發起登入</h4><p>將用戶導向 <code>GET /api/auth/google-sso?returnTo={你的callback URL}&amp;service={服務名}</code></p></div></li>
+    <li><div class="fc"><h4>前端發起登入</h4><p>將用戶導向 <code>GET /api/auth/google-sso?returnTo={你的callback URL}&amp;service={服務名}</code>，用 <code>window.location.href</code> 跳轉（不能用 fetch）。</p></div></li>
     <li><div class="fc"><h4>用戶完成 Google 授權</h4><p>報數據處理 Google OAuth，建立或更新用戶帳號。</p></div></li>
-    <li><div class="fc"><h4>報數據執行 302 Redirect</h4><p>跳轉到 <code>returnTo?token=JWT&amp;user_id=xxx</code>。</p></div></li>
-    <li><div class="fc"><h4>前端接收並儲存 Token</h4><p>從 URL 取出 <code>token</code>，存入 localStorage（key: <code>eccal_auth_token</code>），清除 URL 參數。</p></div></li>
-    <li><div class="fc"><h4>呼叫 verify-token 確認有效</h4><p><code>POST /api/sso/verify-token</code>，成功後取得用戶資料，更新 UI。</p></div></li>
+    <li><div class="fc"><h4>報數據執行 302 Redirect（帶 3 個參數）</h4><p>跳轉到 <code>returnTo?auth_success=true&amp;token=JWT&amp;user_id=xxx</code>。</p></div></li>
+    <li><div class="fc"><h4>前端接收並儲存 Token</h4><p>從 URL 讀取 <code>token</code>，存入 localStorage（key: <code>eccal_auth_token</code>），清除 URL 參數。</p></div></li>
+    <li><div class="fc"><h4>呼叫 verify-token 確認有效</h4><p><code>POST /api/sso/verify-token</code>，取得完整用戶資料後更新 UI。</p></div></li>
 </ul>
 
-<h2 id="mode-a-callback">模式 A：Callback 規格</h2>
-<div class="note info"><strong>登入端點請使用：</strong><code>GET /api/auth/google-sso</code>（不是 <code>/api/sso/login</code>）</div>
-<h3>啟動登入的完整 URL</h3>
+<h2 id="mode-a-callback">模式 A：Callback 規格（完整版）</h2>
+<div class="note ok"><strong>登入端點：</strong><code>GET /api/auth/google-sso</code>（非 <code>/api/sso/login</code>，非 <code>/api/sso/callback</code>）</div>
+
+<h3>啟動登入</h3>
 <pre>GET https://eccal.thinkwithblack.com/api/auth/google-sso
-  ?returnTo=https://audai.thinkwithblack.com/     <span class="c"># 必填，需 URL encode</span>
-  &amp;service=audai                                   <span class="c"># 選填，服務識別名稱</span></pre>
-<h3>Callback 跳轉格式（302 Redirect）</h3>
-<p>Google 授權完成後，報數據執行 302 Redirect 回你的 returnTo 網址，附加以下 Query String：</p>
-<pre>https://audai.thinkwithblack.com/<span class="k">?token=</span><span class="s">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.sig</span><span class="k">&user_id=</span><span class="v">abc123xyz</span></pre>
+  ?returnTo=https://audai.thinkwithblack.com/   <span class="c"># URL encode 過的完整 callback URL</span>
+  &amp;service=audai                                 <span class="c"># 選填，服務識別名稱</span></pre>
+
+<h3>成功 Callback（302 Redirect）</h3>
+<pre>https://audai.thinkwithblack.com/
+  <span class="k">?auth_success=</span><span class="v">true</span>
+  <span class="k">&token=</span><span class="s">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.sig</span>
+  <span class="k">&user_id=</span><span class="v">abc123xyz</span></pre>
+
 <table class="param-table">
-    <thead><tr><th>參數</th><th>型別</th><th>說明</th></tr></thead>
+    <thead><tr><th>參數</th><th>說明</th></tr></thead>
     <tbody>
-        <tr><td>token</td><td>string</td><td>JWT Token，有效期 7 天，需呼叫 verify-token 驗證後才可使用</td></tr>
-        <tr><td>user_id</td><td>string</td><td>用戶在報數據的唯一 ID（與 JWT payload 的 sub 相同）</td></tr>
+        <tr><td>auth_success</td><td>固定值 <code>"true"</code>，可用來判斷是否為 SSO 跳轉回來</td></tr>
+        <tr><td>token</td><td>JWT Token，有效期 7 天，需呼叫 verify-token 驗證後才可使用</td></tr>
+        <tr><td>user_id</td><td>用戶在報數據的唯一 ID（與 JWT payload 的 <code>sub</code> 相同）</td></tr>
     </tbody>
 </table>
-<div class="note danger"><strong>安全提醒：</strong>Callback URL 收到的 token 尚未驗證，請務必呼叫 verify-token 確認有效性，切勿直接信任 URL 參數。</div>
+
+<h3>失敗 Callback（302 Redirect）</h3>
+<pre>https://audai.thinkwithblack.com/
+  <span class="k">?auth_error=</span><span class="v">true</span>
+  <span class="k">&error_message=</span><span class="s">Google%20OAuth%20%E8%AA%8D%E8%AD%89%E5%A4%B1%E6%95%97</span></pre>
+
+<table class="param-table">
+    <thead><tr><th>參數</th><th>說明</th></tr></thead>
+    <tbody>
+        <tr><td>auth_error</td><td>固定值 <code>"true"</code></td></tr>
+        <tr><td>error_message</td><td>URL encoded 的錯誤說明，需 <code>decodeURIComponent()</code> 解碼</td></tr>
+    </tbody>
+</table>
+<div class="note danger"><strong>安全提醒：</strong>Callback URL 收到的 token 尚未由你驗證，請務必呼叫 verify-token 確認有效性，切勿直接信任 URL 參數。</div>
 
 <h2 id="mode-a-token">模式 A：Token 儲存方式（官方支援規格）</h2>
 <table class="param-table">
-    <thead><tr><th>儲存方式</th><th>支援狀態</th><th>Key / Header 名稱</th><th>說明</th></tr></thead>
+    <thead><tr><th>儲存方式</th><th>支援狀態</th><th>Key / Header</th><th>說明</th></tr></thead>
     <tbody>
-        <tr><td>localStorage</td><td><span class="tag yes">官方支援</span></td><td><code>eccal_auth_token</code></td><td>SPA 首選，子服務最常用方式</td></tr>
-        <tr><td>Authorization Bearer Header</td><td><span class="tag yes">官方支援</span></td><td><code>Authorization: Bearer {token}</code></td><td>前端呼叫自家 API 時附帶 Token</td></tr>
-        <tr><td>httpOnly Cookie（<code>jwt</code>）</td><td><span class="tag no">不建議用於子服務</span></td><td><code>jwt</code></td><td>此 Cookie 為 ECCAL 本站內部 Cookie，跨域子服務無法讀取，請勿依賴</td></tr>
-        <tr><td>Worker 自管 Session Cookie</td><td><span class="tag yes">模式 B 推薦</span></td><td>子服務自行命名</td><td>Worker 驗證 JWT 後自行設定 httpOnly cookie，前端無感知 JWT 存在</td></tr>
+        <tr><td>localStorage</td><td><span class="tag yes">官方支援</span></td><td><code>eccal_auth_token</code></td><td>模式 A 的官方推薦方式，SPA 首選</td></tr>
+        <tr><td>Authorization Bearer Header</td><td><span class="tag yes">官方支援</span></td><td><code>Authorization: Bearer {token}</code></td><td>前端呼叫 ECCAL API 或自家 API 時附帶</td></tr>
+        <tr><td>httpOnly Cookie（<code>jwt</code>）</td><td><span class="tag no">不適用子服務</span></td><td><code>jwt</code></td><td>此 Cookie 為 ECCAL 主站內部 Cookie，跨域子服務無法讀取，勿依賴</td></tr>
+        <tr><td>Worker 自管 Session Cookie</td><td><span class="tag yes">模式 B 官方支援</span></td><td>子服務自行命名</td><td>Worker 驗證 JWT 後設定自己的 httpOnly cookie，前端無感知 JWT</td></tr>
     </tbody>
 </table>
 
 <h2 id="mode-a-code">模式 A：完整前端範例（以 AudAI 為例）</h2>
-<pre><span class="c">// audai.thinkwithblack.com 前端整合 - 模式 A</span>
+<pre><span class="c">// audai.thinkwithblack.com - 模式 A 完整整合範例</span>
 <span class="k">const</span> ECCAL = <span class="s">'https://eccal.thinkwithblack.com'</span>;
 <span class="k">const</span> MY_URL = <span class="s">'https://audai.thinkwithblack.com'</span>;
 <span class="k">const</span> TOKEN_KEY = <span class="s">'eccal_auth_token'</span>;
@@ -440,11 +480,21 @@ app.get('/sso-guide', (req, res) => {
 <span class="c">// 頁面初始化：處理 SSO callback 或讀取已存 token</span>
 <span class="k">async function</span> init() {
   <span class="k">const</span> params = <span class="k">new</span> URLSearchParams(window.location.search);
-  <span class="k">const</span> token = params.get(<span class="s">'token'</span>);
 
-  <span class="k">if</span> (token) {
-    localStorage.setItem(TOKEN_KEY, token);
-    window.history.replaceState({}, <span class="s">''</span>, window.location.pathname);
+  <span class="c">// 檢查是否從 SSO 跳回（auth_success=true 是判斷依據）</span>
+  <span class="k">if</span> (params.get(<span class="s">'auth_success'</span>) === <span class="s">'true'</span>) {
+    <span class="k">const</span> token = params.get(<span class="s">'token'</span>);
+    <span class="k">if</span> (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+      window.history.replaceState({}, <span class="s">''</span>, window.location.pathname);
+    }
+  }
+
+  <span class="c">// 檢查登入失敗</span>
+  <span class="k">if</span> (params.get(<span class="s">'auth_error'</span>) === <span class="s">'true'</span>) {
+    <span class="k">const</span> msg = decodeURIComponent(params.get(<span class="s">'error_message'</span>) || <span class="s">'登入失敗'</span>);
+    showError(msg);
+    <span class="k">return</span>;
   }
 
   <span class="k">const</span> saved = localStorage.getItem(TOKEN_KEY);
@@ -466,7 +516,7 @@ app.get('/sso-guide', (req, res) => {
   <span class="k">return</span> data.valid ? data.user : <span class="k">null</span>;
 }
 
-<span class="c">// 啟動登入</span>
+<span class="c">// 啟動登入（必須用 location.href，不能用 fetch）</span>
 <span class="k">function</span> login() {
   window.location.href = <span class="m">\`\${ECCAL}/api/auth/google-sso?returnTo=\${encodeURIComponent(MY_URL + '/')}&service=audai\`</span>;
 }
@@ -477,49 +527,39 @@ app.get('/sso-guide', (req, res) => {
   window.location.href = <span class="m">\`\${ECCAL}/api/sso/logout?returnTo=\${MY_URL}\`</span>;
 }
 
-<span class="c">// 呼叫自家 API 時附帶 Bearer token</span>
-<span class="k">async function</span> callMyApi(endpoint) {
-  <span class="k">const</span> token = localStorage.getItem(TOKEN_KEY);
-  <span class="k">return</span> fetch(endpoint, {
-    headers: { <span class="s">'Authorization'</span>: <span class="m">\`Bearer \${token}\`</span> }
-  });
-}
-
 init();</pre>
 
 <h2 id="mode-b-flow">模式 B：Worker 轉接 — 登入流程</h2>
 <ul class="flow">
     <li><div class="fc"><h4>前端發起登入</h4><p>導向 <code>GET /api/auth/google-sso?returnTo={Worker的callback路由}&amp;service={服務名}</code></p></div></li>
     <li><div class="fc"><h4>用戶完成 Google 授權</h4><p>同模式 A，報數據處理 Google OAuth 流程。</p></div></li>
-    <li><div class="fc"><h4>報數據帶 Token 跳到 Worker Callback</h4><p>302 Redirect 到你的 Worker callback 路由，附帶 <code>?token=JWT&amp;user_id=xxx</code>。</p></div></li>
-    <li><div class="fc"><h4>Worker 執行 server-to-server 驗證</h4><p>Worker 後端呼叫 <code>POST /api/sso/verify-token</code>（不帶 Origin header），取得用戶資料。</p></div></li>
-    <li><div class="fc"><h4>Worker 建立自己的 Session</h4><p>驗證成功後，Worker 自行設定 httpOnly cookie，前端完全感知不到 JWT 存在。</p></div></li>
+    <li><div class="fc"><h4>302 Redirect 到 Worker Callback（帶 auth_success=true）</h4><p>跳轉到 <code>{Worker callback URL}?auth_success=true&amp;token=JWT&amp;user_id=xxx</code>。</p></div></li>
+    <li><div class="fc"><h4>Worker 執行 server-to-server 驗證</h4><p>Worker 後端呼叫 <code>POST /api/sso/verify-token</code>（不帶 Origin），取得完整用戶資料。無認證要求、無 rate limit、無 bot 保護。</p></div></li>
+    <li><div class="fc"><h4>Worker 建立自己的 Session</h4><p>驗證成功後，Worker 設定 httpOnly session cookie，前端感知不到 JWT 存在。</p></div></li>
 </ul>
 
-<h2 id="mode-b-server">模式 B：Server-to-Server 呼叫規範</h2>
-<div class="note ok"><strong>verify-token 明確支援 server-to-server 呼叫。</strong>Worker 後端不帶 Origin header 直接發 POST 請求，ECCAL 不做 CORS 攔截，請求正常處理。</div>
-<table class="param-table">
-    <thead><tr><th>API 端點</th><th>支援 S2S</th><th>需要 API Key</th><th>說明</th></tr></thead>
-    <tbody>
-        <tr><td><code>POST /api/sso/verify-token</code></td><td><span class="tag yes">支援</span></td><td><span class="tag no">不需要</span></td><td>Worker 驗證用戶 token 最常用此端點</td></tr>
-        <tr><td><code>GET /api/account-center/user/:id</code></td><td><span class="tag yes">支援</span></td><td><span class="tag no">不需要</span></td><td>可用 userId 或 email 查詢用戶資料</td></tr>
-        <tr><td><code>GET /api/account-center/credits/:id</code></td><td><span class="tag yes">支援</span></td><td><span class="tag no">不需要</span></td><td>查詢點數餘額</td></tr>
-        <tr><td><code>POST /api/account-center/credits/:id/deduct</code></td><td><span class="tag yes">支援</span></td><td><span class="tag no">不需要</span></td><td>扣除點數，建議在 Worker 後端呼叫</td></tr>
-        <tr><td><code>POST /api/account-center/credits/:id/add</code></td><td><span class="tag yes">支援</span></td><td><span class="tag yes">需要</span></td><td>增加點數，需 <code>x-api-key</code> Header</td></tr>
-    </tbody>
-</table>
-
-<h2 id="mode-b-code">模式 B：Worker 後端範例（Node.js / Cloudflare Workers）</h2>
-<pre><span class="c">// Worker callback 路由處理器 - 模式 B</span>
+<h2 id="mode-b-code">模式 B：Worker 後端完整範例（Cloudflare Workers）</h2>
+<pre><span class="c">// Cloudflare Worker - 模式 B 完整整合範例</span>
 <span class="k">const</span> ECCAL = <span class="s">'https://eccal.thinkwithblack.com'</span>;
 
-<span class="c">// 處理 SSO callback：Worker 路由 GET /auth/callback?token=xxx&user_id=xxx</span>
-<span class="k">async function</span> handleSsoCallback(request) {
+<span class="c">// Worker 路由：GET /auth/callback?auth_success=true&token=xxx&user_id=xxx</span>
+<span class="k">async function</span> handleSsoCallback(request, env) {
   <span class="k">const</span> url = <span class="k">new</span> URL(request.url);
+  <span class="k">const</span> authSuccess = url.searchParams.get(<span class="s">'auth_success'</span>);
   <span class="k">const</span> token = url.searchParams.get(<span class="s">'token'</span>);
-  <span class="k">if</span> (!token) <span class="k">return new</span> Response(<span class="s">'Missing token'</span>, { status: 400 });
+  <span class="k">const</span> authError = url.searchParams.get(<span class="s">'auth_error'</span>);
 
-  <span class="c">// Server-to-Server 呼叫（不帶 Origin header，無 CORS 限制）</span>
+  <span class="c">// 處理登入失敗</span>
+  <span class="k">if</span> (authError === <span class="s">'true'</span>) {
+    <span class="k">const</span> msg = decodeURIComponent(url.searchParams.get(<span class="s">'error_message'</span>) || <span class="s">''</span>);
+    <span class="k">return</span> Response.redirect(<span class="m">\`https://your-service.com/login?error=\${encodeURIComponent(msg)}\`</span>);
+  }
+
+  <span class="k">if</span> (authSuccess !== <span class="s">'true'</span> || !token) {
+    <span class="k">return new</span> Response(<span class="s">'Bad callback'</span>, { status: 400 });
+  }
+
+  <span class="c">// Server-to-Server 驗證（不帶 Origin header，無 CORS 限制）</span>
   <span class="k">const</span> verifyRes = <span class="k">await</span> fetch(<span class="m">\`\${ECCAL}/api/sso/verify-token\`</span>, {
     method: <span class="s">'POST'</span>,
     headers: { <span class="s">'Content-Type'</span>: <span class="s">'application/json'</span> },
@@ -531,11 +571,16 @@ init();</pre>
     <span class="k">return</span> Response.redirect(<span class="s">'https://your-service.com/login?error=invalid_token'</span>);
   }
 
-  <span class="c">// 驗證成功，建立 Worker 自己的 session</span>
+  <span class="c">// 建立 Worker Session（存 KV，設 httpOnly cookie）</span>
   <span class="k">const</span> sessionId = crypto.randomUUID();
-  <span class="k">await</span> KV.put(<span class="m">\`session:\${sessionId}\`</span>, JSON.stringify(data.user), { expirationTtl: 604800 });
+  <span class="k">await</span> env.KV.put(<span class="m">\`session:\${sessionId}\`</span>, JSON.stringify({
+    userId: data.user.id,
+    email: data.user.email,
+    name: data.user.name,
+    membership: data.user.membership,
+    credits: data.user.credits
+  }), { expirationTtl: 604800 });  <span class="c">// 7 天</span>
 
-  <span class="c">// 設定 httpOnly cookie，前端不感知 JWT 存在</span>
   <span class="k">return new</span> Response(<span class="k">null</span>, {
     status: 302,
     headers: {
@@ -545,15 +590,14 @@ init();</pre>
   });
 }
 
-<span class="c">// 扣除點數（在 Worker 後端呼叫，不在前端）</span>
-<span class="k">async function</span> deductCredits(userId, amount) {
+<span class="c">// Worker 後端扣除點數（在 Worker 中呼叫，不在前端）</span>
+<span class="k">async function</span> deductCredits(userId, amount, reason) {
   <span class="k">const</span> res = <span class="k">await</span> fetch(<span class="m">\`\${ECCAL}/api/account-center/credits/\${userId}/deduct\`</span>, {
     method: <span class="s">'POST'</span>,
     headers: { <span class="s">'Content-Type'</span>: <span class="s">'application/json'</span> },
-    body: JSON.stringify({ amount, reason: <span class="s">'AI 分析報告'</span>, service: <span class="s">'your-service'</span> })
+    body: JSON.stringify({ amount, reason, service: <span class="s">'your-service'</span> })
   });
   <span class="k">return</span> res.json();
-  <span class="c">// 回傳: { success, remainingCredits, deductedAmount, transactionId }</span>
 }</pre>
 
 <h2 id="api-login">API：啟動 SSO 登入</h2>
@@ -565,13 +609,13 @@ init();</pre>
     </div>
     <div class="endpoint-body">
         <table class="param-table">
-            <thead><tr><th>Query 參數</th><th>必填</th><th>說明</th><th>範例</th></tr></thead>
+            <thead><tr><th>Query 參數</th><th>必填</th><th>說明</th></tr></thead>
             <tbody>
-                <tr><td>returnTo</td><td><span class="badge req">必填</span></td><td>登入後跳轉的完整 URL（需 encodeURIComponent）</td><td><code>https://audai.thinkwithblack.com/</code></td></tr>
-                <tr><td>service</td><td><span class="badge opt">選填</span></td><td>子服務識別名稱（用於日誌）</td><td><code>audai</code></td></tr>
+                <tr><td>returnTo</td><td><span class="badge req">必填</span></td><td>登入後跳轉的完整 URL，需 <code>encodeURIComponent()</code></td></tr>
+                <tr><td>service</td><td><span class="badge opt">選填</span></td><td>子服務識別名稱，用於日誌記錄</td></tr>
             </tbody>
         </table>
-        <div class="note warn">此端點執行 <strong>302 Redirect</strong>，不是 JSON API。前端必須用 <code>window.location.href = ...</code> 跳轉，<strong>不能</strong>用 <code>fetch()</code>。</div>
+        <div class="note warn">此端點執行 302 Redirect，<strong>不是 JSON API</strong>。前端必須用 <code>window.location.href = ...</code>，<strong>不能</strong>用 <code>fetch()</code>。</div>
     </div>
 </div>
 
@@ -581,7 +625,7 @@ init();</pre>
         <span class="badge post">POST</span>
         <span class="endpoint-url">/api/sso/verify-token</span>
         <span class="badge browser">瀏覽器</span>
-        <span class="badge s2s">S2S 支援</span>
+        <span class="badge s2s">S2S 正式支援</span>
     </div>
     <div class="endpoint-body">
         <h4>Request Body</h4>
@@ -590,10 +634,10 @@ init();</pre>
         <pre>{
   <span class="k">"success"</span>: <span class="v">true</span>,  <span class="k">"valid"</span>: <span class="v">true</span>,
   <span class="k">"user"</span>: {
-    <span class="k">"id"</span>: <span class="s">"abc123xyz"</span>,          <span class="c">// = JWT sub，用於 account-center API</span>
+    <span class="k">"id"</span>: <span class="s">"abc123xyz"</span>,       <span class="c">// = JWT sub = account-center userId</span>
     <span class="k">"email"</span>: <span class="s">"user@example.com"</span>,
     <span class="k">"name"</span>: <span class="s">"王小明"</span>,
-    <span class="k">"membership"</span>: <span class="s">"pro"</span>,          <span class="c">// "free" 或 "pro"</span>
+    <span class="k">"membership"</span>: <span class="s">"pro"</span>,   <span class="c">// "free" 或 "pro"</span>
     <span class="k">"membershipExpires"</span>: <span class="s">"2026-10-15T00:00:00Z"</span>,
     <span class="k">"credits"</span>: <span class="v">150</span>,
     <span class="k">"profileImageUrl"</span>: <span class="s">"https://..."</span>
@@ -605,7 +649,7 @@ init();</pre>
 { <span class="k">"success"</span>: <span class="v">false</span>, <span class="k">"valid"</span>: <span class="v">false</span>, <span class="k">"error"</span>: <span class="s">"Token expired"</span> }
 <span class="c">// 格式錯誤（400）</span>
 { <span class="k">"success"</span>: <span class="v">false</span>, <span class="k">"error"</span>: <span class="s">"Invalid token format"</span> }</pre>
-        <div class="note info">系統容許 <strong>60 秒時鐘偏差</strong>，解決跨服務時間不同步問題。</div>
+        <div class="note info">系統容許 <strong>60 秒時鐘偏差</strong>，避免跨服務時間不同步問題（Cloudflare Workers 尤其容易有此問題）。</div>
     </div>
 </div>
 
@@ -614,7 +658,7 @@ init();</pre>
     <div class="endpoint-header">
         <span class="badge post">POST</span>
         <span class="endpoint-url">/api/sso/refresh-token</span>
-        <span class="badge browser">瀏覽器（需已登入）</span>
+        <span class="badge browser">瀏覽器（需已登入 ECCAL Cookie）</span>
     </div>
     <div class="endpoint-body">
         <p>Token 有效期 <strong>7 天</strong>，建議到期前 24 小時自動刷新。</p>
@@ -632,7 +676,7 @@ init();</pre>
         <span class="endpoint-url">/api/sso/logout</span>
     </div>
     <div class="endpoint-body">
-        <p>清除 ECCAL 端的登入狀態。<strong>子服務也需自行清除本地 Token 或 Session。</strong></p>
+        <p>清除 ECCAL 端的登入 Cookie。<strong>子服務也需自行清除本地 Token 或 Session。</strong></p>
         <h4>Request Body（選填）</h4>
         <pre>{ <span class="k">"returnTo"</span>: <span class="s">"https://audai.thinkwithblack.com"</span> }</pre>
     </div>
@@ -643,18 +687,14 @@ init();</pre>
     <div class="endpoint-header">
         <span class="badge get">GET</span>
         <span class="endpoint-url">/api/account-center/user/:userId</span>
-        <span class="badge s2s">S2S 支援</span>
+        <span class="badge s2s">S2S 正式支援</span>
     </div>
     <div class="endpoint-body">
-        <p><code>:userId</code> 可填用戶 <strong>ID</strong>（JWT sub）或 <strong>Email</strong>，兩種都接受。</p>
+        <p><code>:userId</code> 可填用戶 <strong>ID</strong>（JWT sub）或 <strong>Email</strong>，兩種格式都接受。無認證要求。</p>
         <h4>成功回應 200</h4>
         <pre>{
   <span class="k">"success"</span>: <span class="v">true</span>,
-  <span class="k">"user"</span>: {
-    <span class="k">"id"</span>: <span class="s">"abc123xyz"</span>,  <span class="k">"email"</span>: <span class="s">"user@example.com"</span>,  <span class="k">"name"</span>: <span class="s">"王小明"</span>,
-    <span class="k">"membership"</span>: <span class="s">"pro"</span>,  <span class="k">"membershipExpires"</span>: <span class="s">"2026-10-15T00:00:00Z"</span>,
-    <span class="k">"credits"</span>: <span class="v">150</span>,  <span class="k">"profileImageUrl"</span>: <span class="s">"https://..."</span>,  <span class="k">"createdAt"</span>: <span class="s">"2024-01-01T00:00:00Z"</span>
-  }
+  <span class="k">"user"</span>: { <span class="k">"id"</span>, <span class="k">"email"</span>, <span class="k">"name"</span>, <span class="k">"membership"</span>, <span class="k">"membershipExpires"</span>, <span class="k">"credits"</span>, <span class="k">"profileImageUrl"</span>, <span class="k">"createdAt"</span> }
 }</pre>
     </div>
 </div>
@@ -664,7 +704,7 @@ init();</pre>
     <div class="endpoint-header">
         <span class="badge get">GET</span>
         <span class="endpoint-url">/api/account-center/credits/:userId</span>
-        <span class="badge s2s">S2S 支援</span>
+        <span class="badge s2s">S2S 正式支援</span>
     </div>
     <div class="endpoint-body">
         <pre>{ <span class="k">"success"</span>: <span class="v">true</span>, <span class="k">"userId"</span>: <span class="s">"abc123"</span>, <span class="k">"balance"</span>: <span class="v">150</span>, <span class="k">"email"</span>: <span class="s">"user@example.com"</span> }</pre>
@@ -674,7 +714,7 @@ init();</pre>
     <div class="endpoint-header">
         <span class="badge post">POST</span>
         <span class="endpoint-url">/api/account-center/credits/:userId/deduct</span>
-        <span class="badge s2s">S2S 支援</span>
+        <span class="badge s2s">S2S 正式支援</span>
     </div>
     <div class="endpoint-body">
         <h4>Request Body</h4>
@@ -690,7 +730,7 @@ init();</pre>
     <div class="endpoint-header">
         <span class="badge post">POST</span>
         <span class="endpoint-url">/api/account-center/credits/:userId/add</span>
-        <span class="badge s2s">S2S 支援</span>
+        <span class="badge s2s">S2S 正式支援</span>
     </div>
     <div class="endpoint-body">
         <p>增加點數，需要 API Key 驗證。</p>
@@ -702,22 +742,21 @@ init();</pre>
 </div>
 
 <h2 id="token-structure">JWT Token 結構</h2>
-<p>演算法：<strong>HS256</strong>，有效期：<strong>7 天</strong></p>
+<p>演算法：<strong>HS256</strong>，有效期：<strong>7 天</strong>，容許時鐘偏差：<strong>60 秒</strong></p>
 <table class="param-table">
     <thead><tr><th>欄位</th><th>說明</th><th>範例值</th></tr></thead>
     <tbody>
-        <tr><td>sub</td><td>用戶唯一 ID（與 user_id callback 參數相同，可用於 account-center API）</td><td><code>abc123xyz</code></td></tr>
+        <tr><td>sub</td><td>用戶唯一 ID（與 callback user_id 相同，可用於 account-center API）</td><td><code>abc123xyz</code></td></tr>
         <tr><td>email</td><td>用戶 Email</td><td><code>user@example.com</code></td></tr>
         <tr><td>name</td><td>用戶顯示名稱</td><td><code>王小明</code></td></tr>
-        <tr><td>membership</td><td>會員等級，簽發當下的值</td><td><code>"free"</code> 或 <code>"pro"</code></td></tr>
-        <tr><td>credits</td><td>點數餘額（簽發當下的快照，即時值請呼叫 credits API）</td><td><code>150</code></td></tr>
+        <tr><td>membership</td><td>會員等級（Token 簽發當下的值）</td><td><code>"free"</code> 或 <code>"pro"</code></td></tr>
+        <tr><td>credits</td><td>點數快照（簽發當下，即時值請呼叫 credits API）</td><td><code>150</code></td></tr>
         <tr><td>iss</td><td>簽發者（固定）</td><td><code>eccal.thinkwithblack.com</code></td></tr>
         <tr><td>aud</td><td>受眾（發起登入的子服務 origin）</td><td><code>https://audai.thinkwithblack.com</code></td></tr>
         <tr><td>iat</td><td>簽發時間（Unix timestamp）</td><td><code>1709800000</code></td></tr>
         <tr><td>exp</td><td>到期時間（iat + 7 天）</td><td><code>1710404800</code></td></tr>
     </tbody>
 </table>
-<div class="note info">系統容許 60 秒時鐘偏差，Token 到期後需重新登入或呼叫 refresh-token。</div>
 
 <h2 id="live-test">線上測試工具</h2>
 <h3>測試 SSO 登入流程</h3>
@@ -744,9 +783,26 @@ init();</pre>
 
 <script>
 (function(){
-    var p = new URLSearchParams(window.location.search), tok = p.get('token');
-    if(tok){ localStorage.setItem('eccal_auth_token',tok); window.history.replaceState({},'',location.pathname); document.getElementById('t-token').value=tok; show('r-verify','Token 已接收，點擊「驗證 Token」確認'); }
-    window.addEventListener('scroll',function(){ var sy=scrollY+100; document.querySelectorAll('h2[id]').forEach(function(s){ if(s.offsetTop<=sy){ document.querySelectorAll('.sidebar a').forEach(function(a){a.classList.remove('active');}); var al=document.querySelector('.sidebar a[href="#'+s.id+'"]'); if(al)al.classList.add('active'); }}); });
+    var p = new URLSearchParams(window.location.search);
+    var tok = p.get('token'), ae = p.get('auth_error');
+    if(tok && p.get('auth_success')==='true'){
+        localStorage.setItem('eccal_auth_token',tok);
+        window.history.replaceState({},'',location.pathname);
+        document.getElementById('t-token').value=tok;
+        show('r-verify','Token 已接收，點擊「驗證 Token」確認');
+    } else if(ae==='true'){
+        show('r-verify','登入失敗：'+decodeURIComponent(p.get('error_message')||''));
+    }
+    window.addEventListener('scroll',function(){
+        var sy=scrollY+100;
+        document.querySelectorAll('h2[id]').forEach(function(s){
+            if(s.offsetTop<=sy){
+                document.querySelectorAll('.sidebar a').forEach(function(a){a.classList.remove('active');});
+                var al=document.querySelector('.sidebar a[href="#'+s.id+'"]');
+                if(al)al.classList.add('active');
+            }
+        });
+    });
 })();
 function doLogin(){ var r=document.getElementById('t-return').value||location.href; location.href='https://eccal.thinkwithblack.com/api/auth/google-sso?returnTo='+encodeURIComponent(r)+'&service=guide-test'; }
 function loadToken(){ var t=localStorage.getItem('eccal_auth_token'); if(t){document.getElementById('t-token').value=t;}else{show('r-verify','沒有找到本地 Token，請先執行登入測試');} }
