@@ -606,76 +606,141 @@ app.get('/sso-guide', (req, res) => {
 
 init();</pre>
 
-<h2 id="mode-b-flow">模式 B：Worker 轉接 — 登入流程</h2>
+<h2 id="worker-first">Worker 優先 — 架構說明</h2>
 <ul class="flow">
-    <li><div class="fc"><h4>前端發起登入</h4><p>導向 <code>GET /api/auth/google-sso?returnTo={Worker的callback路由}&amp;service={服務名}</code></p></div></li>
-    <li><div class="fc"><h4>用戶完成 Google 授權</h4><p>同模式 A，報數據處理 Google OAuth 流程。</p></div></li>
-    <li><div class="fc"><h4>302 Redirect 到 Worker Callback（帶 auth_success=true）</h4><p>跳轉到 <code>{Worker callback URL}?auth_success=true&amp;token=JWT&amp;user_id=xxx</code>。</p></div></li>
-    <li><div class="fc"><h4>Worker 執行 server-to-server 驗證</h4><p>Worker 後端呼叫 <code>POST /api/sso/verify-token</code>（不帶 Origin），取得完整用戶資料。無認證要求、無 rate limit、無 bot 保護。</p></div></li>
-    <li><div class="fc"><h4>Worker 建立自己的 Session</h4><p>驗證成功後，Worker 設定 httpOnly session cookie，前端感知不到 JWT 存在。</p></div></li>
+    <li><div class="fc"><h4>前端只打子服務自己的入口</h4><p>前端導向 <code>GET /api/auth/login</code>（子服務自己的路由），<strong>不直接導向 ECCAL</strong>。這樣子服務可以完全掌控 returnTo、cookie、CORS 設定。</p></div></li>
+    <li><div class="fc"><h4>Worker relay 啟動 ECCAL SSO</h4><p>Worker 用 <code>redirect: 'manual'</code> 向 ECCAL <code>/api/sso/login</code> 取得 Google OAuth URL，再轉給瀏覽器。</p></div></li>
+    <li><div class="fc"><h4>用戶完成 Google 授權後跳回子服務 callback</h4><p>ECCAL 帶 <code>?token=JWT&user_id=xxx</code> 跳轉到子服務的 <code>/auth/callback</code>。前端讀取 token 存入 localStorage，後續請求帶 <code>Authorization: Bearer</code>。</p></div></li>
+    <li><div class="fc"><h4>Worker JWT Middleware 做即時授權</h4><p>每次 API 請求進來，Worker 先 decode JWT 做基本格式與過期檢查，再呼叫 ECCAL <code>verify-token</code> 取即時 membership / credits。</p></div></li>
 </ul>
 
-<h2 id="mode-b-code">模式 B：Worker 後端完整範例（Cloudflare Workers）</h2>
-<pre><span class="c">// Cloudflare Worker - 模式 B 完整整合範例</span>
-<span class="k">const</span> ECCAL = <span class="s">'https://eccal.thinkwithblack.com'</span>;
+<h2 id="worker-login">Worker 優先 — 登入 Relay（Hono）</h2>
+<pre><span class="c">// routes/auth.ts — Worker relay 啟動 ECCAL SSO</span>
+<span class="k">import</span> { Hono } <span class="k">from</span> <span class="s">'hono'</span>;
 
-<span class="c">// Worker 路由：GET /auth/callback?auth_success=true&token=xxx&user_id=xxx</span>
-<span class="k">async function</span> handleSsoCallback(request, env) {
-  <span class="k">const</span> url = <span class="k">new</span> URL(request.url);
-  <span class="k">const</span> authSuccess = url.searchParams.get(<span class="s">'auth_success'</span>);
-  <span class="k">const</span> token = url.searchParams.get(<span class="s">'token'</span>);
-  <span class="k">const</span> authError = url.searchParams.get(<span class="s">'auth_error'</span>);
+<span class="k">const</span> auth = <span class="k">new</span> Hono();
 
-  <span class="c">// 處理登入失敗</span>
-  <span class="k">if</span> (authError === <span class="s">'true'</span>) {
-    <span class="k">const</span> msg = decodeURIComponent(url.searchParams.get(<span class="s">'error_message'</span>) || <span class="s">''</span>);
-    <span class="k">return</span> Response.redirect(<span class="m">\`https://your-service.com/login?error=\${encodeURIComponent(msg)}\`</span>);
+auth.get(<span class="s">'/login'</span>, <span class="k">async</span> (c) => {
+  <span class="k">const</span> eccalBase = c.env.ECCAL_BASE_URL;
+  <span class="k">const</span> appUrl = c.env.PUBLIC_APP_URL;
+  <span class="k">const</span> returnTo = <span class="m">\`\${appUrl}/auth/callback\`</span>;
+
+  <span class="k">const</span> params = <span class="k">new</span> URLSearchParams({ service: <span class="s">'your-service'</span>, returnTo });
+  <span class="k">const</span> eccalUrl = <span class="m">\`\${eccalBase}/api/sso/login?\${params}\`</span>;
+
+  <span class="c">// redirect: 'manual' — 取得 ECCAL 的 302 location，再 relay 給瀏覽器</span>
+  <span class="k">const</span> resp = <span class="k">await</span> fetch(eccalUrl, {
+    method: <span class="s">'GET'</span>,
+    headers: { Origin: c.env.ECCAL_SSO_ORIGIN || <span class="s">'https://audai.thinkwithblack.com'</span> },
+    redirect: <span class="s">'manual'</span>
+  });
+
+  <span class="k">const</span> location = resp.headers.get(<span class="s">'location'</span>);
+  <span class="k">if</span> (!location || resp.status < 300 || resp.status >= 400) {
+    <span class="k">return</span> c.json({ error: <span class="s">'Failed to init login'</span> }, 502);
   }
+  <span class="k">return</span> c.redirect(<span class="k">new</span> URL(location, eccalBase).toString());
+});
 
-  <span class="k">if</span> (authSuccess !== <span class="s">'true'</span> || !token) {
-    <span class="k">return new</span> Response(<span class="s">'Bad callback'</span>, { status: 400 });
-  }
+<span class="c">// /auth/callback — 前端 HTML（oauth-callback.html）</span>
+<span class="c">// 讀取 ?token=... 存 localStorage，導回首頁</span>
 
-  <span class="c">// Server-to-Server 驗證（不帶 Origin header，無 CORS 限制）</span>
-  <span class="k">const</span> verifyRes = <span class="k">await</span> fetch(<span class="m">\`\${ECCAL}/api/sso/verify-token\`</span>, {
+auth.get(<span class="s">'/callback'</span>, <span class="k">async</span> (c) => {
+  <span class="k">const</span> token = c.req.query(<span class="s">'token'</span>);
+  <span class="k">const</span> appUrl = c.env.PUBLIC_APP_URL;
+  <span class="k">if</span> (!token) <span class="k">return</span> c.json({ error: <span class="s">'No token'</span> }, 400);
+  <span class="c">// 設定 cookie 並轉回前端 callback 頁（前端會存 localStorage 再導走）</span>
+  c.header(<span class="s">'Set-Cookie'</span>, <span class="m">\`app-jwt-token=\${token}; Path=/; Secure; HttpOnly; SameSite=Lax\`</span>);
+  <span class="k">return</span> c.redirect(<span class="m">\`\${appUrl}/auth/callback?token=\${encodeURIComponent(token)}\`</span>);
+});</pre>
+
+<h2 id="worker-jwt">Worker 優先 — JWT Middleware（不依賴 Node.js Buffer）</h2>
+<pre><span class="c">// middleware/auth.ts — Cloudflare Workers 環境（用 atob / TextDecoder，非 Node.js Buffer）</span>
+<span class="k">function</span> decodeJWT(token) {
+  <span class="k">try</span> {
+    <span class="k">const</span> [, payloadB64] = token.split(<span class="s">'.'</span>);
+    <span class="k">const</span> normalized = payloadB64.replace(/-/g, <span class="s">'+'</span>).replace(/_/g, <span class="s">'/'</span>);
+    <span class="k">const</span> padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, <span class="s">'='</span>);
+    <span class="k">return</span> JSON.parse(<span class="k">new</span> TextDecoder().decode(
+      Uint8Array.from(atob(padded), c => c.charCodeAt(0))
+    ));
+  } <span class="k">catch</span> { <span class="k">return null</span>; }
+}
+
+<span class="k">async function</span> verifyWithEccal(token, eccalBase) {
+  <span class="k">const</span> resp = <span class="k">await</span> fetch(<span class="m">\`\${eccalBase}/api/sso/verify-token\`</span>, {
     method: <span class="s">'POST'</span>,
     headers: { <span class="s">'Content-Type'</span>: <span class="s">'application/json'</span> },
     body: JSON.stringify({ token })
   });
-  <span class="k">const</span> data = <span class="k">await</span> verifyRes.json();
-
-  <span class="k">if</span> (!data.valid) {
-    <span class="k">return</span> Response.redirect(<span class="s">'https://your-service.com/login?error=invalid_token'</span>);
-  }
-
-  <span class="c">// 建立 Worker Session（存 KV，設 httpOnly cookie）</span>
-  <span class="k">const</span> sessionId = crypto.randomUUID();
-  <span class="k">await</span> env.KV.put(<span class="m">\`session:\${sessionId}\`</span>, JSON.stringify({
-    userId: data.user.id,
-    email: data.user.email,
-    name: data.user.name,
-    membership: data.user.membership,
-    credits: data.user.credits
-  }), { expirationTtl: 604800 });  <span class="c">// 7 天</span>
-
-  <span class="k">return new</span> Response(<span class="k">null</span>, {
-    status: 302,
-    headers: {
-      <span class="s">'Location'</span>: <span class="s">'https://your-service.com/dashboard'</span>,
-      <span class="s">'Set-Cookie'</span>: <span class="m">\`session=\${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800\`</span>
-    }
-  });
+  <span class="k">if</span> (!resp.ok) <span class="k">return null</span>;
+  <span class="k">const</span> data = <span class="k">await</span> resp.json();
+  <span class="k">return</span> (data.success && data.valid) ? data.user : <span class="k">null</span>;
 }
 
-<span class="c">// Worker 後端扣除點數（在 Worker 中呼叫，不在前端）</span>
-<span class="k">async function</span> deductCredits(userId, amount, reason) {
-  <span class="k">const</span> res = <span class="k">await</span> fetch(<span class="m">\`\${ECCAL}/api/account-center/credits/\${userId}/deduct\`</span>, {
-    method: <span class="s">'POST'</span>,
-    headers: { <span class="s">'Content-Type'</span>: <span class="s">'application/json'</span> },
-    body: JSON.stringify({ amount, reason, service: <span class="s">'your-service'</span> })
-  });
-  <span class="k">return</span> res.json();
+<span class="k">export async function</span> jwtAuth(c, next) {
+  <span class="k">const</span> authHeader = c.req.header(<span class="s">'Authorization'</span>) || <span class="s">''</span>;
+  <span class="k">const</span> token = authHeader.startsWith(<span class="s">'Bearer '</span>) ? authHeader.slice(7) : <span class="k">null</span>;
+  <span class="k">if</span> (!token) <span class="k">return</span> c.json({ error: <span class="s">'Unauthorized'</span> }, 401);
+
+  <span class="c">// Step 1: 先做本地 decode + exp 快速檢查（省一次 S2S）</span>
+  <span class="k">const</span> payload = decodeJWT(token);
+  <span class="k">if</span> (!payload) <span class="k">return</span> c.json({ error: <span class="s">'Invalid token format'</span> }, 401);
+  <span class="k">if</span> (payload.exp < Math.floor(Date.now() / 1000)) <span class="k">return</span> c.json({ error: <span class="s">'Token expired'</span> }, 401);
+
+  <span class="c">// Step 2: 呼叫 ECCAL verify-token 取即時 membership / credits</span>
+  <span class="k">const</span> user = <span class="k">await</span> verifyWithEccal(token, c.env.ECCAL_BASE_URL);
+  <span class="k">if</span> (!user) <span class="k">return</span> c.json({ error: <span class="s">'Token verification failed'</span> }, 401);
+
+  c.set(<span class="s">'user'</span>, user);
+  <span class="k">await</span> next();
 }</pre>
+
+<h2 id="worker-template">Worker 優先 — 前端最小 callback 頁</h2>
+<pre><span class="c">&lt;!-- frontend/public/oauth-callback.html --&gt;</span>
+<span class="k">&lt;script&gt;</span>
+(function() {
+  var params = <span class="k">new</span> URLSearchParams(window.location.search);
+  var token = params.get(<span class="s">'token'</span>);
+  <span class="k">if</span> (token) {
+    localStorage.setItem(<span class="s">'eccal_auth_token'</span>, token);
+  }
+  window.location.replace(<span class="s">'/'</span>);  <span class="c">// 導回首頁（避免 token 殘留在 URL history）</span>
+})();
+<span class="k">&lt;/script&gt;</span></pre>
+
+<pre><span class="c">// frontend — API client 自動帶 Bearer token（axios 範例）</span>
+apiClient.interceptors.request.use((config) => {
+  <span class="k">const</span> token = localStorage.getItem(<span class="s">'eccal_auth_token'</span>);
+  <span class="k">if</span> (token) config.headers.Authorization = <span class="m">\`Bearer \${token}\`</span>;
+  <span class="k">return</span> config;
+});</pre>
+
+<h2 id="worker-env">Worker 優先 — 環境變數（wrangler.toml）</h2>
+<pre><span class="c"># wrangler.toml</span>
+[vars]
+ECCAL_BASE_URL = <span class="s">"https://eccal.thinkwithblack.com"</span>
+PUBLIC_APP_URL = <span class="s">"https://your-service.thinkwithblack.com"</span>
+ECCAL_SSO_ORIGIN = <span class="s">"https://audai.thinkwithblack.com"</span>  <span class="c"># 你在 ECCAL 白名單內的 Origin</span>
+
+<span class="c"># 敏感值用 Worker Secret（wrangler secret put ECCAL_SERVICE_SECRET）</span>
+<span class="c"># ECCAL_SERVICE_SECRET = "..."  # 向報數據申請，用於本地 HS256 驗簽（可選）</span></pre>
+
+<div class="note warn"><strong>必須使用 custom domain：</strong>正式環境不要用 <code>*.workers.dev</code> 當 API 網域，這會導致 cookie 的 SameSite / CORS 行為不穩定，以及 ECCAL 的 Origin 白名單驗證失敗。</div>
+
+<h2 id="worker-checklist">Worker 優先 — 上線前清單</h2>
+<table class="param-table">
+    <thead><tr><th>#</th><th>確認項目</th></tr></thead>
+    <tbody>
+        <tr><td>1</td><td>子服務正式 API 使用 custom domain（非 workers.dev）</td></tr>
+        <tr><td>2</td><td><code>/api/auth/login</code> 由 Worker relay（而非前端直連 ECCAL）</td></tr>
+        <tr><td>3</td><td><code>verify-token</code> 回 <code>200</code> 且 <code>x-eccal-version: 3.2</code></td></tr>
+        <tr><td>4</td><td><code>verify-token.user.membership</code> 與 <code>account-center/user.membership</code> 一致</td></tr>
+        <tr><td>5</td><td><code>/api/auth/user</code> 端點回傳的 membership / credits 與 ECCAL 一致</td></tr>
+        <tr><td>6</td><td>沒有任何 dev bypass header 或 mock login 殘留</td></tr>
+        <tr><td>7</td><td><code>ECCAL_BASE_URL</code>、<code>PUBLIC_APP_URL</code>、<code>ECCAL_SSO_ORIGIN</code> 已設定</td></tr>
+    </tbody>
+</table>
 
 <h2 id="api-login">API：啟動 SSO 登入</h2>
 <div class="endpoint">
@@ -979,6 +1044,85 @@ curl -X POST https://eccal.thinkwithblack.com/api/account-center/credits/abc123/
     <span class="k">return</span> <span class="k">new</span> Response(<span class="s">'Not found'</span>, { status: 404 });
   }
 };</pre>
+
+<h2 id="verify-scripts">驗收腳本</h2>
+
+<h3>curl — 驗證 verify-token（帶 -i 顯示 headers）</h3>
+<pre>TOKEN="你的真實JWT"
+curl -i -sS -X POST 'https://eccal.thinkwithblack.com/api/sso/verify-token' \
+  -H 'Content-Type: application/json' \
+  --data "{\"token\":\"$TOKEN\"}"</pre>
+<p style="font-size:13px;color:#64748b;">預期：<code>HTTP 200</code>、<code>x-eccal-version: 3.2</code>、body 有 <code>success:true</code>、<code>user.membership</code>、<code>user.credits</code>，<strong>沒有 <code>Location</code> header</strong>。</p>
+
+<h3>curl — 驗證 account-center/user</h3>
+<pre>USER_ID="你的真實用戶ID"
+curl -i -sS "https://eccal.thinkwithblack.com/api/account-center/user/$USER_ID"</pre>
+<p style="font-size:13px;color:#64748b;">預期：<code>HTTP 200</code>、<code>user.membership</code> 與 verify-token 一致。</p>
+
+<h3>Cloudflare Worker — 一致性驗收腳本</h3>
+<pre><span class="c">// 部署到 Workers 執行，驗收兩端點資料一致</span>
+<span class="k">export default</span> {
+  <span class="k">async</span> fetch() {
+    <span class="k">const</span> token = <span class="s">'YOUR_REAL_JWT'</span>;
+    <span class="k">const</span> userId = <span class="s">'YOUR_REAL_USER_ID'</span>;
+    <span class="k">const</span> ECCAL = <span class="s">'https://eccal.thinkwithblack.com'</span>;
+
+    <span class="k">const</span> [vr, ur] = <span class="k">await</span> Promise.all([
+      fetch(<span class="m">\`\${ECCAL}/api/sso/verify-token\`</span>, {
+        method: <span class="s">'POST'</span>,
+        headers: { <span class="s">'Content-Type'</span>: <span class="s">'application/json'</span> },
+        body: JSON.stringify({ token })
+      }),
+      fetch(<span class="m">\`\${ECCAL}/api/account-center/user/\${userId}\`</span>)
+    ]);
+    <span class="k">const</span> [vb, ub] = <span class="k">await</span> Promise.all([vr.json(), ur.json()]);
+
+    <span class="k">return new</span> Response(JSON.stringify({
+      verify: {
+        status: vr.status,
+        location: vr.headers.get(<span class="s">'location'</span>),       <span class="c">// 必須 null</span>
+        version: vr.headers.get(<span class="s">'x-eccal-version'</span>),  <span class="c">// 必須 3.2</span>
+        body: vb
+      },
+      user: { status: ur.status, location: ur.headers.get(<span class="s">'location'</span>), body: ub },
+      checks: {
+        membershipMatch: vb?.user?.membership === ub?.user?.membership,  <span class="c">// 必須 true</span>
+        creditsMatch: vb?.user?.credits === ub?.user?.credits             <span class="c">// 必須 true</span>
+      }
+    }, <span class="k">null</span>, 2), { headers: { <span class="s">'Content-Type'</span>: <span class="s">'application/json'</span> } });
+  }
+};</pre>
+
+<h3>Node.js — CI 驗收腳本</h3>
+<pre><span class="c">// 執行：ECCAL_TEST_TOKEN=... ECCAL_TEST_USER_ID=... node verify.js</span>
+<span class="k">const</span> token = process.env.ECCAL_TEST_TOKEN;
+<span class="k">const</span> userId = process.env.ECCAL_TEST_USER_ID;
+<span class="k">const</span> ECCAL = <span class="s">'https://eccal.thinkwithblack.com'</span>;
+
+<span class="k">async function</span> main() {
+  <span class="k">const</span> [vr, ur] = <span class="k">await</span> Promise.all([
+    fetch(<span class="m">\`\${ECCAL}/api/sso/verify-token\`</span>, {
+      method: <span class="s">'POST'</span>,
+      headers: { <span class="s">'Content-Type'</span>: <span class="s">'application/json'</span> },
+      body: JSON.stringify({ token })
+    }),
+    fetch(<span class="m">\`\${ECCAL}/api/account-center/user/\${userId}\`</span>)
+  ]);
+  <span class="k">const</span> [vb, ub] = <span class="k">await</span> Promise.all([vr.json(), ur.json()]);
+
+  console.log(JSON.stringify({
+    verifyStatus: vr.status, userStatus: ur.status,
+    verifyMembership: vb?.user?.membership, userMembership: ub?.user?.membership,
+    verifyCredits: vb?.user?.credits, userCredits: ub?.user?.credits
+  }, <span class="k">null</span>, 2));
+
+  <span class="k">if</span> (vr.status !== 200) process.exit(1);
+  <span class="k">if</span> (ur.status !== 200) process.exit(1);
+  <span class="k">if</span> (vb?.user?.membership !== ub?.user?.membership) process.exit(2);  <span class="c">// membership 不一致</span>
+  <span class="k">if</span> (vb?.user?.credits !== ub?.user?.credits) process.exit(3);          <span class="c">// credits 不一致</span>
+  console.log(<span class="s">'✓ All checks passed'</span>);
+}
+main().catch(e => { console.error(e); process.exit(99); });</pre>
 
 <h2 id="troubleshoot">常見問題排查</h2>
 
