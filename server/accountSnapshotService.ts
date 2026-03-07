@@ -15,7 +15,9 @@ export interface AccountSnapshot {
 
 /**
  * 取得帳號快照 — verify-token 與 account-center 唯一的資料來源
- * membership 判斷邏輯：level === 'pro' AND expires 在未來，才算 pro
+ * membership 判斷邏輯：
+ *   level === 'pro' 或 'founders'
+ *   且 expires 為 null（終身）或在未來（定期）
  * 兩個 S2S endpoint 都呼叫這個 function，確保資料完全一致
  */
 export async function getAccountSnapshot(userIdOrEmail: string): Promise<AccountSnapshot | null> {
@@ -31,10 +33,9 @@ export async function getAccountSnapshot(userIdOrEmail: string): Promise<Account
 
   const u = rows[0];
 
-  const isPro =
-    u.membershipLevel === 'pro' &&
-    u.membershipExpires != null &&
-    new Date(u.membershipExpires) > new Date();
+  const isProLevel = u.membershipLevel === 'pro' || u.membershipLevel === 'founders';
+  const notExpired = u.membershipExpires == null || new Date(u.membershipExpires) > new Date();
+  const isPro = isProLevel && notExpired;
 
   return {
     id: String(u.id),
