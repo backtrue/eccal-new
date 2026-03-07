@@ -2817,44 +2817,33 @@ app.post('/api/sso/verify-token', express.json(), async (req, res) => {
         exp: new Date(decoded.exp * 1000).toISOString()
       });
 
-      // P1: 查詢 DB 取得即時的 membership 和 credits（避免 token 過期時資料不准）
-      let userData = {
-        id: String(decoded.sub),
-        email: String(decoded.email || ''),
-        name: String(decoded.name || ''),
-        membership: String(decoded.membership || 'free'),
-        membershipExpires: null as string | null,
-        credits: Number(decoded.credits ?? 0),
-        profileImageUrl: null as string | null
-      };
-
-      try {
-        const { db: dbInst } = await import('./db');
-        const { users: usersTable } = await import('@shared/schema');
-        const { eq: eqOp } = await import('drizzle-orm');
-        const rows = await dbInst.select().from(usersTable).where(eqOp(usersTable.id, decoded.sub)).limit(1);
-        if (rows.length > 0) {
-          const u = rows[0];
-          const isPro = u.membershipLevel === 'pro' && u.membershipExpires && new Date(u.membershipExpires) > new Date();
-          userData = {
-            id: String(u.id),
-            email: String(u.email || ''),
-            name: String(u.name || u.firstName || ''),
-            membership: isPro ? 'pro' : 'free',
-            membershipExpires: u.membershipExpires ? new Date(u.membershipExpires).toISOString() : null,
-            credits: Number(u.credits ?? 0),
-            profileImageUrl: u.profileImageUrl || null
-          };
-        }
-      } catch (dbErr) {
-        console.warn('verify-token: DB lookup failed, using JWT payload data:', dbErr instanceof Error ? dbErr.message : dbErr);
+      // 共用 getAccountSnapshot — 與 account-center/user 同一份資料來源，確保 membership/credits 完全一致
+      const userId = decoded.sub || decoded.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          valid: false,
+          error: 'INVALID_TOKEN_PAYLOAD',
+          details: 'Token missing sub/id claim'
+        });
       }
 
-      // P1: 固定 response schema —— 必填欄位: success, valid, user(id/email/name/membership/membershipExpires/credits)
+      const { getAccountSnapshot } = await import('./accountSnapshotService');
+      const account = await getAccountSnapshot(userId);
+
+      if (!account) {
+        return res.status(404).json({
+          success: false,
+          valid: false,
+          error: 'ACCOUNT_NOT_FOUND',
+          details: `No account found for userId: ${userId}`
+        });
+      }
+
       return res.json({
         success: true,
         valid: true,
-        user: userData,
+        user: account,
         expiresAt: new Date(decoded.exp * 1000).toISOString()
       });
     } catch (jwtError) {

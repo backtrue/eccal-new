@@ -5,6 +5,7 @@ import { users, userCredits, userReferrals } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { getAccountSnapshot } from './accountSnapshotService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const SERVICE_API_KEY = process.env.SERVICE_API_KEY;
@@ -309,27 +310,12 @@ export function setupAccountCenterRoutes(app: Express) {
   app.get('/api/account-center/user/:userId', async (req: Request, res: Response) => {
     try {
       const { userId } = req.params;
-      console.log('Querying user with ID:', userId);
-      
-      // 支援通過 email 或 userId 查詢
-      let user;
-      if (userId.includes('@')) {
-        // 如果是 email 格式，通過 email 查詢
-        console.log('Searching by email:', userId);
-        user = await db.query.users.findFirst({
-          where: eq(users.email, userId)
-        });
-      } else {
-        // 否則通過 userId 查詢
-        console.log('Searching by ID:', userId);
-        user = await db.query.users.findFirst({
-          where: eq(users.id, userId)
-        });
-      }
-      
-      console.log('Query result:', user ? { found: true, email: user.email, name: user.name } : { found: false });
-      
-      if (!user) {
+      console.log('account-center/user lookup:', userId);
+
+      // 共用 getAccountSnapshot — 與 verify-token 同一份資料來源，確保 membership/credits 完全一致
+      const account = await getAccountSnapshot(userId);
+
+      if (!account) {
         return res.status(404).json({ 
           success: false,
           error: '用戶未找到',
@@ -337,20 +323,9 @@ export function setupAccountCenterRoutes(app: Express) {
         });
       }
       
-      // 返回符合 API 規格的回應
       res.json({
         success: true,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name || user.email,
-          membership: user.membership_level || 'free',  // 修正欄位名稱
-          membershipExpires: user.membership_expires,
-          credits: user.credits || 0,
-          profileImageUrl: user.profile_image_url,
-          createdAt: user.created_at,
-          updatedAt: user.updated_at
-        }
+        user: account
       });
     } catch (error) {
       console.error('Error fetching user data:', error);

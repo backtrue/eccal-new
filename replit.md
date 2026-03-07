@@ -64,7 +64,22 @@ Preferred communication style: Simple, everyday language.
 - **API Structure**: Versioned REST API endpoints with a `/api` prefix, service layer for business logic, and centralized error handling.
 - **Data Flow**: Client-side input validation, API communication via TanStack Query, and Drizzle ORM for database operations.
 
-## Recent Changes (2026-03-07)
+## Recent Changes (2026-03-07) — v3.2
+
+### ✅ 共用 AccountSnapshot Service — 修復 membership 資料不一致問題
+
+**問題根因**：
+- `account-center/user` 回傳 `user.membership_level` **不檢查是否過期**
+- `verify-token` 有做 isPro expiry 驗證
+- 如果用戶 pro 已過期：前者回 'pro'，後者回 'free'
+
+**解決方案**：新增 `server/accountSnapshotService.ts`
+- 單一 `getAccountSnapshot(userIdOrEmail)` 函數
+- isPro 判斷：`membershipLevel === 'pro' AND membershipExpires 在未來`
+- `verify-token` 和 `account-center/user` 都改用此函數
+- 支援 userId 或 email 查詢
+
+**確認**：生產環境用 `curl --max-redirs 0` 測試，確認無任何 3xx redirect，Worker 的 redirect 問題已於上版修復。
 
 ### ✅ S2S API 修復 — 解決 Cloudflare Worker "Too many redirects" 問題
 
