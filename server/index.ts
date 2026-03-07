@@ -359,30 +359,31 @@ app.get('/sso-guide', (req, res) => {
     </div>
     <div class="sec">入門</div>
     <a href="#overview">系統概覽</a>
-    <a href="#two-modes">兩種整合模式</a>
+    <a href="#architecture">推薦架構</a>
     <a href="#prerequisites">前置需求</a>
     <a href="#cors-rules">CORS / 白名單規則</a>
     <a href="#s2s-support">S2S 支援說明</a>
-    <div class="sec">模式 A：直連</div>
+    <div class="sec">Worker 優先（推薦）</div>
+    <a href="#worker-first">架構說明</a>
+    <a href="#worker-login">登入 Relay</a>
+    <a href="#worker-jwt">JWT Middleware</a>
+    <a href="#worker-template">完整 Hono 模板</a>
+    <a href="#worker-env">環境變數</a>
+    <a href="#worker-checklist">上線前清單</a>
+    <div class="sec">模式 A：前端直連</div>
     <a href="#mode-a-flow">登入流程</a>
     <a href="#mode-a-callback">Callback 規格</a>
-    <a href="#mode-a-token">Token 儲存方式</a>
     <a href="#mode-a-code">完整範例</a>
-    <div class="sec">模式 B：Worker 轉接</div>
-    <a href="#mode-b-flow">登入流程</a>
-    <a href="#mode-b-code">完整範例</a>
     <div class="sec">API 參考</div>
     <a href="#api-login">啟動登入</a>
     <a href="#api-verify">驗證 Token</a>
-    <a href="#api-refresh">刷新 Token</a>
-    <a href="#api-logout">登出</a>
     <a href="#api-user">取得用戶資料</a>
     <a href="#api-credits">點數 API</a>
     <div class="sec">進階</div>
     <a href="#membership-logic">Membership 判斷邏輯</a>
     <a href="#token-structure">JWT Token 結構</a>
     <a href="#diag-headers">診斷 Headers</a>
-    <a href="#curl-examples">curl / Worker 範例</a>
+    <a href="#verify-scripts">驗收腳本</a>
     <a href="#troubleshoot">常見問題排查</a>
     <a href="#live-test">線上測試</a>
 </nav>
@@ -396,40 +397,39 @@ app.get('/sso-guide', (req, res) => {
 <h2 id="overview">系統概覽</h2>
 <p>報數據 SSO 基於 <strong>Google OAuth 2.0 + JWT（HS256）</strong> 實現。用戶用 Google 帳號登入一次，即可在所有子服務中認證，無需重複註冊。JWT Token 由 ECCAL 簽發（有效期 7 天），子服務透過 verify-token API 或自行用 JWT_SECRET 驗證身份，並可透過 Account Center API 查詢會員等級和點數。</p>
 
-<h2 id="two-modes">兩種整合模式</h2>
-<p>根據子服務架構，有兩種整合方式，差異在於 <strong>Token 驗證在哪裡發生</strong>。</p>
+<h2 id="architecture">推薦架構</h2>
+<p>根據 andromeda 正式整合驗證後，<strong>子服務應優先採用「Worker 優先」架構</strong>，只有純前端靜態網站才使用「模式 A 前端直連」。</p>
 <div class="grid2">
     <div class="card blue">
-        <h4>模式 A：前端直連 ECCAL</h4>
+        <h4>⭐ Worker 優先（推薦）</h4>
         <ul>
-            <li>適合：純前端 SPA、靜態網站</li>
-            <li>瀏覽器直接呼叫 ECCAL API</li>
-            <li>Token 存在 localStorage（key: <code>eccal_auth_token</code>）</li>
-            <li>verify-token 由前端瀏覽器發起</li>
-            <li>子服務 origin 需在 CORS 白名單</li>
+            <li>前端只打子服務自己的 <code>/api/auth/login</code></li>
+            <li>Worker relay 啟動 ECCAL SSO 登入</li>
+            <li>前端收到 token 後存 <code>eccal_auth_token</code>（localStorage）</li>
+            <li>後續 API 請求帶 <code>Authorization: Bearer</code></li>
+            <li>Worker 用 <code>verify-token</code> 做即時 membership 授權</li>
         </ul>
     </div>
     <div class="card purple">
-        <h4>模式 B：經子服務 Worker 轉接</h4>
+        <h4>模式 A：前端直連（次選）</h4>
         <ul>
-            <li>適合：有後端 Worker 的服務（含 Cloudflare Workers）</li>
-            <li>Worker 後端 server-to-server 呼叫 verify-token</li>
-            <li>Token 可存在 Worker 管理的 httpOnly cookie</li>
-            <li>前端完全感知不到 JWT 存在</li>
-            <li>Worker origin 或 IP 不需在 CORS 白名單</li>
+            <li>適合：純前端 SPA、靜態網站（無 Worker）</li>
+            <li>前端直接導向 <code>GET /api/auth/google-sso</code></li>
+            <li>子服務 origin 需在 CORS 白名單</li>
+            <li>Token 存在 localStorage</li>
         </ul>
     </div>
 </div>
 
-<h3>推薦模式選擇</h3>
 <table class="param-table">
-    <thead><tr><th>情境</th><th>推薦模式</th><th>理由</th></tr></thead>
+    <thead><tr><th>情境</th><th>推薦</th><th>理由</th></tr></thead>
     <tbody>
-        <tr><td>純前端 SPA（無 Worker）</td><td>模式 A</td><td>實作最簡單，JWT 存 localStorage</td></tr>
-        <tr><td>有 Cloudflare Worker 或 Node.js 後端</td><td>模式 B</td><td>安全性更高，JWT 不暴露給前端，Worker 可設 httpOnly session cookie</td></tr>
-        <tr><td>需要 SSR / 伺服器端渲染</td><td>模式 B</td><td>服務端取得用戶資料，前端無感</td></tr>
+        <tr><td>有 Cloudflare Worker 後端</td><td>Worker 優先</td><td>可控 returnTo / cookie / CORS；Cloudflare Worker fetch() 對 redirect 容錯比瀏覽器小，Worker relay 最穩</td></tr>
+        <tr><td>純前端 SPA（無任何後端）</td><td>模式 A</td><td>無 Worker 可 relay，只能直連</td></tr>
     </tbody>
 </table>
+
+<div class="note danger"><strong>不要採用：</strong>前端直接依賴 ECCAL 的 httpOnly cookie <code>jwt</code> 作為子服務登入狀態；不要在正式環境使用 <code>workers.dev</code> 網域（cookie / CORS / SameSite 行為不穩定），應使用 custom domain。</div>
 
 <h2 id="prerequisites">前置需求</h2>
 <ol style="padding-left:20px; color:#475569; font-size:14px;">
