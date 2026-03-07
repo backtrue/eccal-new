@@ -9,6 +9,56 @@ import { setupGAConnection } from './gaConnection';
 // -------------------- 1. 基礎設定 --------------------
 const app = express();
 
+// -------------------- 1.05. 全域基礎中間件（必須最早執行）--------------------
+// 解析 JSON / URL-encoded body：此區塊必須在所有路由之前，解決 body 為 undefined 問題
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// -------------------- 1.06. /api/* 永遠回 JSON，禁止 redirect --------------------
+// P0 修復：防止任何 redirect 中間件或邏輯影響 S2S API 端點
+// Cloudflare Worker S2S 呼叫如遇到 redirect 會觸發 "Too many redirects" 錯誤
+// 例外路徑（OAuth/SSO 瀏覽器流程需要 redirect）：
+//   /api/auth/*  - Google OAuth 起始 & callback（瀏覽器流程）
+//   /api/sso/login  - 啟動 SSO 登入（瀏覽器流程）
+//   /api/sso/callback - SSO callback（瀏覽器流程）
+//   /api/sso/logout - 登出後 redirect 回子服務
+const API_REDIRECT_ALLOWED_PREFIXES = [
+  '/api/auth/',
+  '/api/sso/login',
+  '/api/sso/callback',
+  '/api/sso/logout',
+];
+
+app.use('/api', (req, res, next) => {
+  const path = req.path;
+  const redirectAllowed = API_REDIRECT_ALLOWED_PREFIXES.some(p => path === p || path.startsWith(p));
+
+  if (!redirectAllowed) {
+    // 攔截 res.redirect，將其轉換為 JSON 錯誤，而非 301/302/307/308
+    (res as any).redirect = function(statusOrUrl: any, url?: string) {
+      const target = url || (typeof statusOrUrl === 'string' ? statusOrUrl : 'unknown');
+      const status = typeof statusOrUrl === 'number' ? statusOrUrl : 302;
+      console.warn(`[API-REDIRECT-BLOCKED] ${req.method} ${path} attempted redirect ${status} → ${target}`);
+      res.setHeader('X-ECCAL-Redirect-Bypassed', 'true');
+      return res.status(401).json({
+        success: false,
+        error: 'API_REDIRECT_BLOCKED',
+        message: 'This S2S API endpoint does not redirect. Always returns JSON.',
+        redirectTarget: target
+      });
+    };
+  }
+
+  // 診斷 headers：方便 Cloudflare Worker / curl 快速排查
+  res.setHeader('X-ECCAL-Route', path);
+  res.setHeader('X-ECCAL-Auth-Mode', req.headers.authorization ? 'bearer' : req.cookies?.auth_token ? 'cookie' : 'none');
+  res.setHeader('X-ECCAL-Redirect-Bypassed', redirectAllowed ? 'n/a' : 'false');
+  res.setHeader('X-ECCAL-Version', '3.1');
+
+  next();
+});
+
 // -------------------- 1.1 Health Check 端點 --------------------
 // 簡單的健康檢查端點 - 必須在所有其他中間件之前
 app.get('/health', async (req, res) => {
@@ -330,6 +380,8 @@ app.get('/sso-guide', (req, res) => {
     <a href="#api-credits">點數 API</a>
     <div class="sec">進階</div>
     <a href="#token-structure">JWT Token 結構</a>
+    <a href="#diag-headers">診斷 Headers</a>
+    <a href="#curl-examples">curl / Worker 範例</a>
     <a href="#live-test">線上測試</a>
 </nav>
 
@@ -757,6 +809,151 @@ init();</pre>
         <tr><td>exp</td><td>到期時間（iat + 7 天）</td><td><code>1710404800</code></td></tr>
     </tbody>
 </table>
+
+<h2 id="diag-headers">診斷 Response Headers</h2>
+<p>所有 <code>/api/*</code> S2S 端點回應都包含以下診斷 headers，方便排查問題：</p>
+<table class="param-table">
+    <thead><tr><th>Header</th><th>值</th><th>說明</th></tr></thead>
+    <tbody>
+        <tr><td>X-ECCAL-Route</td><td><code>/sso/verify-token</code></td><td>實際命中的路由路徑</td></tr>
+        <tr><td>X-ECCAL-Auth-Mode</td><td><code>bearer</code> / <code>cookie</code> / <code>none</code></td><td>本次請求的認證來源</td></tr>
+        <tr><td>X-ECCAL-Redirect-Bypassed</td><td><code>true</code> / <code>false</code> / <code>n/a</code></td><td>true = 某處想 redirect 但已被攔截並轉為 JSON；n/a = 此路徑允許 redirect（OAuth 流程）</td></tr>
+        <tr><td>X-ECCAL-Version</td><td><code>3.1</code></td><td>API middleware 版本</td></tr>
+    </tbody>
+</table>
+<div class="note ok">如果你看到 <code>X-ECCAL-Redirect-Bypassed: true</code>，表示某個內部 middleware 試圖 redirect 但被攔截了。請到 ECCAL 伺服器 log 搜尋 <code>[API-REDIRECT-BLOCKED]</code> 找到具體路由。</div>
+
+<h2 id="curl-examples">官方 curl / Cloudflare Worker 整合範例</h2>
+
+<h3>curl 範例 — 驗證 Token</h3>
+<pre><span class="c"># POST /api/sso/verify-token（無需 Origin header，S2S 直接呼叫）</span>
+curl -X POST https://eccal.thinkwithblack.com/api/sso/verify-token \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}'</span>
+
+<span class="c"># 成功回應（200）</span>
+{
+  <span class="k">"success"</span>: <span class="v">true</span>,
+  <span class="k">"valid"</span>: <span class="v">true</span>,
+  <span class="k">"user"</span>: {
+    <span class="k">"id"</span>: <span class="s">"abc123"</span>,
+    <span class="k">"email"</span>: <span class="s">"user@example.com"</span>,
+    <span class="k">"name"</span>: <span class="s">"王小明"</span>,
+    <span class="k">"membership"</span>: <span class="s">"pro"</span>,
+    <span class="k">"membershipExpires"</span>: <span class="s">"2026-10-15T00:00:00.000Z"</span>,
+    <span class="k">"credits"</span>: <span class="v">92</span>,
+    <span class="k">"profileImageUrl"</span>: <span class="s">"https://..."</span>
+  },
+  <span class="k">"expiresAt"</span>: <span class="s">"2026-03-14T10:30:00.000Z"</span>
+}
+
+<span class="c"># Token 過期（401）</span>
+{ <span class="k">"success"</span>: <span class="v">false</span>, <span class="k">"valid"</span>: <span class="v">false</span>, <span class="k">"error"</span>: <span class="s">"Token expired"</span>, <span class="k">"details"</span>: <span class="s">"jwt expired"</span> }
+
+<span class="c"># Token 格式錯誤（401）</span>
+{ <span class="k">"success"</span>: <span class="v">false</span>, <span class="k">"valid"</span>: <span class="v">false</span>, <span class="k">"error"</span>: <span class="s">"Invalid token"</span>, <span class="k">"details"</span>: <span class="s">"invalid token"</span> }</pre>
+
+<h3>curl 範例 — 查詢用戶資料</h3>
+<pre><span class="c"># GET /api/account-center/user/:id（可用 ID 或 Email）</span>
+curl https://eccal.thinkwithblack.com/api/account-center/user/abc123
+curl https://eccal.thinkwithblack.com/api/account-center/user/user%40example.com
+
+<span class="c"># 成功回應（200）</span>
+{
+  <span class="k">"success"</span>: <span class="v">true</span>,
+  <span class="k">"user"</span>: {
+    <span class="k">"id"</span>: <span class="s">"abc123"</span>, <span class="k">"email"</span>: <span class="s">"user@example.com"</span>,
+    <span class="k">"membership"</span>: <span class="s">"pro"</span>, <span class="k">"credits"</span>: <span class="v">92</span>, <span class="k">"createdAt"</span>: <span class="s">"2025-01-01T..."</span>
+  }
+}
+
+<span class="c"># 用戶不存在（404）</span>
+{ <span class="k">"success"</span>: <span class="v">false</span>, <span class="k">"error"</span>: <span class="s">"用戶未找到"</span>, <span class="k">"code"</span>: <span class="s">"USER_NOT_FOUND"</span> }</pre>
+
+<h3>curl 範例 — 扣除點數</h3>
+<pre><span class="c"># POST /api/account-center/credits/:userId/deduct</span>
+curl -X POST https://eccal.thinkwithblack.com/api/account-center/credits/abc123/deduct \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"amount":10,"reason":"AI 分析","service":"sbir"}'</span>
+
+<span class="c"># 成功（200）</span>
+{ <span class="k">"success"</span>: <span class="v">true</span>, <span class="k">"remainingCredits"</span>: <span class="v">82</span>, <span class="k">"deductedAmount"</span>: <span class="v">10</span>, <span class="k">"transactionId"</span>: <span class="s">"tx_xxx"</span> }
+
+<span class="c"># 點數不足（400）</span>
+{ <span class="k">"success"</span>: <span class="v">false</span>, <span class="k">"code"</span>: <span class="s">"INSUFFICIENT_CREDITS"</span>, <span class="k">"currentCredits"</span>: <span class="v">5</span>, <span class="k">"requestedAmount"</span>: <span class="v">10</span> }</pre>
+
+<h3>Cloudflare Worker 完整驗證範例</h3>
+<pre><span class="c">// Cloudflare Worker — 完整 SSO callback 處理 + verify-token</span>
+<span class="k">export default</span> {
+  <span class="k">async</span> fetch(request, env) {
+    <span class="k">const</span> url = <span class="k">new</span> URL(request.url);
+
+    <span class="c">// Step 1: 處理 SSO callback（?auth_success=true&token=...&user_id=...）</span>
+    <span class="k">if</span> (url.pathname === <span class="s">'/auth/callback'</span>) {
+      <span class="k">const</span> authSuccess = url.searchParams.get(<span class="s">'auth_success'</span>);
+      <span class="k">const</span> token = url.searchParams.get(<span class="s">'token'</span>);
+      <span class="k">const</span> authError = url.searchParams.get(<span class="s">'auth_error'</span>);
+
+      <span class="k">if</span> (authError === <span class="s">'true'</span>) {
+        <span class="k">const</span> msg = decodeURIComponent(url.searchParams.get(<span class="s">'error_message'</span>) || <span class="s">'登入失敗'</span>);
+        <span class="k">return</span> Response.redirect(<span class="m">\`https://sbir.thinkwithblack.com/?error=\${encodeURIComponent(msg)}\`</span>);
+      }
+      <span class="k">if</span> (authSuccess !== <span class="s">'true'</span> || !token) {
+        <span class="k">return new</span> Response(<span class="s">'Missing token'</span>, { status: 400 });
+      }
+
+      <span class="c">// Step 2: S2S 驗證 token（不帶 Origin，不受 CORS 限制）</span>
+      <span class="k">const</span> verifyRes = <span class="k">await</span> fetch(<span class="s">'https://eccal.thinkwithblack.com/api/sso/verify-token'</span>, {
+        method: <span class="s">'POST'</span>,
+        headers: { <span class="s">'Content-Type'</span>: <span class="s">'application/json'</span> },
+        body: JSON.stringify({ token })
+      });
+
+      <span class="c">// Step 3: 檢查診斷 headers</span>
+      <span class="k">const</span> redirectBypassed = verifyRes.headers.get(<span class="s">'x-eccal-redirect-bypassed'</span>);
+      <span class="k">if</span> (redirectBypassed === <span class="s">'true'</span>) {
+        <span class="k">return new</span> Response(<span class="s">'ECCAL redirect intercepted — contact admin'</span>, { status: 500 });
+      }
+      <span class="k">if</span> (!verifyRes.ok || verifyRes.headers.get(<span class="s">'content-type'</span>)?.includes(<span class="s">'text/html'</span>)) {
+        <span class="k">return</span> Response.redirect(<span class="s">'https://sbir.thinkwithblack.com/?error=verify_failed'</span>);
+      }
+
+      <span class="k">const</span> data = <span class="k">await</span> verifyRes.json();
+      <span class="k">if</span> (!data.valid) {
+        <span class="k">return</span> Response.redirect(<span class="s">'https://sbir.thinkwithblack.com/?error=invalid_token'</span>);
+      }
+
+      <span class="c">// Step 4: 建立 Worker session（存 KV，設 httpOnly cookie）</span>
+      <span class="k">const</span> sessionId = crypto.randomUUID();
+      <span class="k">await</span> env.KV.put(<span class="m">\`session:\${sessionId}\`</span>, JSON.stringify(data.user), { expirationTtl: 604800 });
+      <span class="k">return new</span> Response(<span class="k">null</span>, {
+        status: 302,
+        headers: {
+          Location: <span class="s">'https://sbir.thinkwithblack.com/dashboard'</span>,
+          <span class="s">'Set-Cookie'</span>: <span class="m">\`session=\${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800\`</span>
+        }
+      });
+    }
+
+    <span class="c">// Step 5: 保護需要登入的頁面（讀 session cookie 驗證）</span>
+    <span class="k">if</span> (url.pathname.startsWith(<span class="s">'/dashboard'</span>)) {
+      <span class="k">const</span> cookieHeader = request.headers.get(<span class="s">'cookie'</span>) || <span class="s">''</span>;
+      <span class="k">const</span> sessionId = cookieHeader.match(/session=([^;]+)/)?.[1];
+      <span class="k">if</span> (!sessionId) {
+        <span class="k">return</span> Response.redirect(
+          <span class="m">\`https://eccal.thinkwithblack.com/api/auth/google-sso?returnTo=\${encodeURIComponent('https://sbir.thinkwithblack.com/auth/callback')}&service=sbir\`</span>
+        );
+      }
+      <span class="k">const</span> user = <span class="k">await</span> env.KV.get(<span class="m">\`session:\${sessionId}\`</span>, { type: <span class="s">'json'</span> });
+      <span class="k">if</span> (!user) {
+        <span class="k">return</span> Response.redirect(<span class="s">'https://sbir.thinkwithblack.com/?error=session_expired'</span>);
+      }
+      <span class="c">// 繼續處理，user 物件已驗證</span>
+    }
+
+    <span class="k">return</span> <span class="k">new</span> Response(<span class="s">'Not found'</span>, { status: 404 });
+  }
+};</pre>
 
 <h2 id="live-test">線上測試工具</h2>
 <h3>測試 SSO 登入流程</h3>
@@ -2619,35 +2816,65 @@ app.post('/api/sso/verify-token', express.json(), async (req, res) => {
         iat: new Date(decoded.iat * 1000).toISOString(),
         exp: new Date(decoded.exp * 1000).toISOString()
       });
-      
-      res.json({ 
-        success: true,
-        valid: true, 
-        user: {
-          id: decoded.sub,
-          email: decoded.email,
-          name: decoded.name,
-          membership: decoded.membership,
-          credits: decoded.credits
+
+      // P1: 查詢 DB 取得即時的 membership 和 credits（避免 token 過期時資料不准）
+      let userData = {
+        id: String(decoded.sub),
+        email: String(decoded.email || ''),
+        name: String(decoded.name || ''),
+        membership: String(decoded.membership || 'free'),
+        membershipExpires: null as string | null,
+        credits: Number(decoded.credits ?? 0),
+        profileImageUrl: null as string | null
+      };
+
+      try {
+        const { db: dbInst } = await import('./db');
+        const { users: usersTable } = await import('@shared/schema');
+        const { eq: eqOp } = await import('drizzle-orm');
+        const rows = await dbInst.select().from(usersTable).where(eqOp(usersTable.id, decoded.sub)).limit(1);
+        if (rows.length > 0) {
+          const u = rows[0];
+          const isPro = u.membershipLevel === 'pro' && u.membershipExpires && new Date(u.membershipExpires) > new Date();
+          userData = {
+            id: String(u.id),
+            email: String(u.email || ''),
+            name: String(u.name || u.firstName || ''),
+            membership: isPro ? 'pro' : 'free',
+            membershipExpires: u.membershipExpires ? new Date(u.membershipExpires).toISOString() : null,
+            credits: Number(u.credits ?? 0),
+            profileImageUrl: u.profileImageUrl || null
+          };
         }
+      } catch (dbErr) {
+        console.warn('verify-token: DB lookup failed, using JWT payload data:', dbErr instanceof Error ? dbErr.message : dbErr);
+      }
+
+      // P1: 固定 response schema —— 必填欄位: success, valid, user(id/email/name/membership/membershipExpires/credits)
+      return res.json({
+        success: true,
+        valid: true,
+        user: userData,
+        expiresAt: new Date(decoded.exp * 1000).toISOString()
       });
     } catch (jwtError) {
       console.error('❌ JWT 驗證失敗:', {
         error: jwtError instanceof Error ? jwtError.message : 'Unknown error',
         tokenPrefix: token.substring(0, 30) + '...'
       });
-      
-      res.status(401).json({ 
-        success: false, 
-        valid: false, 
-        error: 'Invalid token',
+
+      const isExpired = jwtError instanceof Error && jwtError.message.includes('expired');
+      return res.status(401).json({
+        success: false,
+        valid: false,
+        error: isExpired ? 'Token expired' : 'Invalid token',
         details: jwtError instanceof Error ? jwtError.message : 'Unknown error'
       });
     }
     
   } catch (error) {
     console.error('Token 驗證錯誤:', error);
-    res.status(401).json({ 
+    return res.status(401).json({ 
       success: false, 
       valid: false, 
       error: 'Token verification failed' 
@@ -2831,10 +3058,6 @@ app.get('/favicon.svg', (req, res, next) => {
   res.setHeader('Content-Type', 'image/svg+xml');
   next();
 });
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser()); // 用於處理 JWT cookie
 
 // -------------------- 3. JWT 中間件 --------------------
 app.use(jwtMiddleware); // 在所有路由之前設置 JWT 中間件

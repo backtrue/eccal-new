@@ -64,6 +64,25 @@ Preferred communication style: Simple, everyday language.
 - **API Structure**: Versioned REST API endpoints with a `/api` prefix, service layer for business logic, and centralized error handling.
 - **Data Flow**: Client-side input validation, API communication via TanStack Query, and Drizzle ORM for database operations.
 
+## Recent Changes (2026-03-07)
+
+### ✅ S2S API 修復 — 解決 Cloudflare Worker "Too many redirects" 問題
+
+**P0 修復:**
+- 將 `express.json()`, `express.urlencoded()`, `cookieParser()` 移至 `server/index.ts` 最頂部（line 17-19），確保所有路由都能解析 request body
+- 新增 `/api/*` 全域 middleware（`API_REDIRECT_ALLOWED_PREFIXES`）：攔截任何 redirect 嘗試並轉為 JSON 錯誤，解決 S2S 呼叫的 "Too many redirects"
+- 例外路徑（保留 redirect 行為）：`/api/auth/*`, `/api/sso/login`, `/api/sso/callback`, `/api/sso/logout`
+
+**P1 修復:**
+- `POST /api/sso/verify-token`：固定 response schema，成功時永遠包含 `success, valid, user{id/email/name/membership/membershipExpires/credits/profileImageUrl}, expiresAt`；失敗時永遠包含 `success, valid, error, details`
+- verify-token 新增 DB 即時查詢（取代 JWT payload 中可能過期的 membership/credits 資料）
+- 所有 `/api/*` 路由新增診斷 response headers：`X-ECCAL-Route`, `X-ECCAL-Auth-Mode`, `X-ECCAL-Redirect-Bypassed`, `X-ECCAL-Version`
+
+**P2 文件:**
+- `/sso-guide` 新增「診斷 Response Headers」章節（說明 4 個 X-ECCAL-* headers 的含義）
+- `/sso-guide` 新增「官方 curl / Cloudflare Worker 整合範例」章節：包含 verify-token、account-center/user、credits deduct 的 curl 範例，以及 Cloudflare Worker 完整整合範例（sbir.thinkwithblack.com 實際路徑）
+- 移除 `server/index.ts` 末尾重複的全域 middleware 註冊（line 2870-2872）
+
 ## Recent Changes (2025-12-17)
 
 ### ✅ Facebook Marketing API 升級至 v24.0
