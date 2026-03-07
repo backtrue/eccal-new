@@ -54,7 +54,7 @@ app.use('/api', (req, res, next) => {
   res.setHeader('X-ECCAL-Route', path);
   res.setHeader('X-ECCAL-Auth-Mode', req.headers.authorization ? 'bearer' : req.cookies?.auth_token ? 'cookie' : 'none');
   res.setHeader('X-ECCAL-Redirect-Bypassed', redirectAllowed ? 'n/a' : 'false');
-  res.setHeader('X-ECCAL-Version', '3.1');
+  res.setHeader('X-ECCAL-Version', '3.2');
 
   next();
 });
@@ -2506,86 +2506,21 @@ app.get('/api/account-center/debug', (req, res) => {
 app.get('/api/account-center/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    
-    // 設置 CORS 標頭
-    const allowedOrigins = [
-      'https://eccal.thinkwithblack.com',
-      'https://audai.thinkwithblack.com',
-      'https://quote.thinkwithblack.com',
-      'https://fabe.thinkwithblack.com',
-      'https://galine.thinkwithblack.com',
-      'https://serp.thinkwithblack.com',
-      'https://sub3.thinkwithblack.com',
-      'https://sub4.thinkwithblack.com',
-      'https://sub5.thinkwithblack.com',
-      'https://member.thinkwithblack.com',
-      'https://andromeda.thinkwithblack.com',
-      'https://sbir.thinkwithblack.com',
-      'https://sbir-api.thinkwithblack.com',
-      'http://localhost:3000',
-      'http://localhost:5000'
-    ];
-    
-    const origin = req.headers.origin;
-    if (origin && allowedOrigins.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin);
-    }
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    
-    // 使用動態 import 載入資料庫相關模組
-    const { db } = await import('./db');
-    const { users, userCredits } = await import('@shared/schema');
-    const { eq } = await import('drizzle-orm');
-    
-    // 查詢用戶 - 支援 email 或 userId
-    let user;
-    if (userId.includes('@')) {
-      // 如果是 email 格式，通過 email 查詢
-      user = await db.select()
-        .from(users)
-        .where(eq(users.email, userId))
-        .limit(1);
-    } else {
-      // 否則通過 userId 查詢
-      user = await db.select()
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-    }
-    
-    if (user.length === 0) {
+
+    // 共用 getAccountSnapshot — membership 判斷含到期驗證，與 verify-token 完全一致
+    const { getAccountSnapshot } = await import('./accountSnapshotService');
+    const account = await getAccountSnapshot(userId);
+
+    if (!account) {
       return res.status(404).json({
         success: false,
         error: '用戶未找到',
         code: 'USER_NOT_FOUND'
       });
     }
-    
-    const userData = user[0];
-    
-    // 查詢點數
-    const credits = await db.select()
-      .from(userCredits)
-      .where(eq(userCredits.userId, userData.id))
-      .limit(1);
-    const creditsData = credits.length > 0 ? credits[0] : null;
-    
-    res.json({
-      success: true,
-      user: {
-        id: userData.id,
-        email: userData.email,
-        name: userData.name || userData.email,
-        membership: userData.membershipLevel || 'free',
-        membershipExpires: userData.membershipExpires,
-        credits: userData.credits || 0,
-        profileImageUrl: userData.profileImageUrl,
-        createdAt: userData.createdAt
-      }
-    });
-    
+
+    res.json({ success: true, user: account });
+
   } catch (error) {
     console.error('用戶查詢錯誤:', error);
     res.status(500).json({
