@@ -614,106 +614,236 @@ init();</pre>
     <li><div class="fc"><h4>Worker JWT Middleware 做即時授權</h4><p>每次 API 請求進來，Worker 先 decode JWT 做基本格式與過期檢查，再呼叫 ECCAL <code>verify-token</code> 取即時 membership / credits。</p></div></li>
 </ul>
 
-<h2 id="worker-login">Worker 優先 — 登入 Relay（Hono）</h2>
+<h2 id="worker-login">Worker 優先 — 登入 Relay（Hono TypeScript）</h2>
 <pre><span class="c">// routes/auth.ts — Worker relay 啟動 ECCAL SSO</span>
 <span class="k">import</span> { Hono } <span class="k">from</span> <span class="s">'hono'</span>;
 
-<span class="k">const</span> auth = <span class="k">new</span> Hono();
+<span class="k">type</span> Env = {
+  ECCAL_BASE_URL: <span class="s">string</span>;
+  PUBLIC_APP_URL?: <span class="s">string</span>;
+  ECCAL_SSO_ORIGIN?: <span class="s">string</span>;
+};
 
+<span class="k">const</span> auth = <span class="k">new</span> Hono&lt;{ Bindings: Env }&gt;();
+
+<span class="c">// Helper: 取得子服務的公開 URL（優先用環境變數，fallback 到 request host）</span>
+<span class="k">function</span> getPublicAppUrl(env: Env, requestUrl: <span class="s">string</span>): <span class="s">string</span> {
+  <span class="k">if</span> (env.PUBLIC_APP_URL) {
+    <span class="k">return</span> env.PUBLIC_APP_URL.replace(/\/$/, <span class="s">''</span>);
+  }
+  <span class="k">const</span> url = <span class="k">new</span> URL(requestUrl);
+  <span class="k">return</span> <span class="m">\`\${url.protocol}//\${url.host}\`</span>;
+}
+
+<span class="c">// Helper: 取得共享 cookie domain（用於 .thinkwithblack.com 等多子域共享）</span>
+<span class="k">function</span> getSharedCookieDomain(publicAppUrl: <span class="s">string</span>): <span class="s">string</span> | <span class="k">null</span> {
+  <span class="k">const</span> hostname = <span class="k">new</span> URL(publicAppUrl).hostname.toLowerCase();
+  <span class="k">if</span> (hostname.endsWith(<span class="s">'.thinkwithblack.com'</span>)) <span class="k">return</span> <span class="s">'thinkwithblack.com'</span>;
+  <span class="k">if</span> (hostname.endsWith(<span class="s">'.example.com'</span>) || hostname === <span class="s">'example.com'</span>) <span class="k">return</span> <span class="s">'example.com'</span>;
+  <span class="k">return null</span>;
+}
+
+<span class="c">// Helper: 組出 Set-Cookie header 字串</span>
+<span class="k">function</span> buildAuthCookie(token: <span class="s">string</span>, publicAppUrl: <span class="s">string</span>): <span class="s">string</span> {
+  <span class="k">const</span> parts = [<span class="m">\`app-jwt-token=\${token}\`</span>, <span class="s">'Path=/'</span>, <span class="s">'Secure'</span>, <span class="s">'HttpOnly'</span>, <span class="s">'SameSite=Lax'</span>];
+  <span class="k">const</span> domain = getSharedCookieDomain(publicAppUrl);
+  <span class="k">if</span> (domain) parts.push(<span class="m">\`Domain=\${domain}\`</span>);
+  <span class="k">return</span> parts.join(<span class="s">'; '</span>);
+}
+
+<span class="c">// GET /api/auth/login — 伺服器端 relay 啟動 ECCAL SSO（前端不要直連 ECCAL）</span>
 auth.get(<span class="s">'/login'</span>, <span class="k">async</span> (c) => {
-  <span class="k">const</span> eccalBase = c.env.ECCAL_BASE_URL;
-  <span class="k">const</span> appUrl = c.env.PUBLIC_APP_URL;
-  <span class="k">const</span> returnTo = <span class="m">\`\${appUrl}/auth/callback\`</span>;
+  <span class="k">const</span> eccalBaseUrl = c.env.ECCAL_BASE_URL;
+  <span class="k">const</span> publicAppUrl = getPublicAppUrl(c.env, c.req.url);
+  <span class="k">const</span> returnTo = <span class="m">\`\${publicAppUrl}/auth/callback\`</span>;
+  <span class="k">const</span> eccalSsoOrigin = c.env.ECCAL_SSO_ORIGIN || <span class="s">'https://audai.thinkwithblack.com'</span>;
 
   <span class="k">const</span> params = <span class="k">new</span> URLSearchParams({ service: <span class="s">'your-service'</span>, returnTo });
-  <span class="k">const</span> eccalUrl = <span class="m">\`\${eccalBase}/api/sso/login?\${params}\`</span>;
+  <span class="k">const</span> bootstrapUrl = <span class="m">\`\${eccalBaseUrl}/api/sso/login?\${params.toString()}\`</span>;
 
-  <span class="c">// redirect: 'manual' — 取得 ECCAL 的 302 location，再 relay 給瀏覽器</span>
-  <span class="k">const</span> resp = <span class="k">await</span> fetch(eccalUrl, {
+  <span class="c">// redirect: 'manual' — 取得 ECCAL 的 302，再 relay 給瀏覽器，不讓 Worker 自動 follow</span>
+  <span class="k">const</span> response = <span class="k">await</span> fetch(bootstrapUrl, {
     method: <span class="s">'GET'</span>,
-    headers: { Origin: c.env.ECCAL_SSO_ORIGIN || <span class="s">'https://audai.thinkwithblack.com'</span> },
+    headers: { Origin: eccalSsoOrigin },
     redirect: <span class="s">'manual'</span>
   });
 
-  <span class="k">const</span> location = resp.headers.get(<span class="s">'location'</span>);
-  <span class="k">if</span> (!location || resp.status < 300 || resp.status >= 400) {
-    <span class="k">return</span> c.json({ error: <span class="s">'Failed to init login'</span> }, 502);
+  <span class="k">const</span> location = response.headers.get(<span class="s">'location'</span>);
+  <span class="k">if</span> (!location || response.status < 300 || response.status >= 400) {
+    <span class="k">const</span> errorText = <span class="k">await</span> response.text();
+    console.error(<span class="s">'[auth] ECCAL login bootstrap failed'</span>, { status: response.status, location, errorText });
+    <span class="k">return</span> c.json({ error: <span class="s">'Failed to initialize login'</span> }, 502);
   }
-  <span class="k">return</span> c.redirect(<span class="k">new</span> URL(location, eccalBase).toString());
+  <span class="k">return</span> c.redirect(<span class="k">new</span> URL(location, eccalBaseUrl).toString());
 });
 
-<span class="c">// /auth/callback — 前端 HTML（oauth-callback.html）</span>
-<span class="c">// 讀取 ?token=... 存 localStorage，導回首頁</span>
-
+<span class="c">// GET /api/auth/callback — 接 ECCAL 回跳的 ?token=...，寫入 cookie，轉回前端 callback 頁</span>
 auth.get(<span class="s">'/callback'</span>, <span class="k">async</span> (c) => {
   <span class="k">const</span> token = c.req.query(<span class="s">'token'</span>);
-  <span class="k">const</span> appUrl = c.env.PUBLIC_APP_URL;
-  <span class="k">if</span> (!token) <span class="k">return</span> c.json({ error: <span class="s">'No token'</span> }, 400);
-  <span class="c">// 設定 cookie 並轉回前端 callback 頁（前端會存 localStorage 再導走）</span>
-  c.header(<span class="s">'Set-Cookie'</span>, <span class="m">\`app-jwt-token=\${token}; Path=/; Secure; HttpOnly; SameSite=Lax\`</span>);
-  <span class="k">return</span> c.redirect(<span class="m">\`\${appUrl}/auth/callback?token=\${encodeURIComponent(token)}\`</span>);
+  <span class="k">const</span> publicAppUrl = getPublicAppUrl(c.env, c.req.url);
+  <span class="k">if</span> (!token) <span class="k">return</span> c.json({ error: <span class="s">'No token provided'</span> }, 400);
+
+  c.header(<span class="s">'Set-Cookie'</span>, buildAuthCookie(token, publicAppUrl));
+  <span class="k">return</span> c.redirect(<span class="m">\`\${publicAppUrl}/auth/callback?token=\${encodeURIComponent(token)}\`</span>);
 });</pre>
 
-<h2 id="worker-jwt">Worker 優先 — JWT Middleware（不依賴 Node.js Buffer）</h2>
-<pre><span class="c">// middleware/auth.ts — Cloudflare Workers 環境（用 atob / TextDecoder，非 Node.js Buffer）</span>
-<span class="k">function</span> decodeJWT(token) {
+<h2 id="worker-jwt">Worker 優先 — JWT Middleware（TypeScript，不依賴 Node.js Buffer）</h2>
+<pre><span class="c">// middleware/auth.ts — Cloudflare Workers 環境</span>
+<span class="k">import</span> { Context, Next } <span class="k">from</span> <span class="s">'hono'</span>;
+
+<span class="k">type</span> JWTUser = {
+  id: <span class="s">string</span>;
+  email: <span class="s">string</span>;
+  name: <span class="s">string</span>;
+  membership?: <span class="s">string</span>;
+  membershipExpires?: <span class="s">string</span> | <span class="k">null</span>;
+  credits?: <span class="s">number</span>;
+  profileImageUrl?: <span class="s">string</span> | <span class="k">null</span>;
+};
+
+<span class="c">// Workers 沒有 Node.js Buffer，用 atob + TextDecoder 做 base64url decode</span>
+<span class="k">function</span> base64UrlToBytes(input: <span class="s">string</span>): Uint8Array {
+  <span class="k">const</span> normalized = input.replace(/-/g, <span class="s">'+'</span>).replace(/_/g, <span class="s">'/'</span>);
+  <span class="k">const</span> padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, <span class="s">'='</span>);
+  <span class="k">return</span> Uint8Array.from(atob(padded), (ch) => ch.charCodeAt(0));
+}
+
+<span class="k">function</span> decodeBase64UrlUtf8(input: <span class="s">string</span>): <span class="s">string</span> {
+  <span class="k">return new</span> TextDecoder().decode(base64UrlToBytes(input));
+}
+
+<span class="k">function</span> decodeJWT(token: <span class="s">string</span>): Record&lt;<span class="s">string</span>, unknown&gt; | <span class="k">null</span> {
   <span class="k">try</span> {
-    <span class="k">const</span> [, payloadB64] = token.split(<span class="s">'.'</span>);
-    <span class="k">const</span> normalized = payloadB64.replace(/-/g, <span class="s">'+'</span>).replace(/_/g, <span class="s">'/'</span>);
-    <span class="k">const</span> padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, <span class="s">'='</span>);
-    <span class="k">return</span> JSON.parse(<span class="k">new</span> TextDecoder().decode(
-      Uint8Array.from(atob(padded), c => c.charCodeAt(0))
-    ));
-  } <span class="k">catch</span> { <span class="k">return null</span>; }
+    <span class="k">const</span> parts = token.split(<span class="s">'.'</span>);
+    <span class="k">if</span> (parts.length !== 3) <span class="k">return null</span>;
+    <span class="k">return</span> JSON.parse(decodeBase64UrlUtf8(parts[1])) <span class="k">as</span> Record&lt;<span class="s">string</span>, unknown&gt;;
+  } <span class="k">catch</span> (error) {
+    console.error(<span class="s">'[auth] decodeJWT failed'</span>, error);
+    <span class="k">return null</span>;
+  }
 }
 
-<span class="k">async function</span> verifyWithEccal(token, eccalBase) {
-  <span class="k">const</span> resp = <span class="k">await</span> fetch(<span class="m">\`\${eccalBase}/api/sso/verify-token\`</span>, {
-    method: <span class="s">'POST'</span>,
-    headers: { <span class="s">'Content-Type'</span>: <span class="s">'application/json'</span> },
-    body: JSON.stringify({ token })
-  });
-  <span class="k">if</span> (!resp.ok) <span class="k">return null</span>;
-  <span class="k">const</span> data = <span class="k">await</span> resp.json();
-  <span class="k">return</span> (data.success && data.valid) ? data.user : <span class="k">null</span>;
+<span class="k">function</span> extractBearerToken(c: Context): <span class="s">string</span> | <span class="k">null</span> {
+  <span class="k">const</span> value = c.req.header(<span class="s">'Authorization'</span>);
+  <span class="k">if</span> (!value || !value.startsWith(<span class="s">'Bearer '</span>)) <span class="k">return null</span>;
+  <span class="k">return</span> value.slice(<span class="s">'Bearer '</span>.length);
 }
 
-<span class="k">export async function</span> jwtAuth(c, next) {
-  <span class="k">const</span> authHeader = c.req.header(<span class="s">'Authorization'</span>) || <span class="s">''</span>;
-  <span class="k">const</span> token = authHeader.startsWith(<span class="s">'Bearer '</span>) ? authHeader.slice(7) : <span class="k">null</span>;
-  <span class="k">if</span> (!token) <span class="k">return</span> c.json({ error: <span class="s">'Unauthorized'</span> }, 401);
+<span class="k">async function</span> verifyTokenWithEccal(token: <span class="s">string</span>, eccalBaseUrl: <span class="s">string</span>): Promise&lt;JWTUser | <span class="k">null</span>&gt; {
+  <span class="k">try</span> {
+    <span class="k">const</span> response = <span class="k">await</span> fetch(<span class="m">\`\${eccalBaseUrl}/api/sso/verify-token\`</span>, {
+      method: <span class="s">'POST'</span>,
+      headers: { <span class="s">'Content-Type'</span>: <span class="s">'application/json'</span> },
+      body: JSON.stringify({ token })
+    });
 
-  <span class="c">// Step 1: 先做本地 decode + exp 快速檢查（省一次 S2S）</span>
+    <span class="k">if</span> (!response.ok) {
+      console.warn(<span class="s">'[auth] ECCAL verify-token failed'</span>, response.status);
+      <span class="k">return null</span>;
+    }
+
+    <span class="k">const</span> data = <span class="k">await</span> response.json() <span class="k">as any</span>;
+    <span class="k">if</span> (!data.success || !data.user || data.valid === <span class="k">false</span>) <span class="k">return null</span>;
+
+    <span class="k">return</span> {
+      id: data.user.id,
+      email: data.user.email,
+      name: data.user.name,
+      membership: data.user.membership || <span class="s">'free'</span>,
+      membershipExpires: data.user.membershipExpires || <span class="k">null</span>,
+      credits: data.user.credits || 0,
+      profileImageUrl: data.user.profileImageUrl || <span class="k">null</span>,
+    };
+  } <span class="k">catch</span> (error) {
+    console.error(<span class="s">'[auth] ECCAL verify-token error'</span>, error);
+    <span class="k">return null</span>;
+  }
+}
+
+<span class="k">export async function</span> jwtAuth(c: Context, next: Next) {
+  <span class="k">const</span> token = extractBearerToken(c);
+  <span class="k">if</span> (!token) <span class="k">return</span> c.json({ error: <span class="s">'Unauthorized - No token provided'</span> }, 401);
+
+  <span class="c">// Step 1: 本地 decode + exp 快速檢查（省去一次 S2S，快速拒絕明顯過期的 token）</span>
   <span class="k">const</span> payload = decodeJWT(token);
-  <span class="k">if</span> (!payload) <span class="k">return</span> c.json({ error: <span class="s">'Invalid token format'</span> }, 401);
-  <span class="k">if</span> (payload.exp < Math.floor(Date.now() / 1000)) <span class="k">return</span> c.json({ error: <span class="s">'Token expired'</span> }, 401);
+  <span class="k">if</span> (!payload) <span class="k">return</span> c.json({ error: <span class="s">'Unauthorized - Invalid token format'</span> }, 401);
+  <span class="k">if</span> (<span class="k">typeof</span> payload.exp === <span class="s">'number'</span> && payload.exp < Math.floor(Date.now() / 1000)) {
+    <span class="k">return</span> c.json({ error: <span class="s">'Unauthorized - Token expired'</span> }, 401);
+  }
 
-  <span class="c">// Step 2: 呼叫 ECCAL verify-token 取即時 membership / credits</span>
-  <span class="k">const</span> user = <span class="k">await</span> verifyWithEccal(token, c.env.ECCAL_BASE_URL);
-  <span class="k">if</span> (!user) <span class="k">return</span> c.json({ error: <span class="s">'Token verification failed'</span> }, 401);
+  <span class="c">// Step 2: 呼叫 ECCAL verify-token 取即時 membership / credits（DB 即時查詢，非 JWT 快照）</span>
+  <span class="k">const</span> eccalBaseUrl = (c.env <span class="k">as</span> { ECCAL_BASE_URL?: <span class="s">string</span> }).ECCAL_BASE_URL
+    || <span class="s">'https://eccal.thinkwithblack.com'</span>;
+  <span class="k">const</span> user = <span class="k">await</span> verifyTokenWithEccal(token, eccalBaseUrl);
+  <span class="k">if</span> (!user) <span class="k">return</span> c.json({ error: <span class="s">'Unauthorized - Token verification failed'</span> }, 401);
 
   c.set(<span class="s">'user'</span>, user);
   <span class="k">await</span> next();
 }</pre>
 
-<h2 id="worker-template">Worker 優先 — 前端最小 callback 頁</h2>
-<pre><span class="c">&lt;!-- frontend/public/oauth-callback.html --&gt;</span>
-<span class="k">&lt;script&gt;</span>
-(function() {
-  var params = <span class="k">new</span> URLSearchParams(window.location.search);
-  var token = params.get(<span class="s">'token'</span>);
-  <span class="k">if</span> (token) {
-    localStorage.setItem(<span class="s">'eccal_auth_token'</span>, token);
-  }
-  window.location.replace(<span class="s">'/'</span>);  <span class="c">// 導回首頁（避免 token 殘留在 URL history）</span>
-})();
-<span class="k">&lt;/script&gt;</span></pre>
+<h2 id="worker-template">Worker 優先 — 前端 callback 頁 + API client + /api/auth/user</h2>
 
-<pre><span class="c">// frontend — API client 自動帶 Bearer token（axios 範例）</span>
+<h3>前端 callback 頁（oauth-callback.html）</h3>
+<pre><span class="c">&lt;!-- frontend/public/oauth-callback.html --&gt;</span>
+&lt;!doctype html&gt;
+&lt;html lang=<span class="s">"zh-Hant"</span>&gt;
+&lt;head&gt;
+  &lt;meta charset=<span class="s">"UTF-8"</span> /&gt;
+  &lt;meta name=<span class="s">"viewport"</span> content=<span class="s">"width=device-width, initial-scale=1.0"</span> /&gt;
+  &lt;title&gt;登入中&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  <span class="k">&lt;script&gt;</span>
+  (function() {
+    var params = <span class="k">new</span> URLSearchParams(window.location.search);
+    var token = params.get(<span class="s">'token'</span>);
+    <span class="k">if</span> (token) {
+      localStorage.setItem(<span class="s">'eccal_auth_token'</span>, token);
+    }
+    window.location.replace(<span class="s">'/'</span>);  <span class="c">// 導回首頁（replace 避免 token 殘留在瀏覽器 history）</span>
+  })();
+  <span class="k">&lt;/script&gt;</span>
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+
+<h3>前端 API client（axios interceptor 自動帶 Bearer token）</h3>
+<pre><span class="c">// frontend/src-shared/api/client.ts</span>
+<span class="k">import</span> axios <span class="k">from</span> <span class="s">'axios'</span>;
+
+<span class="k">const</span> apiClient = axios.create({
+  baseURL: <span class="k">import</span>.meta.env.VITE_API_BASE_URL || <span class="s">'https://api.example.com'</span>,
+  withCredentials: <span class="k">true</span>,
+});
+
 apiClient.interceptors.request.use((config) => {
   <span class="k">const</span> token = localStorage.getItem(<span class="s">'eccal_auth_token'</span>);
   <span class="k">if</span> (token) config.headers.Authorization = <span class="m">\`Bearer \${token}\`</span>;
   <span class="k">return</span> config;
+});
+
+<span class="k">export default</span> apiClient;</pre>
+
+<h3>GET /api/auth/user — 回傳已驗證的登入用戶資料</h3>
+<pre><span class="c">// routes/auth.ts — 在 jwtAuth middleware 後掛載</span>
+auth.get(<span class="s">'/user'</span>, jwtAuth, <span class="k">async</span> (c) => {
+  <span class="k">const</span> user = c.get(<span class="s">'user'</span>) <span class="k">as</span> JWTUser | undefined;
+  <span class="k">if</span> (!user) <span class="k">return</span> c.json({ error: <span class="s">'Unauthorized'</span> }, 401);
+
+  <span class="k">return</span> c.json({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    membership: user.membership || <span class="s">'free'</span>,
+    membershipExpires: user.membershipExpires || <span class="k">null</span>,
+    credits: user.credits || 0,
+    profileImageUrl: user.profileImageUrl || <span class="k">null</span>,
+  });
+});
+
+<span class="c">// 登出：清除 cookie（前端也要清 localStorage 的 eccal_auth_token）</span>
+auth.post(<span class="s">'/logout'</span>, <span class="k">async</span> (c) => {
+  c.header(<span class="s">'Set-Cookie'</span>, <span class="s">'app-jwt-token=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0'</span>);
+  <span class="k">return</span> c.json({ success: <span class="k">true</span> });
 });</pre>
 
 <h2 id="worker-env">Worker 優先 — 環境變數（wrangler.toml）</h2>
@@ -1080,11 +1210,20 @@ curl -i -sS "https://eccal.thinkwithblack.com/api/account-center/user/$USER_ID"<
     <span class="k">return new</span> Response(JSON.stringify({
       verify: {
         status: vr.status,
-        location: vr.headers.get(<span class="s">'location'</span>),       <span class="c">// 必須 null</span>
-        version: vr.headers.get(<span class="s">'x-eccal-version'</span>),  <span class="c">// 必須 3.2</span>
+        location: vr.headers.get(<span class="s">'location'</span>),                      <span class="c">// 必須 null</span>
+        route: vr.headers.get(<span class="s">'x-eccal-route'</span>),
+        version: vr.headers.get(<span class="s">'x-eccal-version'</span>),               <span class="c">// 必須 3.2</span>
+        redirectBypassed: vr.headers.get(<span class="s">'x-eccal-redirect-bypassed'</span>),  <span class="c">// 必須 false</span>
         body: vb
       },
-      user: { status: ur.status, location: ur.headers.get(<span class="s">'location'</span>), body: ub },
+      user: {
+        status: ur.status,
+        location: ur.headers.get(<span class="s">'location'</span>),                      <span class="c">// 必須 null</span>
+        route: ur.headers.get(<span class="s">'x-eccal-route'</span>),
+        version: ur.headers.get(<span class="s">'x-eccal-version'</span>),
+        redirectBypassed: ur.headers.get(<span class="s">'x-eccal-redirect-bypassed'</span>),
+        body: ub
+      },
       checks: {
         membershipMatch: vb?.user?.membership === ub?.user?.membership,  <span class="c">// 必須 true</span>
         creditsMatch: vb?.user?.credits === ub?.user?.credits             <span class="c">// 必須 true</span>
