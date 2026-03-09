@@ -15,31 +15,35 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// -------------------- 1.06. /api/* 永遠回 JSON，禁止 redirect --------------------
-// P0 修復：防止任何 redirect 中間件或邏輯影響 S2S API 端點
-// Cloudflare Worker S2S 呼叫如遇到 redirect 會觸發 "Too many redirects" 錯誤
-// 例外路徑（OAuth/SSO 瀏覽器流程需要 redirect）：
-//   /api/auth/*  - Google OAuth 起始 & callback（瀏覽器流程）
-//   /api/sso/login  - 啟動 SSO 登入（瀏覽器流程）
-//   /api/sso/callback - SSO callback（瀏覽器流程）
-//   /api/sso/logout - 登出後 redirect 回子服務
-const API_REDIRECT_ALLOWED_PREFIXES = [
-  '/api/auth/',
-  '/api/sso/login',
-  '/api/sso/callback',
-  '/api/sso/logout',
+// -------------------- 1.06. S2S API JSON-only redirect blocker --------------------
+// 設計原則（Worker-first 架構）：
+//   只對純 S2S JSON 端點攔截 redirect，瀏覽器 OAuth 流程不受影響。
+//
+// 重要：此 middleware 掛在 app.use('/api', ...) 下，req.path 不含 /api/ 前綴。
+//   e.g.  GET /api/sso/verify-token      → req.path = /sso/verify-token     ← 擋
+//   e.g.  GET /api/auth/google/callback  → req.path = /auth/google/callback  ← 放行
+//
+// 只有以下純 S2S 路徑強制 JSON-only（不得 redirect）：
+const S2S_JSON_ONLY_PREFIXES = [
+  '/sso/verify-token',
+  '/account-center/user',
+  '/account-center/credits',
 ];
+
+function isS2SJsonOnlyPath(pathname: string): boolean {
+  return S2S_JSON_ONLY_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'));
+}
 
 app.use('/api', (req, res, next) => {
   const path = req.path;
-  const redirectAllowed = API_REDIRECT_ALLOWED_PREFIXES.some(p => path === p || path.startsWith(p));
+  const shouldBlock = isS2SJsonOnlyPath(path);
 
-  if (!redirectAllowed) {
+  if (shouldBlock) {
     // 攔截 res.redirect，將其轉換為 JSON 錯誤，而非 301/302/307/308
     (res as any).redirect = function(statusOrUrl: any, url?: string) {
       const target = url || (typeof statusOrUrl === 'string' ? statusOrUrl : 'unknown');
       const status = typeof statusOrUrl === 'number' ? statusOrUrl : 302;
-      console.warn(`[API-REDIRECT-BLOCKED] ${req.method} ${path} attempted redirect ${status} → ${target}`);
+      console.warn(`[API-REDIRECT-BLOCKED] ${req.method} /api${path} attempted redirect ${status} → ${target}`);
       res.setHeader('X-ECCAL-Redirect-Bypassed', 'true');
       return res.status(401).json({
         success: false,
@@ -51,9 +55,9 @@ app.use('/api', (req, res, next) => {
   }
 
   // 診斷 headers：方便 Cloudflare Worker / curl 快速排查
-  res.setHeader('X-ECCAL-Route', path);
+  res.setHeader('X-ECCAL-Route', `/api${path}`);
   res.setHeader('X-ECCAL-Auth-Mode', req.headers.authorization ? 'bearer' : req.cookies?.auth_token ? 'cookie' : 'none');
-  res.setHeader('X-ECCAL-Redirect-Bypassed', redirectAllowed ? 'n/a' : 'false');
+  res.setHeader('X-ECCAL-Redirect-Bypassed', shouldBlock ? 'false' : 'n/a');
   res.setHeader('X-ECCAL-Version', '3.2');
 
   next();
@@ -1275,7 +1279,13 @@ main().catch(e => { console.error(e); process.exit(99); });</pre>
     </tbody>
 </table>
 
-<h3>問題二：Cloudflare Worker 呼叫 verify-token 出現 "Too many redirects"</h3>
+<h3>問題二：登入後 callback 回傳 <code>API_REDIRECT_BLOCKED</code> 而非 302</h3>
+<div class="note danger">
+    <strong>根本原因（v3.2 以前）：</strong>舊版 redirect blocker 的允許清單使用 <code>/api/auth/</code> 前綴，但 middleware 掛在 <code>app.use('/api', ...)</code> 下，<code>req.path</code> 實際上是 <code>/auth/google/callback</code>（不含 <code>/api/</code>），導致清單永遠不匹配，所有 OAuth callback 被誤擋。
+</div>
+<p><strong>v3.2 修復：</strong>邏輯改為「只 block 已知 S2S 路徑」（白名單思維 → 黑名單思維）。只有 <code>/sso/verify-token</code>、<code>/account-center/user/*</code>、<code>/account-center/credits/*</code> 三條路徑才強制 JSON-only；其餘所有路徑（含 <code>/auth/google</code>、<code>/auth/google/callback</code>）都允許正常 redirect。確認 <code>x-eccal-version: 3.2</code> 即為修復後版本。</p>
+
+<h3>問題三：Cloudflare Worker 呼叫 verify-token 出現 "Too many redirects"</h3>
 <div class="note warn">
     <strong>必要確認：</strong>Worker 的 fetch URL 是否使用 <code>https://</code>（不是 http://）？使用 http 會被 Google 基礎設施重導向至 https，可能觸發 redirect loop。
 </div>
