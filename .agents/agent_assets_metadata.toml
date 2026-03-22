@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "Actxs4fCtrLusT0TY8pnk"
+uri = "file://fabe-eccal-sync-guide.md"
+type = "text"
+title = "Fabe × ECCAL 購買紀錄同步整合指南"
