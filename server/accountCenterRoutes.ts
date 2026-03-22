@@ -61,6 +61,7 @@ const ALLOWED_ORIGINS = [
   'https://andromeda.thinkwithblack.com',
   'https://sbir.thinkwithblack.com',
   'https://sbir-api.thinkwithblack.com',
+  'https://aeogeo.thinkwithblack.com',
   'http://localhost:3000', // 開發環境
   'http://localhost:5000', // 開發環境
 ];
