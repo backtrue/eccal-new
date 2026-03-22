@@ -29,7 +29,8 @@ function requireFabeApiKey(req: express.Request, res: express.Response, next: ex
 }
 
 // 查找或建立用戶，回傳用戶資料
-async function findOrCreateUser(email: string, expires_at?: string) {
+// 注意：Fabe 購買不影響 ECCAL 的 membership_level，新用戶一律以 free 建立
+async function findOrCreateUser(email: string) {
   const existing = await db.select().from(users).where(eq(users.email, email));
   if (existing.length > 0) return existing[0];
   const [newUser] = await db
@@ -37,44 +38,10 @@ async function findOrCreateUser(email: string, expires_at?: string) {
     .values({
       email,
       service: 'fabe',
-      membershipLevel: 'pro',
-      membershipExpires: expires_at ? new Date(expires_at) : null,
+      membershipLevel: 'free',
     })
     .returning();
   return newUser;
-}
-
-// 「只升不降」membership 更新邏輯：
-// - founders 不動（終身最高）
-// - pro 只在新到期日更晚時才更新
-// - free → 升 pro
-// 並且只新增 fabe_membership_expires 欄位紀錄 Fabe 來源到期日
-async function upgradeMembershipIfNeeded(userId: string, fabeExpiresAt: string | undefined) {
-  const [user] = await db.select().from(users).where(eq(users.id, userId));
-  if (!user) return;
-
-  // founders 永遠不動
-  if (user.membershipLevel === 'founders') return;
-
-  const newExpires = fabeExpiresAt ? new Date(fabeExpiresAt) : null;
-  const currentExpires = user.membershipExpires ? new Date(user.membershipExpires) : null;
-
-  // 決定要不要更新到期日：只有新的比現有的更晚（或現有沒有到期日限制時），才更新
-  const shouldUpdateExpiry =
-    newExpires === null || // lifetime from fabe
-    currentExpires === null || // currently no expiry (shouldn't happen for pro but just in case)
-    newExpires > currentExpires; // fabe expiry is later
-
-  if (user.membershipLevel !== 'pro' || shouldUpdateExpiry) {
-    await db
-      .update(users)
-      .set({
-        membershipLevel: 'pro',
-        ...(shouldUpdateExpiry ? { membershipExpires: newExpires } : {}),
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, userId));
-  }
 }
 
 // 寫入 fabe_purchases，跳過重複（依 fabe_order_id）
@@ -134,10 +101,7 @@ router.post('/notify-subscription', requireFabeApiKey, async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: email, subscription_type' });
     }
 
-    const userData = await findOrCreateUser(email, expires_at);
-
-    // 「只升不降」— founders 不動，pro 只在到期日更晚時才更新
-    await upgradeMembershipIfNeeded(userData.id, expires_at);
+    const userData = await findOrCreateUser(email);
 
     const productId = resolveProductId(subscription_type);
     const { record, skipped } = await upsertFabePurchase({
@@ -159,18 +123,13 @@ router.post('/notify-subscription', requireFabeApiKey, async (req, res) => {
       },
     });
 
-    // 重新查一次，確保回傳的是 DB 實際狀態（不是 Fabe 傳入的值）
-    const [refreshed] = await db.select().from(users).where(eq(users.id, userData.id));
-
     return res.json({
       success: true,
       skipped,
       message: skipped ? 'Already synced' : 'Subscription synced successfully',
       user: {
-        id: refreshed.id,
-        email: refreshed.email,
-        membership_level: refreshed.membershipLevel,
-        membership_expires: refreshed.membershipExpires ?? null,
+        id: userData.id,
+        email: userData.email,
       },
     });
   } catch (error) {
@@ -217,10 +176,7 @@ router.post('/import-purchases', requireFabeApiKey, async (req, res) => {
         if (!p.email) throw new Error('email is required');
 
         const expiresAt = p.expires_at ?? p.access_end_date;
-        const userData = await findOrCreateUser(p.email, expiresAt);
-
-        // 「只升不降」— founders 不動，pro 只在到期日更晚時才更新
-        await upgradeMembershipIfNeeded(userData.id, expiresAt);
+        const userData = await findOrCreateUser(p.email);
 
         const productId = p.product_id ?? resolveProductId(p.subscription_type ?? 'annual');
         const { skipped: isSkipped } = await upsertFabePurchase({
