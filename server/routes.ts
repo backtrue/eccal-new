@@ -14,6 +14,7 @@ import { setupFbAuditRoutes } from "./fbAuditRoutes";
 import { setupStripeRoutes } from "./stripeRoutes";
 import { setupAccountCenterRoutes } from "./accountCenterRoutes";
 import { createV2Router } from "./v2/routes";
+import { ensureV2Schema } from "./v2/ensureV2Schema";
 import eccalPurchaseRoutes from "./eccalPurchaseRoutes";
 import multer from "multer";
 import fs from "fs";
@@ -33,6 +34,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/admin/discount-codes", discountAdminRoutes.default);
   app.use("/api/meta-events", metaEventRoutes.default);
   app.use("/api/meta", metaDashboardRoutes.default);
+  try {
+    await ensureV2Schema();
+  } catch (error) {
+    console.error("[V2_SCHEMA] V2 routes registered without verified tables:", error);
+  }
   app.use("/api/v2", createV2Router());
   
   // Setup Account Center SSO routes
