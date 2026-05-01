@@ -13,6 +13,7 @@ import { setupDiagnosisRoutes } from "./diagnosisRoutes";
 import { setupFbAuditRoutes } from "./fbAuditRoutes";
 import { setupStripeRoutes } from "./stripeRoutes";
 import { setupAccountCenterRoutes } from "./accountCenterRoutes";
+import { createV2Router } from "./v2/routes";
 import eccalPurchaseRoutes from "./eccalPurchaseRoutes";
 import multer from "multer";
 import fs from "fs";
@@ -32,6 +33,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/admin/discount-codes", discountAdminRoutes.default);
   app.use("/api/meta-events", metaEventRoutes.default);
   app.use("/api/meta", metaDashboardRoutes.default);
+  app.use("/api/v2", createV2Router());
   
   // Setup Account Center SSO routes
   setupAccountCenterRoutes(app);

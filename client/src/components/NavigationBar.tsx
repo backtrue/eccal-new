@@ -41,6 +41,10 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
             <Link href="/fbaudit" className="text-blue-600 hover:text-blue-800 transition-colors">
               {t.fbAuditTitle}
             </Link>
+
+            <Link href="/v2" className="font-medium text-slate-900 hover:text-slate-700 transition-colors">
+              小黑幫你調廣告
+            </Link>
             
             <Link href="/profit-margin" className="text-green-600 hover:text-green-800 transition-colors">
               損益計算
@@ -87,6 +91,10 @@ export default function NavigationBar({ locale }: NavigationBarProps) {
 
               <Link href="/fbaudit" className="text-blue-600 hover:text-blue-800 transition-colors">
                 {t.fbAuditTitle}
+              </Link>
+
+              <Link href="/v2" className="font-medium text-slate-900 hover:text-slate-700 transition-colors">
+                小黑幫你調廣告
               </Link>
               
               <Link href="/profit-margin" className="text-green-600 hover:text-green-800 transition-colors">

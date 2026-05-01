@@ -112,6 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     );
     const isCalculatorPage = currentPath === '/calculator' || currentPath.startsWith('/calculator/');
     const isFbAuditPage = currentPath === '/fbaudit' || currentPath.includes('/fbaudit');
+    const isV2Page = currentPath === '/v2' || currentPath.startsWith('/v2/');
     const isFacebookTestPage = currentPath === '/facebook-test-demo' || currentPath.includes('/facebook-test-demo');
     const hasAuthSuccess = urlParams.has('auth_success') || urlParams.has('facebook_auth_success');
     
@@ -121,6 +122,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isProtectedPage ||                // On protected page
       isCalculatorPage ||               // On calculator page (for diagnosis feature)
       isFbAuditPage ||                 // On FB audit page (needs auth for account access)
+      isV2Page ||                      // On V2 ad copilot page
       isFacebookTestPage;              // On Facebook test demo page (needs auth for testing)
     
     console.log('Auth check decision:', { 
@@ -129,6 +131,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isProtectedPage,
       isCalculatorPage,
       isFbAuditPage,
+      isV2Page,
       isFacebookTestPage,
       shouldCheckAuth,
       fullURL: window.location.href

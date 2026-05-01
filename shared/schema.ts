@@ -290,6 +290,176 @@ export const adDiagnosisReports = pgTable("ad_diagnosis_reports", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Eccal V2 - 小黑幫你調廣告 Beta
+export const companies = pgTable("companies", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  brandName: varchar("brand_name").notNull(),
+  companyName: varchar("company_name"),
+  websiteUrl: varchar("website_url"),
+  industry: varchar("industry"),
+  businessModel: varchar("business_model", {
+    enum: ["ecommerce", "lead_generation", "consultation", "b2b", "other"],
+  }).default("ecommerce").notNull(),
+  primaryMarket: varchar("primary_market").default("TW").notNull(),
+  currency: varchar("currency").default("TWD").notNull(),
+  language: varchar("language").default("zh-TW").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const companyFinancialProfiles = pgTable("company_financial_profiles", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: text("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  averageOrderValue: decimal("average_order_value", { precision: 12, scale: 2 }),
+  grossMarginRate: decimal("gross_margin_rate", { precision: 5, scale: 4 }),
+  acceptableAdCostRate: decimal("acceptable_ad_cost_rate", { precision: 5, scale: 4 }),
+  breakEvenRoas: decimal("break_even_roas", { precision: 8, scale: 2 }),
+  targetRoas: decimal("target_roas", { precision: 8, scale: 2 }),
+  targetCpa: decimal("target_cpa", { precision: 12, scale: 2 }),
+  targetCpc: decimal("target_cpc", { precision: 8, scale: 2 }),
+  conversionRate: decimal("conversion_rate", { precision: 8, scale: 4 }),
+  ltv: decimal("ltv", { precision: 12, scale: 2 }),
+  returnRate: decimal("return_rate", { precision: 5, scale: 4 }),
+  shippingCostRate: decimal("shipping_cost_rate", { precision: 5, scale: 4 }),
+  paymentFeeRate: decimal("payment_fee_rate", { precision: 5, scale: 4 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const companyAdAccounts = pgTable("company_ad_accounts", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: text("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  platform: varchar("platform").default("meta").notNull(),
+  adAccountId: varchar("ad_account_id").notNull(),
+  adAccountName: varchar("ad_account_name"),
+  currency: varchar("currency"),
+  timezone: varchar("timezone"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const productProfiles = pgTable("product_profiles", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: text("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  sku: varchar("sku"),
+  productName: varchar("product_name").notNull(),
+  productUrl: varchar("product_url"),
+  catalogId: varchar("catalog_id"),
+  contentId: varchar("content_id"),
+  price: decimal("price", { precision: 12, scale: 2 }),
+  grossMarginRate: decimal("gross_margin_rate", { precision: 5, scale: 4 }),
+  productRole: varchar("product_role", {
+    enum: ["traffic_driver", "main_product", "profit_product", "repurchase_product", "bundle", "other"],
+  }).default("main_product").notNull(),
+  isConsumable: boolean("is_consumable").default(false),
+  repurchaseCycleDays: integer("repurchase_cycle_days"),
+  targetPersona: varchar("target_persona"),
+  corePainPoint: text("core_pain_point"),
+  mainBenefit: text("main_benefit"),
+  fabeNotes: jsonb("fabe_notes"),
+  relatedProductIds: text("related_product_ids").array(),
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const decisionRuleSets = pgTable("decision_rule_sets", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: text("company_id").references(() => companies.id, { onDelete: "cascade" }),
+  name: varchar("name").default("default").notNull(),
+  spendRateFullThreshold: decimal("spend_rate_full_threshold", { precision: 5, scale: 4 }).default("0.95").notNull(),
+  initialJudgementImpressions: integer("initial_judgement_impressions").default(500).notNull(),
+  stopLossImpressions: integer("stop_loss_impressions").default(8000).notNull(),
+  minActiveAdsPerAdset: integer("min_active_ads_per_adset").default(3).notNull(),
+  cpaWarningMultiplier: decimal("cpa_warning_multiplier", { precision: 5, scale: 2 }).default("1.20").notNull(),
+  cpaStopMultiplier: decimal("cpa_stop_multiplier", { precision: 5, scale: 2 }).default("1.50").notNull(),
+  roasWarningRatio: decimal("roas_warning_ratio", { precision: 5, scale: 2 }).default("0.80").notNull(),
+  ctrWarningThreshold: decimal("ctr_warning_threshold", { precision: 5, scale: 2 }).default("1.00").notNull(),
+  budgetIncreaseRatio: decimal("budget_increase_ratio", { precision: 5, scale: 2 }).default("0.20").notNull(),
+  budgetDecreaseRatio: decimal("budget_decrease_ratio", { precision: 5, scale: 2 }).default("0.20").notNull(),
+  observationWindowDays: integer("observation_window_days").default(3).notNull(),
+  protectLearningPhase: boolean("protect_learning_phase").default(true).notNull(),
+  avoidEditingExistingAds: boolean("avoid_editing_existing_ads").default(true).notNull(),
+  notes: text("notes"),
+  isDefault: boolean("is_default").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const adActionRecommendations = pgTable("ad_action_recommendations", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  companyId: text("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  planResultId: text("plan_result_id").references(() => planResults.id),
+  adAccountId: varchar("ad_account_id").notNull(),
+  recommendationDate: timestamp("recommendation_date").defaultNow().notNull(),
+  decisionMode: varchar("decision_mode", {
+    enum: ["financial_decision", "technical_troubleshooting", "insufficient_data", "mixed"],
+  }).notNull(),
+  overallStatus: varchar("overall_status", {
+    enum: ["can_scale", "observe", "needs_fix", "stop_loss", "insufficient_data"],
+  }).notNull(),
+  priority: varchar("priority", {
+    enum: ["high", "medium", "low"],
+  }).default("medium").notNull(),
+  actionType: varchar("action_type", {
+    enum: [
+      "increase_budget",
+      "decrease_budget",
+      "pause_ad",
+      "pause_adset",
+      "move_budget",
+      "add_creatives",
+      "create_new_adset",
+      "fix_tracking",
+      "improve_landing_page",
+      "observe",
+      "other",
+    ],
+  }).notNull(),
+  targetLevel: varchar("target_level", {
+    enum: ["account", "campaign", "adset", "ad", "creative", "landing_page", "tracking"],
+  }).notNull(),
+  targetId: varchar("target_id"),
+  targetName: varchar("target_name"),
+  reasonSummary: text("reason_summary").notNull(),
+  detailedReason: text("detailed_reason"),
+  recommendedAction: text("recommended_action").notNull(),
+  riskNote: text("risk_note"),
+  metricsSnapshot: jsonb("metrics_snapshot").notNull(),
+  ruleSnapshot: jsonb("rule_snapshot").notNull(),
+  contextSnapshot: jsonb("context_snapshot"),
+  approvalStatus: varchar("approval_status", {
+    enum: ["pending", "approved", "rejected", "executed", "dismissed"],
+  }).default("pending").notNull(),
+  approvedAt: timestamp("approved_at"),
+  executedAt: timestamp("executed_at"),
+  rejectedAt: timestamp("rejected_at"),
+  operatorNote: text("operator_note"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const adActionLogs = pgTable("ad_action_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  recommendationId: text("recommendation_id").notNull().references(() => adActionRecommendations.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  companyId: text("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  action: varchar("action", {
+    enum: ["created", "approved", "rejected", "executed", "dismissed", "commented"],
+  }).notNull(),
+  note: text("note"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertUserMetrics = typeof userMetrics.$inferInsert;
@@ -308,6 +478,52 @@ export type SavedProject = typeof savedProjects.$inferSelect;
 export type InsertSavedProject = typeof savedProjects.$inferInsert;
 export type AdDiagnosisReport = typeof adDiagnosisReports.$inferSelect;
 export type InsertAdDiagnosisReport = typeof adDiagnosisReports.$inferInsert;
+export type Company = typeof companies.$inferSelect;
+export type InsertCompany = typeof companies.$inferInsert;
+export type CompanyFinancialProfile = typeof companyFinancialProfiles.$inferSelect;
+export type InsertCompanyFinancialProfile = typeof companyFinancialProfiles.$inferInsert;
+export type CompanyAdAccount = typeof companyAdAccounts.$inferSelect;
+export type InsertCompanyAdAccount = typeof companyAdAccounts.$inferInsert;
+export type ProductProfile = typeof productProfiles.$inferSelect;
+export type InsertProductProfile = typeof productProfiles.$inferInsert;
+export type DecisionRuleSet = typeof decisionRuleSets.$inferSelect;
+export type InsertDecisionRuleSet = typeof decisionRuleSets.$inferInsert;
+export type AdActionRecommendation = typeof adActionRecommendations.$inferSelect;
+export type InsertAdActionRecommendation = typeof adActionRecommendations.$inferInsert;
+export type AdActionLog = typeof adActionLogs.$inferSelect;
+export type InsertAdActionLog = typeof adActionLogs.$inferInsert;
+
+export const insertCompanySchema = createInsertSchema(companies).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertCompanyFinancialProfileSchema = createInsertSchema(companyFinancialProfiles).omit({
+  id: true,
+  companyId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertCompanyAdAccountSchema = createInsertSchema(companyAdAccounts).omit({
+  id: true,
+  companyId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertDecisionRuleSetSchema = createInsertSchema(decisionRuleSets).omit({
+  id: true,
+  companyId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertAdActionRecommendationSchema = createInsertSchema(adActionRecommendations).omit({
+  id: true,
+  userId: true,
+  recommendationDate: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 // Campaign Planner Types
 export type CampaignPlan = typeof campaignPlans.$inferSelect;

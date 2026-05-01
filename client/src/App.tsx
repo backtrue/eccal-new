@@ -44,6 +44,7 @@ import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 import ProfitMargin from "./pages/profit-margin";
 import PricingSimulator from "./pages/pricing-simulator";
 import Settings from "./pages/settings";
+import V2AdCopilot from "./pages/v2/ad-copilot";
 
 // 🔧 Lazy load pages with Stripe to prevent unnecessary loading
 const Checkout = lazy(() => import("./pages/checkout"));
@@ -136,6 +137,8 @@ function Router() {
       <Route path="/zh-tw/dashboard" component={() => <Dashboard locale="zh-TW" />} />
       <Route path="/zh-tw/about" component={() => <About locale="zh-TW" />} />
       <Route path="/zh-tw/settings" component={() => <Settings locale="zh-TW" />} />
+      <Route path="/v2" component={V2AdCopilot} />
+      <Route path="/v2/companies/:companyId" component={V2AdCopilot} />
       <Route path="/calculator" component={() => <Calculator locale="zh-TW" />} />
       <Route path="/campaign-planner" component={() => <CampaignPlannerV2 locale="zh-TW" />} />
       <Route path="/fbaudit" component={() => <FbAudit locale="zh-TW" />} />
