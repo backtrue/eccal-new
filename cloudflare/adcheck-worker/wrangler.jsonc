@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "eccal-adcheck",
+  "main": "src/index.js",
+  "compatibility_date": "2026-05-01",
+  "routes": [
+    {
+      "pattern": "adcheck.thinkwithblack.com",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "ECCAL_AUTH_ORIGIN": "https://eccal.thinkwithblack.com",
+    "PUBLIC_APP_URL": "https://adcheck.thinkwithblack.com",
+    "META_GRAPH_VERSION": "v24.0"
+  }
+}
