@@ -1068,7 +1068,8 @@ function renderAppShell(env) {
   </main>
   <script>
     const app = document.getElementById('app');
-    let state = { companies: [], plans: [], accounts: [], recommendations: [] };
+    let state = { companies: [], companyContexts: [], plans: [], accounts: [], recommendations: [], message: '' };
+    const $ = (id) => document.getElementById(id);
     async function api(path, options = {}) {
       const res = await fetch(path, { credentials: 'include', headers: { 'content-type': 'application/json' }, ...options });
       const data = await res.json();
@@ -1092,13 +1093,25 @@ function renderAppShell(env) {
         api('/api/v2/ad-decision/recommendations')
       ]);
       state.companies = companies.data || [];
+      state.companyContexts = await Promise.all(
+        state.companies.map(async (company) => {
+          try {
+            const context = await api('/api/v2/companies/' + encodeURIComponent(company.id));
+            return context.data;
+          } catch {
+            return { company, adAccounts: [] };
+          }
+        })
+      );
       state.plans = plans.data || [];
       state.recommendations = recs.data || [];
       render();
     }
     function render() {
       const active = state.companies[0];
+      const accountOptions = state.companyContexts.flatMap(ctx => ctx.adAccounts || []);
       app.innerHTML = \`
+        \${state.message ? '<div class="panel"><b>'+esc(state.message)+'</b></div>' : ''}
         <div class="grid">
           <div class="panel">
             <h2>建立公司</h2>
@@ -1112,19 +1125,23 @@ function renderAppShell(env) {
             <input id="adAccountId" placeholder="act_...">
             <input id="adAccountName" placeholder="帳號名稱">
             <button onclick="linkAccount()">綁定</button>
+            <p class="muted">綁定後會出現在下方公司卡片，也會自動帶入巡帳帳號選單。</p>
           </div>
         </div>
         <div class="panel">
           <h2>跑巡帳</h2>
           <select id="runCompanyId">\${state.companies.map(c => '<option value="'+c.id+'">'+c.brandName+'</option>').join('')}</select>
           <select id="planResultId">\${state.plans.map(p => '<option value="'+p.id+'">'+p.planName+'</option>').join('')}</select>
-          <input id="runAdAccountId" placeholder="已綁定 Meta ad account id">
+          <select id="runAdAccountId">
+            <option value="">選擇已綁定 Meta 帳號</option>
+            \${accountOptions.map(a => '<option value="'+esc(a.adAccountId)+'">'+esc(a.adAccountName || a.adAccountId)+'</option>').join('')}
+          </select>
           <button onclick="runDecision()">產生建議</button>
           <p class="muted">MVP 不會自動改 Meta，只寫入 recommendation 與 log。</p>
         </div>
         <div class="panel">
           <h2>公司</h2>
-          \${state.companies.map(c => '<div class="card"><b>'+c.brandName+'</b><div class="muted">'+(c.websiteUrl || '')+'</div></div>').join('') || '<p>尚未建立公司</p>'}
+          \${state.companyContexts.map(ctx => '<div class="card"><b>'+esc(ctx.company.brandName)+'</b><div class="muted">'+esc(ctx.company.websiteUrl || '')+'</div><div class="muted">Meta 帳號：'+((ctx.adAccounts || []).map(a => esc(a.adAccountName || a.adAccountId)).join('、') || '尚未綁定')+'</div></div>').join('') || '<p>尚未建立公司</p>'}
         </div>
         <div class="panel">
           <h2>最近建議</h2>
@@ -1134,18 +1151,54 @@ function renderAppShell(env) {
       \`;
     }
     async function createCompany() {
-      await api('/api/v2/companies', { method:'POST', body: JSON.stringify({ brandName: brandName.value, websiteUrl: websiteUrl.value }) });
-      await refresh();
+      try {
+        state.message = '';
+        const brandName = $('brandName').value.trim();
+        const websiteUrl = $('websiteUrl').value.trim();
+        if (!brandName) throw new Error('請先輸入品牌名稱');
+        await api('/api/v2/companies', { method:'POST', body: JSON.stringify({ brandName, websiteUrl }) });
+        state.message = '公司已建立';
+        await refresh();
+      } catch (error) {
+        state.message = error.message || '公司建立失敗';
+        render();
+      }
     }
     async function linkAccount() {
-      await api('/api/v2/companies/' + companyId.value + '/ad-accounts', { method:'POST', body: JSON.stringify({ adAccountId: adAccountId.value, adAccountName: adAccountName.value, platform:'meta' }) });
-      runAdAccountId.value = adAccountId.value;
-      await refresh();
+      try {
+        state.message = '';
+        const companyId = $('companyId').value;
+        const adAccountId = $('adAccountId').value.trim();
+        const adAccountName = $('adAccountName').value.trim();
+        if (!companyId) throw new Error('請先建立或選擇公司');
+        if (!adAccountId) throw new Error('請輸入 Meta ad account id，例如 act_123456789');
+        await api('/api/v2/companies/' + encodeURIComponent(companyId) + '/ad-accounts', {
+          method:'POST',
+          body: JSON.stringify({ adAccountId, adAccountName, platform:'meta' })
+        });
+        state.message = 'Meta 帳號已綁定：' + adAccountId;
+        await refresh();
+      } catch (error) {
+        state.message = error.message || 'Meta 帳號綁定失敗';
+        render();
+      }
     }
     async function runDecision() {
-      const result = await api('/api/v2/ad-decision/run', { method:'POST', body: JSON.stringify({ companyId: runCompanyId.value, planResultId: planResultId.value, adAccountId: runAdAccountId.value }) });
-      alert(result.data.summary);
-      await refresh();
+      try {
+        state.message = '';
+        const companyId = $('runCompanyId').value;
+        const planResultId = $('planResultId').value;
+        const adAccountId = $('runAdAccountId').value;
+        if (!companyId) throw new Error('請先選擇公司');
+        if (!planResultId) throw new Error('請先建立 KPI Plan');
+        if (!adAccountId) throw new Error('請先選擇已綁定 Meta 帳號');
+        const result = await api('/api/v2/ad-decision/run', { method:'POST', body: JSON.stringify({ companyId, planResultId, adAccountId }) });
+        state.message = result.data.summary;
+        await refresh();
+      } catch (error) {
+        state.message = error.message || '巡帳失敗';
+        render();
+      }
     }
     async function setStatus(id, status) {
       await api('/api/v2/ad-decision/recommendations/' + id + '/status', { method:'PATCH', body: JSON.stringify({ status }) });
