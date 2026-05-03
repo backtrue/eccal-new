@@ -2498,6 +2498,7 @@ app.get('/api/auth/google-sso', async (req, res) => {
       'https://sbir.thinkwithblack.com',
       'https://sbir-api.thinkwithblack.com',
       'https://aeogeo.thinkwithblack.com',
+      'https://adcheck.thinkwithblack.com',
       'http://localhost:3000',
       'http://localhost:5000'
     ];
@@ -2903,6 +2904,7 @@ app.get('/api/account-center/user/:userId/credits', async (req, res) => {
       'https://sbir.thinkwithblack.com',
       'https://sbir-api.thinkwithblack.com',
       'https://aeogeo.thinkwithblack.com',
+      'https://adcheck.thinkwithblack.com',
       'http://localhost:3000',
       'http://localhost:5000'
     ];
@@ -2967,6 +2969,7 @@ app.get('/api/account-center/user/:userId/membership', async (req, res) => {
       'https://sbir.thinkwithblack.com',
       'https://sbir-api.thinkwithblack.com',
       'https://aeogeo.thinkwithblack.com',
+      'https://adcheck.thinkwithblack.com',
       'http://localhost:3000',
       'http://localhost:5000'
     ];
@@ -3043,6 +3046,7 @@ app.post('/api/sso/verify-token', express.json(), async (req, res) => {
       'https://sbir.thinkwithblack.com',
       'https://sbir-api.thinkwithblack.com',
       'https://aeogeo.thinkwithblack.com',
+      'https://adcheck.thinkwithblack.com',
       'http://localhost:3000',
       'http://localhost:5000'
     ];
@@ -3207,6 +3211,7 @@ app.post('/api/sso/login', express.json(), async (req, res) => {
       'https://sbir.thinkwithblack.com',
       'https://sbir-api.thinkwithblack.com',
       'https://aeogeo.thinkwithblack.com',
+      'https://adcheck.thinkwithblack.com',
       'http://localhost:3000',
       'http://localhost:5000'
     ];
