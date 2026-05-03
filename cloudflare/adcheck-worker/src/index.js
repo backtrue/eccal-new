@@ -1128,7 +1128,7 @@ function renderAppShell(env) {
         </div>
         <div class="panel">
           <h2>最近建議</h2>
-          \${state.recommendations.map(r => '<div class="card"><b>'+r.overallStatus+' · '+r.actionType+'</b><p>'+r.reasonSummary+'</p><p>'+r.recommendedAction+'</p><button onclick="setStatus(\\\\''+r.id+'\\\\',\\\\'approved\\\\')">Approve</button> <button onclick="setStatus(\\\\''+r.id+'\\\\',\\\\'rejected\\\\')">Reject</button> <button onclick="setStatus(\\\\''+r.id+'\\\\',\\\\'dismissed\\\\')">Dismiss</button></div>').join('') || '<p>尚無建議</p>'}
+          \${state.recommendations.map(r => '<div class="card"><b>'+esc(r.overallStatus)+' · '+esc(r.actionType)+'</b><p>'+esc(r.reasonSummary)+'</p><p>'+esc(r.recommendedAction)+'</p><button data-id="'+esc(r.id)+'" data-status="approved" onclick="setStatus(this.dataset.id,this.dataset.status)">Approve</button> <button data-id="'+esc(r.id)+'" data-status="rejected" onclick="setStatus(this.dataset.id,this.dataset.status)">Reject</button> <button data-id="'+esc(r.id)+'" data-status="dismissed" onclick="setStatus(this.dataset.id,this.dataset.status)">Dismiss</button></div>').join('') || '<p>尚無建議</p>'}
         </div>
         \${active ? '<pre>'+JSON.stringify(active, null, 2)+'</pre>' : ''}
       \`;
@@ -1150,6 +1150,9 @@ function renderAppShell(env) {
     async function setStatus(id, status) {
       await api('/api/v2/ad-decision/recommendations/' + id + '/status', { method:'PATCH', body: JSON.stringify({ status }) });
       await refresh();
+    }
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
     }
     init().catch(err => { app.innerHTML = '<h2>載入失敗</h2><pre>'+err.message+'</pre>'; });
   </script>
