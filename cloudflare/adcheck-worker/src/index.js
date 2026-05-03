@@ -1041,18 +1041,48 @@ function renderAppShell(env) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>小黑幫你調廣告</title>
   <style>
-    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f8fafc;color:#0f172a}
-    main{max-width:960px;margin:0 auto;padding:48px 20px}
-    header{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:32px}
-    h1{font-size:34px;margin:0 0 8px}
-    p{color:#475569;line-height:1.7}
-    button,a.btn{border:0;background:#0f172a;color:white;padding:10px 14px;border-radius:8px;text-decoration:none;cursor:pointer}
-    .panel{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:16px 0}
+    :root{color-scheme:light;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--soft:#f8fafc;--brand:#111827;--ok:#047857;--warn:#b45309;--bad:#b91c1c}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f8fafc;color:var(--ink)}
+    main{max-width:1120px;margin:0 auto;padding:28px 18px 56px}
+    header{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:20px}
+    h1{font-size:28px;margin:0 0 4px;letter-spacing:0}
+    h2{font-size:22px;margin:0 0 8px}
+    h3{font-size:16px;margin:0 0 8px}
+    p{color:#475569;line-height:1.65;margin:6px 0}
+    button,a.btn{border:0;background:var(--brand);color:white;padding:10px 14px;border-radius:8px;text-decoration:none;cursor:pointer;font-weight:650}
+    button.secondary,a.secondary{background:white;color:var(--ink);border:1px solid var(--line)}
+    button.ghost{background:transparent;color:var(--ink);border:1px solid transparent}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    input,select{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:11px 12px;margin:7px 0 14px;background:white;color:var(--ink)}
+    label{display:block;font-size:13px;font-weight:700;color:#334155}
+    .topline{font-size:13px;color:var(--muted)}
+    .shell{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px}
+    .panel{background:white;border:1px solid var(--line);border-radius:8px;padding:20px}
+    .step-list{display:grid;gap:10px}
+    .step{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:8px;background:white}
+    .step.active{border-color:#111827;box-shadow:0 0 0 1px #111827 inset}
+    .step.done .num{background:var(--ok)}
+    .num{width:24px;height:24px;border-radius:999px;background:#94a3b8;color:white;display:grid;place-items:center;font-size:13px;font-weight:800;flex:0 0 auto}
+    .step b{display:block;font-size:14px}
+    .step span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-    input,select{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:8px;padding:10px;margin:6px 0 12px}
-    .muted{font-size:13px;color:#64748b}
-    .card{border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin:10px 0}
-    pre{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;border-radius:8px;padding:14px;overflow:auto}
+    .card{border:1px solid var(--line);border-radius:8px;padding:14px;margin:10px 0;background:white}
+    .card.selected{border-color:#111827;box-shadow:0 0 0 1px #111827 inset}
+    .card.clickable{cursor:pointer}
+    .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}
+    .metric{border:1px solid var(--line);border-radius:8px;padding:12px;background:#f8fafc}
+    .metric b{font-size:18px}
+    .metric span{display:block;font-size:12px;color:var(--muted);margin-top:3px}
+    .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+    .message{border:1px solid #bae6fd;background:#f0f9ff;color:#075985;border-radius:8px;padding:12px;margin-bottom:14px}
+    .error{border-color:#fecaca;background:#fef2f2;color:#991b1b}
+    .muted{font-size:13px;color:var(--muted)}
+    .empty{border:1px dashed #cbd5e1;border-radius:8px;padding:18px;text-align:center;color:var(--muted)}
+    .badge{display:inline-flex;align-items:center;border-radius:999px;background:#f1f5f9;color:#334155;padding:4px 8px;font-size:12px;font-weight:700}
+    .summary{display:grid;gap:10px;margin-top:14px}
+    .summary div{border-top:1px solid var(--line);padding-top:10px}
+    @media(max-width:820px){main{padding-top:18px}.shell{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}.step-list{grid-template-columns:1fr 1fr}.panel{padding:16px}}
   </style>
 </head>
 <body>
@@ -1068,7 +1098,20 @@ function renderAppShell(env) {
   </main>
   <script>
     const app = document.getElementById('app');
-    let state = { companies: [], companyContexts: [], plans: [], accounts: [], recommendations: [], message: '' };
+    let state = {
+      user: null,
+      companies: [],
+      companyContexts: [],
+      plans: [],
+      metaAccounts: [],
+      recommendations: [],
+      selectedCompanyId: '',
+      selectedPlanId: '',
+      selectedAdAccountId: '',
+      message: '',
+      messageType: 'info',
+      loading: false
+    };
     const $ = (id) => document.getElementById(id);
     async function api(path, options = {}) {
       const res = await fetch(path, { credentials: 'include', headers: { 'content-type': 'application/json' }, ...options });
@@ -1083,14 +1126,18 @@ function renderAppShell(env) {
         return;
       }
       const data = await auth.json();
+      state.user = data.user;
       document.getElementById('login').textContent = data.user.email || '已登入';
       await refresh();
     }
     async function refresh() {
-      const [companies, plans, recs] = await Promise.all([
+      state.loading = true;
+      renderLoading();
+      const [companies, plans, recs, metaAccounts] = await Promise.all([
         api('/api/v2/companies'),
         api('/api/v2/plans'),
-        api('/api/v2/ad-decision/recommendations')
+        api('/api/v2/ad-decision/recommendations'),
+        api('/api/v2/meta/accounts').catch(() => ({ data: [], metaUnavailable: true }))
       ]);
       state.companies = companies.data || [];
       state.companyContexts = await Promise.all(
@@ -1105,61 +1152,132 @@ function renderAppShell(env) {
       );
       state.plans = plans.data || [];
       state.recommendations = recs.data || [];
+      state.metaAccounts = metaAccounts.data || [];
+      state.selectedCompanyId = state.selectedCompanyId || state.companies[0]?.id || '';
+      state.selectedPlanId = state.selectedPlanId || state.plans[0]?.id || '';
+      state.selectedAdAccountId = state.selectedAdAccountId || firstLinkedAccount()?.adAccountId || '';
+      state.loading = false;
       render();
     }
+    function renderLoading() {
+      app.innerHTML = '<h2>讀取資料中</h2><p>正在同步品牌、KPI Plan 與 Meta 帳號資料。</p>';
+    }
     function render() {
-      const active = state.companies[0];
-      const accountOptions = state.companyContexts.flatMap(ctx => ctx.adAccounts || []);
-      app.innerHTML = \`
-        \${state.message ? '<div class="panel"><b>'+esc(state.message)+'</b></div>' : ''}
-        <div class="grid">
-          <div class="panel">
-            <h2>建立公司</h2>
-            <input id="brandName" placeholder="品牌名稱">
-            <input id="websiteUrl" placeholder="網站 URL">
-            <button onclick="createCompany()">建立</button>
-          </div>
-          <div class="panel">
-            <h2>綁 Meta 帳號</h2>
-            <select id="companyId">\${state.companies.map(c => '<option value="'+c.id+'">'+c.brandName+'</option>').join('')}</select>
-            <input id="adAccountId" placeholder="act_...">
-            <input id="adAccountName" placeholder="帳號名稱">
-            <button onclick="linkAccount()">綁定</button>
-            <p class="muted">綁定後會出現在下方公司卡片，也會自動帶入巡帳帳號選單。</p>
-          </div>
-        </div>
-        <div class="panel">
-          <h2>跑巡帳</h2>
-          <select id="runCompanyId">\${state.companies.map(c => '<option value="'+c.id+'">'+c.brandName+'</option>').join('')}</select>
-          <select id="planResultId">\${state.plans.map(p => '<option value="'+p.id+'">'+p.planName+'</option>').join('')}</select>
-          <select id="runAdAccountId">
-            <option value="">選擇已綁定 Meta 帳號</option>
-            \${accountOptions.map(a => '<option value="'+esc(a.adAccountId)+'">'+esc(a.adAccountName || a.adAccountId)+'</option>').join('')}
-          </select>
-          <button onclick="runDecision()">產生建議</button>
-          <p class="muted">MVP 不會自動改 Meta，只寫入 recommendation 與 log。</p>
-        </div>
-        <div class="panel">
-          <h2>公司</h2>
-          \${state.companyContexts.map(ctx => '<div class="card"><b>'+esc(ctx.company.brandName)+'</b><div class="muted">'+esc(ctx.company.websiteUrl || '')+'</div><div class="muted">Meta 帳號：'+((ctx.adAccounts || []).map(a => esc(a.adAccountName || a.adAccountId)).join('、') || '尚未綁定')+'</div></div>').join('') || '<p>尚未建立公司</p>'}
-        </div>
-        <div class="panel">
-          <h2>最近建議</h2>
-          \${state.recommendations.map(r => '<div class="card"><b>'+esc(r.overallStatus)+' · '+esc(r.actionType)+'</b><p>'+esc(r.reasonSummary)+'</p><p>'+esc(r.recommendedAction)+'</p><button data-id="'+esc(r.id)+'" data-status="approved" onclick="setStatus(this.dataset.id,this.dataset.status)">Approve</button> <button data-id="'+esc(r.id)+'" data-status="rejected" onclick="setStatus(this.dataset.id,this.dataset.status)">Reject</button> <button data-id="'+esc(r.id)+'" data-status="dismissed" onclick="setStatus(this.dataset.id,this.dataset.status)">Dismiss</button></div>').join('') || '<p>尚無建議</p>'}
-        </div>
-        \${active ? '<pre>'+JSON.stringify(active, null, 2)+'</pre>' : ''}
-      \`;
+      const step = currentStep();
+      app.className = 'panel';
+      app.innerHTML =
+        messageHtml() +
+        '<div class="shell">' +
+          '<aside>' + stepListHtml(step) + summaryHtml() + '</aside>' +
+          '<section>' + stepContentHtml(step) + '</section>' +
+        '</div>';
+    }
+    function currentStep() {
+      if (!state.companies.length) return 1;
+      if (!state.selectedPlanId) return 2;
+      if (!linkedAccountsForSelectedCompany().length) return 3;
+      return 4;
+    }
+    function stepListHtml(active) {
+      const items = [
+        ['品牌', '建立或選擇要巡帳的品牌'],
+        ['KPI Plan', '選擇這次判斷的目標'],
+        ['Meta 帳號', '綁定要讀取的廣告帳號'],
+        ['巡帳建議', '產生並處理建議']
+      ];
+      return '<div class="step-list">' + items.map((item, index) => {
+        const n = index + 1;
+        const cls = n === active ? 'step active' : n < active ? 'step done' : 'step';
+        return '<div class="'+cls+'"><div class="num">'+n+'</div><div><b>'+item[0]+'</b><span>'+item[1]+'</span></div></div>';
+      }).join('') + '</div>';
+    }
+    function stepContentHtml(step) {
+      if (step === 1) return brandStepHtml();
+      if (step === 2) return planStepHtml();
+      if (step === 3) return metaStepHtml();
+      return decisionStepHtml();
+    }
+    function brandStepHtml() {
+      return '<h2>先建立你的品牌</h2>' +
+        '<p>巡帳建議會綁在品牌底下，之後要做收費、用量紀錄、多人管理都會比較乾淨。</p>' +
+        existingCompaniesHtml() +
+        '<div class="grid">' +
+          '<div><label>品牌名稱</label><input id="brandName" placeholder="例如：黑膠保養所"></div>' +
+          '<div><label>網站</label><input id="websiteUrl" placeholder="https://example.com"></div>' +
+          '<div><label>主要市場</label><select id="primaryMarket"><option value="TW">台灣</option><option value="JP">日本</option><option value="US">美國</option></select></div>' +
+          '<div><label>幣別</label><select id="currency"><option value="TWD">TWD</option><option value="JPY">JPY</option><option value="USD">USD</option></select></div>' +
+        '</div>' +
+        '<div class="actions"><button onclick="createCompany()">建立品牌並繼續</button></div>';
+    }
+    function existingCompaniesHtml() {
+      if (!state.companies.length) return '';
+      return '<h3>已建立品牌</h3>' + state.companies.map(company => {
+        const selected = company.id === state.selectedCompanyId ? ' selected' : '';
+        return '<div class="card clickable'+selected+'" onclick="selectCompany(\\''+escAttr(company.id)+'\\')"><b>'+esc(company.brandName)+'</b><p class="muted">'+esc(company.websiteUrl || '未填網站')+'</p></div>';
+      }).join('');
+    }
+    function planStepHtml() {
+      if (!state.plans.length) {
+        return '<h2>先建立 KPI Plan</h2><p>Adcheck 會用既有 ECCAL KPI Plan 判斷 ROAS、日預算、訂單目標是否達標。</p><div class="empty">目前沒有可用的 Plan。請先回 ECCAL 建立活動預算 / KPI Plan。</div><div class="actions"><a class="btn" href="https://eccal.thinkwithblack.com/campaign-planner">建立 KPI Plan</a><button class="secondary" onclick="refresh()">重新整理</button></div>';
+      }
+      return '<h2>選擇這次巡帳的 KPI Plan</h2><p>這一步決定系統拿什麼目標線來判斷是否加碼、觀察或止損。</p>' +
+        '<div>' + state.plans.map(plan => planCardHtml(plan)).join('') + '</div>' +
+        '<div class="actions"><button onclick="goToStep(3)" '+(!state.selectedPlanId ? 'disabled' : '')+'>使用這個 Plan</button><button class="secondary" onclick="goToStep(1)">回品牌</button></div>';
+    }
+    function planCardHtml(plan) {
+      const selected = plan.id === state.selectedPlanId ? ' selected' : '';
+      return '<div class="card clickable'+selected+'" onclick="selectPlan(\\''+escAttr(plan.id)+'\\')"><div class="badge">'+esc(plan.currency || 'TWD')+'</div><h3>'+esc(plan.planName || '未命名 Plan')+'</h3><div class="metrics"><div class="metric"><b>'+formatMoney(plan.targetRevenue)+'</b><span>目標營收</span></div><div class="metric"><b>'+formatMoney(plan.dailyAdBudget)+'</b><span>日預算</span></div><div class="metric"><b>'+esc(plan.targetRoas || '-')+'</b><span>目標 ROAS</span></div><div class="metric"><b>'+esc(plan.requiredOrders || '-')+'</b><span>目標訂單</span></div></div></div>';
+    }
+    function metaStepHtml() {
+      const linked = linkedAccountsForSelectedCompany();
+      const metaChoices = state.metaAccounts.length
+        ? '<h3>從 Meta 授權帳號選擇</h3>' + state.metaAccounts.map(account => '<div class="card clickable" onclick="fillMetaAccount(\\''+escAttr(account.id)+'\\',\\''+escAttr(account.name || account.id)+'\\')"><b>'+esc(account.name || account.id)+'</b><p class="muted">'+esc(account.id)+'</p></div>').join('')
+        : '<div class="empty">沒有讀到 Meta 帳號清單。你仍可先手動填 ad account id；如果之後跑巡帳出現 token 錯誤，再回 ECCAL 重新授權 Meta。</div>';
+      return '<h2>綁定 Meta 廣告帳號</h2><p>Adcheck 只會讀取成效並產生建議，MVP 不會直接修改 Meta 廣告。</p>' +
+        (linked.length ? '<h3>已綁定</h3>' + linked.map(a => '<div class="card"><b>'+esc(a.adAccountName || a.adAccountId)+'</b><p class="muted">'+esc(a.adAccountId)+'</p></div>').join('') : '') +
+        metaChoices +
+        '<h3>手動綁定</h3><div class="grid"><div><label>Ad account ID</label><input id="adAccountId" placeholder="act_123456789"></div><div><label>顯示名稱</label><input id="adAccountName" placeholder="主帳號 / 台灣站 / 日本站"></div></div>' +
+        '<div class="actions"><button onclick="linkAccount()">綁定並繼續</button><a class="secondary btn" href="https://eccal.thinkwithblack.com/facebook-setup">回 ECCAL 授權 Meta</a><button class="secondary" onclick="goToStep(2)">回 Plan</button></div>';
+    }
+    function decisionStepHtml() {
+      const linked = linkedAccountsForSelectedCompany();
+      const selectedPlan = state.plans.find(p => p.id === state.selectedPlanId);
+      const latest = state.recommendations.filter(r => !state.selectedCompanyId || r.companyId === state.selectedCompanyId).slice(0, 5);
+      return '<h2>產生巡帳建議</h2><p>系統會讀 Meta 近 28 天帳戶成效，套用 deterministic rules，產生人工審核建議。</p>' +
+        '<div class="grid"><div><label>KPI Plan</label><select id="runPlanId">'+state.plans.map(p => '<option value="'+escAttr(p.id)+'" '+(p.id===state.selectedPlanId?'selected':'')+'>'+esc(p.planName || p.id)+'</option>').join('')+'</select></div><div><label>Meta 帳號</label><select id="runAdAccountId">'+linked.map(a => '<option value="'+escAttr(a.adAccountId)+'" '+(a.adAccountId===state.selectedAdAccountId?'selected':'')+'>'+esc(a.adAccountName || a.adAccountId)+'</option>').join('')+'</select></div></div>' +
+        (selectedPlan ? '<div class="metrics"><div class="metric"><b>'+formatMoney(selectedPlan.dailyAdBudget)+'</b><span>日預算</span></div><div class="metric"><b>'+esc(selectedPlan.targetRoas || '-')+'</b><span>目標 ROAS</span></div><div class="metric"><b>'+esc(selectedPlan.requiredOrders || '-')+'</b><span>目標訂單</span></div></div>' : '') +
+        '<div class="actions"><button onclick="runDecision()">開始巡帳</button><button class="secondary" onclick="goToStep(3)">回 Meta</button></div>' +
+        '<h3>最近建議</h3>' + (latest.length ? latest.map(recommendationHtml).join('') : '<div class="empty">尚未產生建議。</div>');
+    }
+    function recommendationHtml(r) {
+      return '<div class="card"><div class="badge">'+esc(statusLabel(r.overallStatus))+'</div><h3>'+esc(actionLabel(r.actionType))+'</h3><p>'+esc(r.reasonSummary)+'</p><p>'+esc(r.recommendedAction)+'</p><div class="actions"><button data-id="'+escAttr(r.id)+'" data-status="approved" onclick="setStatus(this.dataset.id,this.dataset.status)">採納</button><button class="secondary" data-id="'+escAttr(r.id)+'" data-status="rejected" onclick="setStatus(this.dataset.id,this.dataset.status)">拒絕</button><button class="secondary" data-id="'+escAttr(r.id)+'" data-status="dismissed" onclick="setStatus(this.dataset.id,this.dataset.status)">略過</button></div></div>';
+    }
+    function summaryHtml() {
+      const company = state.companies.find(c => c.id === state.selectedCompanyId);
+      const plan = state.plans.find(p => p.id === state.selectedPlanId);
+      const linked = linkedAccountsForSelectedCompany();
+      return '<div class="panel summary"><h3>目前設定</h3><div><b>品牌</b><p class="muted">'+esc(company?.brandName || '尚未選擇')+'</p></div><div><b>KPI Plan</b><p class="muted">'+esc(plan?.planName || '尚未選擇')+'</p></div><div><b>Meta 帳號</b><p class="muted">'+(linked.map(a => esc(a.adAccountName || a.adAccountId)).join('、') || '尚未綁定')+'</p></div></div>';
+    }
+    function messageHtml() {
+      if (!state.message) return '';
+      const cls = state.messageType === 'error' ? 'message error' : 'message';
+      return '<div class="'+cls+'">'+esc(state.message)+'</div>';
     }
     async function createCompany() {
       try {
         state.message = '';
         const brandName = $('brandName').value.trim();
         const websiteUrl = $('websiteUrl').value.trim();
+        const primaryMarket = $('primaryMarket').value;
+        const currency = $('currency').value;
         if (!brandName) throw new Error('請先輸入品牌名稱');
-        await api('/api/v2/companies', { method:'POST', body: JSON.stringify({ brandName, websiteUrl }) });
+        const result = await api('/api/v2/companies', { method:'POST', body: JSON.stringify({ brandName, websiteUrl, primaryMarket, currency }) });
+        state.selectedCompanyId = result.data.id;
+        state.messageType = 'info';
         state.message = '公司已建立';
         await refresh();
       } catch (error) {
+        state.messageType = 'error';
         state.message = error.message || '公司建立失敗';
         render();
       }
@@ -1176,9 +1294,12 @@ function renderAppShell(env) {
           method:'POST',
           body: JSON.stringify({ adAccountId, adAccountName, platform:'meta' })
         });
+        state.selectedAdAccountId = adAccountId;
+        state.messageType = 'info';
         state.message = 'Meta 帳號已綁定：' + adAccountId;
         await refresh();
       } catch (error) {
+        state.messageType = 'error';
         state.message = error.message || 'Meta 帳號綁定失敗';
         render();
       }
@@ -1186,26 +1307,72 @@ function renderAppShell(env) {
     async function runDecision() {
       try {
         state.message = '';
-        const companyId = $('runCompanyId').value;
-        const planResultId = $('planResultId').value;
+        const companyId = state.selectedCompanyId;
+        const planResultId = $('runPlanId').value;
         const adAccountId = $('runAdAccountId').value;
         if (!companyId) throw new Error('請先選擇公司');
         if (!planResultId) throw new Error('請先建立 KPI Plan');
         if (!adAccountId) throw new Error('請先選擇已綁定 Meta 帳號');
+        state.selectedPlanId = planResultId;
+        state.selectedAdAccountId = adAccountId;
         const result = await api('/api/v2/ad-decision/run', { method:'POST', body: JSON.stringify({ companyId, planResultId, adAccountId }) });
+        state.messageType = 'info';
         state.message = result.data.summary;
         await refresh();
       } catch (error) {
+        state.messageType = 'error';
         state.message = error.message || '巡帳失敗';
         render();
       }
     }
     async function setStatus(id, status) {
       await api('/api/v2/ad-decision/recommendations/' + id + '/status', { method:'PATCH', body: JSON.stringify({ status }) });
+      state.messageType = 'info';
+      state.message = '建議狀態已更新';
       await refresh();
+    }
+    function selectCompany(id) {
+      state.selectedCompanyId = id;
+      state.selectedAdAccountId = firstLinkedAccount()?.adAccountId || '';
+      render();
+    }
+    function selectPlan(id) {
+      state.selectedPlanId = id;
+      render();
+    }
+    function fillMetaAccount(id, name) {
+      $('adAccountId').value = id;
+      $('adAccountName').value = name;
+    }
+    function goToStep(step) {
+      if (step === 1 || step === 2 || step === 3 || step === 4) renderForcedStep(step);
+    }
+    function renderForcedStep(step) {
+      app.innerHTML = messageHtml() + '<div class="shell"><aside>' + stepListHtml(step) + summaryHtml() + '</aside><section>' + stepContentHtml(step) + '</section></div>';
+    }
+    function linkedAccountsForSelectedCompany() {
+      const context = state.companyContexts.find(ctx => ctx.company?.id === state.selectedCompanyId);
+      return context?.adAccounts || [];
+    }
+    function firstLinkedAccount() {
+      return linkedAccountsForSelectedCompany()[0] || null;
+    }
+    function formatMoney(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return '-';
+      return Math.round(number).toLocaleString('zh-TW');
+    }
+    function statusLabel(value) {
+      return ({can_scale:'可加碼',observe:'觀察',needs_fix:'需修正',stop_loss:'止損',insufficient_data:'資料不足'}[value] || value);
+    }
+    function actionLabel(value) {
+      return ({increase_budget:'提高預算',decrease_budget:'降低預算',add_creatives:'新增素材',observe:'觀察',fix_tracking:'修追蹤',improve_landing_page:'改善落地頁'}[value] || value);
     }
     function esc(value) {
       return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    }
+    function escAttr(value) {
+      return esc(value).replace(new RegExp(String.fromCharCode(96), 'g'), '&#96;');
     }
     init().catch(err => { app.innerHTML = '<h2>載入失敗</h2><pre>'+err.message+'</pre>'; });
   </script>
