@@ -9,7 +9,9 @@ import {
   boolean,
   jsonb,
   index,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -55,6 +57,41 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const mcpAuthCodes = pgTable(
+  "mcp_auth_codes",
+  {
+    codeHash: text("code_hash").primaryKey(),
+    loginStateHash: text("login_state_hash").notNull().unique(),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    audience: text("audience").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("mcp_auth_codes_expires_at_idx").on(table.expiresAt),
+    check(
+      "mcp_auth_codes_code_hash_check",
+      sql`${table.codeHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check(
+      "mcp_auth_codes_login_state_hash_check",
+      sql`${table.loginStateHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check(
+      "mcp_auth_codes_audience_check",
+      sql`${table.audience} = 'https://mcp.thinkwithblack.com/mcp'`,
+    ),
+  ],
+);
+
+export type McpAuthCode = typeof mcpAuthCodes.$inferSelect;
+export type InsertMcpAuthCode = typeof mcpAuthCodes.$inferInsert;
 
 // Store user's e-commerce metrics
 export const userMetrics = pgTable("user_metrics", {

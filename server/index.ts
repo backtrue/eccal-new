@@ -5,9 +5,11 @@ import { registerRoutes } from './routes';
 import { setupVite, serveStatic } from './vite';
 import { setupJWTGoogleAuth, jwtMiddleware } from './jwtAuth';
 import { setupGAConnection } from './gaConnection';
+import { setupMcpAuthRoutes } from './mcpAuthRoutes';
 
 // -------------------- 1. 基礎設定 --------------------
 const app = express();
+setupMcpAuthRoutes(app);
 
 // -------------------- 1.05. 全域基礎中間件（必須最早執行）--------------------
 // 解析 JSON / URL-encoded body：此區塊必須在所有路由之前，解決 body 為 undefined 問題
@@ -28,6 +30,7 @@ const S2S_JSON_ONLY_PREFIXES = [
   '/sso/verify-token',
   '/account-center/user',
   '/account-center/credits',
+  '/mcp/internal',
 ];
 
 function isS2SJsonOnlyPath(pathname: string): boolean {
