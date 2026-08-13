@@ -1,6 +1,7 @@
 import { lstat, readFile } from "node:fs/promises";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 
 const BASELINE = "d683e78ab8f62c46ef1c0f3ac3171a13f4f14fce";
 const ROOT = process.cwd();
@@ -145,12 +146,14 @@ async function assertPackageDelta() {
   expectedPackage.devDependencies[
     "@secretlint/secretlint-rule-preset-recommend"
   ] = "13.0.4";
+  expectedPackage.overrides = { "form-data": "2.5.6" };
   if (stable(currentPackage) !== stable(expectedPackage)) {
     throw new Error("package.json contains changes outside the fixed MCP scripts and dependencies");
   }
 
   const baselineLock = JSON.parse(baselineText("package-lock.json"));
-  const currentLock = JSON.parse(await readFile(path.join(ROOT, "package-lock.json"), "utf8"));
+  const currentLockText = await readFile(path.join(ROOT, "package-lock.json"), "utf8");
+  const currentLock = JSON.parse(currentLockText);
   const expectedRoot = structuredClone(baselineLock.packages[""]);
   expectedRoot.devDependencies.secretlint = "13.0.4";
   expectedRoot.devDependencies[
@@ -158,6 +161,12 @@ async function assertPackageDelta() {
   ] = "13.0.4";
   if (stable(currentLock.packages[""]) !== stable(expectedRoot)) {
     throw new Error("package-lock root contains unauthorized direct dependency changes");
+  }
+  if (
+    createHash("sha256").update(currentLockText).digest("hex") !==
+    "f6b279cf76ece316131e3f11200be6253fbb898884f8ee2f801fa222d33d5115"
+  ) {
+    throw new Error("package-lock contains changes outside the approved deterministic lockfile");
   }
 }
 
