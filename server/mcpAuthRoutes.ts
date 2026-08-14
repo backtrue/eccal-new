@@ -237,6 +237,14 @@ export function createMcpAuthRouter(
   router.get("/login", async (req, res) => {
     const queryKeys = Object.keys(req.query);
     if (queryKeys.length > 0) {
+      if (
+        queryKeys.length === 1 &&
+        queryKeys[0] === "auth_success" &&
+        req.query.auth_success === "1"
+      ) {
+        res.redirect(302, CLEAN_LOGIN_PATH);
+        return;
+      }
       const loginState = req.query.login_state;
       if (
         queryKeys.length !== 1 ||

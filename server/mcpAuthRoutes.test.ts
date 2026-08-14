@@ -20,6 +20,7 @@ const SERVICE_TOKEN = Buffer.from(
 ).toString("base64url");
 const AUTHORIZATION = `Bearer ${SERVICE_TOKEN}`;
 const STATE_MAC_INFO = "thinkwithblack-mcp/eccal-state-mac/v1";
+const LOGIN_ERROR_TEXT = "登入流程已過期，請回到 ChatGPT 重新連線。";
 
 type CallCounts = {
   verifyJwt: number;
@@ -214,6 +215,90 @@ test("login_state query is HMAC verified before the fixed secure cookie is set",
       getMembership: 0,
     });
   });
+});
+
+test("exact auth_success=1 only redirects clean and the next request performs identity and code work", async () => {
+  const state = signedLoginState();
+  const fixture = dependencies();
+  const cookie = `twb_mcp_login_state=${state}; auth_token=aaa.bbb.ccc`;
+  await withServer(fixture.dependencies, async (baseUrl) => {
+    const markerResponse = await fetch(
+      `${baseUrl}/api/mcp/login?auth_success=1`,
+      {
+        headers: { cookie },
+        redirect: "manual",
+      },
+    );
+    assert.equal(markerResponse.status, 302);
+    assert.equal(markerResponse.headers.get("location"), "/api/mcp/login");
+    assert.equal(markerResponse.headers.get("set-cookie"), null);
+    assert.deepEqual(fixture.calls, {
+      verifyJwt: 0,
+      getUser: 0,
+      createCode: 0,
+      consumeCode: 0,
+      getMembership: 0,
+    });
+
+    const cleanResponse = await fetch(`${baseUrl}/api/mcp/login`, {
+      headers: { cookie },
+      redirect: "manual",
+    });
+    assert.equal(cleanResponse.status, 302);
+    const callback = new URL(cleanResponse.headers.get("location") ?? "");
+    assert.equal(callback.origin, "https://mcp.thinkwithblack.com");
+    assert.equal(callback.pathname, "/oauth/eccal/callback");
+    assert.equal(fixture.calls.verifyJwt, 1);
+    assert.equal(fixture.calls.getUser, 1);
+    assert.equal(fixture.calls.createCode, 1);
+    assert.equal(fixture.calls.consumeCode, 0);
+    assert.equal(fixture.calls.getMembership, 0);
+  });
+});
+
+test("wrong, extra, repeated, and mixed auth_success queries fail and clear login state", async (context) => {
+  const state = signedLoginState();
+  const cases = [
+    { label: "wrong marker", query: "auth_success=0" },
+    { label: "extra query field", query: "auth_success=1&extra=1" },
+    {
+      label: "repeated marker",
+      query: "auth_success=1&auth_success=1",
+    },
+    {
+      label: "mixed login state and marker",
+      query: `auth_success=1&login_state=${encodeURIComponent(state)}`,
+    },
+  ];
+  for (const fixtureCase of cases) {
+    await context.test(fixtureCase.label, async () => {
+      const fixture = dependencies();
+      await withServer(fixture.dependencies, async (baseUrl) => {
+        const response = await fetch(
+          `${baseUrl}/api/mcp/login?${fixtureCase.query}`,
+          {
+            headers: {
+              cookie: `twb_mcp_login_state=${state}; auth_token=aaa.bbb.ccc`,
+            },
+            redirect: "manual",
+          },
+        );
+        assert.equal(response.status, 400);
+        assert.equal(await response.text(), LOGIN_ERROR_TEXT);
+        assert.match(
+          response.headers.get("set-cookie") ?? "",
+          /Expires=Thu, 01 Jan 1970 00:00:00 GMT/iu,
+        );
+        assert.deepEqual(fixture.calls, {
+          verifyJwt: 0,
+          getUser: 0,
+          createCode: 0,
+          consumeCode: 0,
+          getMembership: 0,
+        });
+      });
+    });
+  }
 });
 
 test("invalid, extra, and oversized login_state queries fail before identity or database access", async (context) => {
