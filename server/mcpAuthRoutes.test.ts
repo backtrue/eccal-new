@@ -1,8 +1,5 @@
 import assert from "node:assert/strict";
-import {
-  createHmac,
-  hkdfSync,
-} from "node:crypto";
+import { createHmac, hkdfSync } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import http, { type Server } from "node:http";
 import path from "node:path";
@@ -12,6 +9,7 @@ import express from "express";
 import {
   createMcpAuthRouter,
   type McpAuthRouteDependencies,
+  type MembershipReceiverDiagnostic,
 } from "./mcpAuthRoutes";
 import { MCP_AUDIENCE } from "./mcpAuthService";
 
@@ -51,9 +49,10 @@ function signedLoginState(ciphertextBytes = 48): string {
   return `${prefix}.${mac}`;
 }
 
-function dependencies(
-  overrides: Partial<McpAuthRouteDependencies> = {},
-): { dependencies: McpAuthRouteDependencies; calls: CallCounts } {
+function dependencies(overrides: Partial<McpAuthRouteDependencies> = {}): {
+  dependencies: McpAuthRouteDependencies;
+  calls: CallCounts;
+} {
   const calls: CallCounts = {
     verifyJwt: 0,
     getUser: 0,
@@ -258,7 +257,14 @@ test("exact auth_success=1 only redirects clean and the next request performs id
 
 test("wrong, extra, repeated, and mixed auth_success queries fail and clear login state", async (context) => {
   const state = signedLoginState();
-  const cases = [
+  const cases: readonly Readonly<{
+    expectedCode: MembershipReceiverDiagnostic["code"];
+    expectedRetryable: boolean;
+    expectedStatus: number;
+    authorization: string;
+    body: Readonly<Record<string, string>>;
+    getMembership?: McpAuthRouteDependencies["getMembership"];
+  }>[] = [
     { label: "wrong marker", query: "auth_success=0" },
     { label: "extra query field", query: "auth_success=1&extra=1" },
     {
@@ -320,9 +326,12 @@ test("invalid, extra, and oversized login_state queries fail before identity or 
     await context.test(fixtureCase.label, async () => {
       const fixture = dependencies();
       await withServer(fixture.dependencies, async (baseUrl) => {
-        const response = await fetch(`${baseUrl}/api/mcp/login?${fixtureCase.query}`, {
-          redirect: "manual",
-        });
+        const response = await fetch(
+          `${baseUrl}/api/mcp/login?${fixtureCase.query}`,
+          {
+            redirect: "manual",
+          },
+        );
         assert.equal(response.status, 400);
         assert.equal(fixture.calls.verifyJwt, 0);
         assert.equal(fixture.calls.getUser, 0);
@@ -530,6 +539,111 @@ test("internal routes require exact JSON and reject empty, invalid, additional, 
   }
 });
 
+test("membership receiver diagnostics classify one request without private data or response changes", async () => {
+  const diagnostics: MembershipReceiverDiagnostic[] = [];
+  const cases = [
+    {
+      expectedCode: "MCP_MEMBERSHIP_CALLER_REJECTED",
+      expectedRetryable: false,
+      expectedStatus: 401,
+      authorization: `Bearer ${Buffer.alloc(32, 9).toString("base64url")}`,
+      body: { user_id: "opaque-user" },
+    },
+    {
+      expectedCode: "MCP_MEMBERSHIP_REQUEST_INVALID",
+      expectedRetryable: false,
+      expectedStatus: 400,
+      authorization: AUTHORIZATION,
+      body: { user_id: "opaque-user", private_field: "must-not-log" },
+    },
+    {
+      expectedCode: "MCP_MEMBERSHIP_SNAPSHOT_UNAVAILABLE",
+      expectedRetryable: true,
+      expectedStatus: 503,
+      authorization: AUTHORIZATION,
+      body: { user_id: "opaque-user" },
+      getMembership: async () => null,
+    },
+    {
+      expectedCode: "MCP_MEMBERSHIP_SUCCESS",
+      expectedRetryable: false,
+      expectedStatus: 200,
+      authorization: AUTHORIZATION,
+      body: { user_id: "opaque-user" },
+    },
+  ];
+
+  for (const fixtureCase of cases) {
+    const fixture = dependencies({
+      ...(fixtureCase.getMembership === undefined
+        ? {}
+        : { getMembership: fixtureCase.getMembership }),
+      reportMembershipDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+    });
+    await withServer(fixture.dependencies, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/mcp/internal/membership`, {
+        method: "POST",
+        headers: jsonHeaders(fixtureCase.authorization),
+        body: JSON.stringify(fixtureCase.body),
+      });
+      assert.equal(response.status, fixtureCase.expectedStatus);
+      await response.arrayBuffer();
+    });
+  }
+
+  assert.equal(diagnostics.length, cases.length);
+  for (const [index, diagnostic] of diagnostics.entries()) {
+    const fixtureCase = cases[index];
+    assert.deepEqual(Object.keys(diagnostic).sort(), [
+      "code",
+      "correlation_id",
+      "latency_ms",
+      "retryable",
+      "status",
+      "version",
+    ]);
+    assert.equal(diagnostic.code, fixtureCase.expectedCode);
+    assert.equal(diagnostic.retryable, fixtureCase.expectedRetryable);
+    assert.equal(diagnostic.status, fixtureCase.expectedStatus);
+    assert.equal(diagnostic.version, "eccal-mcp-auth-v1");
+    assert.match(
+      diagnostic.correlation_id,
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
+    );
+    assert.ok(Number.isSafeInteger(diagnostic.latency_ms));
+    assert.ok(diagnostic.latency_ms >= 0);
+  }
+  assert.doesNotMatch(
+    JSON.stringify(diagnostics),
+    /opaque-user|must-not-log|Bearer|authorization|cookie|email|secret|token|body/iu,
+  );
+});
+
+test("membership diagnostic reporter failure cannot alter the success response", async () => {
+  const fixture = dependencies({
+    reportMembershipDiagnostic: () => {
+      throw new Error("private reporter detail");
+    },
+  });
+  await withServer(fixture.dependencies, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/mcp/internal/membership`, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({ user_id: "opaque-user" }),
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      user_id: "opaque-user",
+      membership: "pro",
+      membership_expires: null,
+      credits: 9,
+      checked_at: "2026-08-12T00:00:00.000Z",
+    });
+  });
+  assert.equal(fixture.calls.getMembership, 1);
+});
+
 test("exchange rejects missing, extra, and wrongly typed fields before code consumption", async (context) => {
   const bodies = [
     {
@@ -707,14 +821,11 @@ test("missing or failed membership is one retryable unavailable response without
         getMembership: fixtureCase.getMembership,
       });
       await withServer(fixture.dependencies, async (baseUrl) => {
-        const response = await fetch(
-          `${baseUrl}/api/mcp/internal/membership`,
-          {
-            method: "POST",
-            headers: jsonHeaders(),
-            body: JSON.stringify({ user_id: "opaque-user" }),
-          },
-        );
+        const response = await fetch(`${baseUrl}/api/mcp/internal/membership`, {
+          method: "POST",
+          headers: jsonHeaders(),
+          body: JSON.stringify({ user_id: "opaque-user" }),
+        });
         assert.equal(response.status, 503);
         const text = await response.text();
         assert.deepEqual(JSON.parse(text), {

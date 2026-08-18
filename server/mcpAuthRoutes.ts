@@ -2,6 +2,7 @@ import {
   createHash,
   createHmac,
   hkdfSync,
+  randomUUID,
   timingSafeEqual,
 } from "node:crypto";
 import express, {
@@ -26,8 +27,7 @@ const STATE_MAC_INFO = "thinkwithblack-mcp/eccal-state-mac/v1";
 const LOGIN_ERROR_TEXT = "登入流程已過期，請回到 ChatGPT 重新連線。";
 const LOGIN_UNAVAILABLE_TEXT = "登入服務暫時無法使用，請稍後重新連線。";
 const CLEAN_LOGIN_PATH = "/api/mcp/login";
-const GOOGLE_LOGIN_PATH =
-  "/api/auth/google?returnTo=%2Fapi%2Fmcp%2Flogin";
+const GOOGLE_LOGIN_PATH = "/api/auth/google?returnTo=%2Fapi%2Fmcp%2Flogin";
 const CLOUDFLARE_CALLBACK =
   "https://mcp.thinkwithblack.com/oauth/eccal/callback";
 
@@ -43,7 +43,9 @@ type StoredUser = Readonly<{ id?: unknown }>;
 
 export type McpAuthRouteDependencies = Readonly<{
   getServiceToken: () => string | undefined;
-  verifyJwt: (token: string) => JwtIdentity | null | Promise<JwtIdentity | null>;
+  verifyJwt: (
+    token: string,
+  ) => JwtIdentity | null | Promise<JwtIdentity | null>;
   getUser: (userId: string) => Promise<StoredUser | null>;
   createCode: (input: {
     userId: string;
@@ -55,6 +57,9 @@ export type McpAuthRouteDependencies = Readonly<{
     audience: string;
   }) => Promise<string | null>;
   getMembership: (userId: string) => Promise<McpMembershipSnapshot | null>;
+  reportMembershipDiagnostic?: (
+    diagnostic: MembershipReceiverDiagnostic,
+  ) => void;
 }>;
 
 type InternalErrorCode =
@@ -63,6 +68,21 @@ type InternalErrorCode =
   | "LOGIN_CODE_INVALID"
   | "IDENTITY_EXCHANGE_UNAVAILABLE"
   | "MEMBERSHIP_UNAVAILABLE";
+
+type MembershipReceiverDiagnosticCode =
+  | "MCP_MEMBERSHIP_CALLER_REJECTED"
+  | "MCP_MEMBERSHIP_REQUEST_INVALID"
+  | "MCP_MEMBERSHIP_SNAPSHOT_UNAVAILABLE"
+  | "MCP_MEMBERSHIP_SUCCESS";
+
+export type MembershipReceiverDiagnostic = Readonly<{
+  code: MembershipReceiverDiagnosticCode;
+  retryable: boolean;
+  correlation_id: string;
+  version: "eccal-mcp-auth-v1";
+  latency_ms: number;
+  status: number;
+}>;
 
 function decodeCanonicalBase64url(value: string): Buffer | null {
   if (!/^[A-Za-z0-9_-]+$/.test(value)) {
@@ -89,7 +109,9 @@ function fixedTimeCredentialMatches(
   );
   const candidate = match?.[2] ?? "";
   const candidateDigest = createHash("sha256").update(candidate).digest();
-  const expectedDigest = createHash("sha256").update(expected ?? "").digest();
+  const expectedDigest = createHash("sha256")
+    .update(expected ?? "")
+    .digest();
   const digestMatches = timingSafeEqual(candidateDigest, expectedDigest);
   return (
     digestMatches &&
@@ -127,13 +149,7 @@ function validateLoginState(
     return false;
   }
   const macKey = Buffer.from(
-    hkdfSync(
-      "sha256",
-      serviceTokenBytes,
-      Buffer.alloc(0),
-      STATE_MAC_INFO,
-      32,
-    ),
+    hkdfSync("sha256", serviceTokenBytes, Buffer.alloc(0), STATE_MAC_INFO, 32),
   );
   const signedBytes = segments.slice(0, 3).join(".");
   const expectedMac = createHmac("sha256", macKey)
@@ -163,9 +179,7 @@ function internalError(
   res.status(status).json({ ok: false, error: { code, retryable } });
 }
 
-function authenticateInternalCaller(
-  dependencies: McpAuthRouteDependencies,
-) {
+function authenticateInternalCaller(dependencies: McpAuthRouteDependencies) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (
       !fixedTimeCredentialMatches(
@@ -180,7 +194,11 @@ function authenticateInternalCaller(
   };
 }
 
-function requireExactJson(req: Request, res: Response, next: NextFunction): void {
+function requireExactJson(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   if (req.get("content-type")?.trim().toLowerCase() !== "application/json") {
     internalError(res, 400, "INVALID_REQUEST", false);
     return;
@@ -228,11 +246,66 @@ function hasExactKeys(
   );
 }
 
+function classifyMembershipStatus(status: number): Readonly<{
+  code: MembershipReceiverDiagnosticCode;
+  retryable: boolean;
+}> {
+  if (status === 200) {
+    return { code: "MCP_MEMBERSHIP_SUCCESS", retryable: false };
+  }
+  if (status === 401) {
+    return { code: "MCP_MEMBERSHIP_CALLER_REJECTED", retryable: false };
+  }
+  if (status === 400) {
+    return { code: "MCP_MEMBERSHIP_REQUEST_INVALID", retryable: false };
+  }
+  return { code: "MCP_MEMBERSHIP_SNAPSHOT_UNAVAILABLE", retryable: true };
+}
+
+function installMembershipReceiverDiagnostic(
+  req: Request,
+  res: Response,
+  reporter: McpAuthRouteDependencies["reportMembershipDiagnostic"],
+): void {
+  if (
+    reporter === undefined ||
+    req.method !== "POST" ||
+    req.path !== "/internal/membership"
+  ) {
+    return;
+  }
+  const startedAt = performance.now();
+  const correlationId = randomUUID();
+  res.once("finish", () => {
+    const classification = classifyMembershipStatus(res.statusCode);
+    const diagnostic = Object.freeze({
+      ...classification,
+      correlation_id: correlationId,
+      version: "eccal-mcp-auth-v1" as const,
+      latency_ms: Math.max(0, Math.round(performance.now() - startedAt)),
+      status: res.statusCode,
+    });
+    try {
+      reporter(diagnostic);
+    } catch {
+      // Receiver diagnostics must never alter the HTTP response boundary.
+    }
+  });
+}
+
 export function createMcpAuthRouter(
   dependencies: McpAuthRouteDependencies,
 ): express.Router {
   const router = express.Router();
   router.use(cookieParser());
+  router.use((req, res, next) => {
+    installMembershipReceiverDiagnostic(
+      req,
+      res,
+      dependencies.reportMembershipDiagnostic,
+    );
+    next();
+  });
 
   router.get("/login", async (req, res) => {
     const queryKeys = Object.keys(req.query);
@@ -395,6 +468,11 @@ const defaultDependencies: McpAuthRouteDependencies = {
   createCode: createMcpAuthCode,
   consumeCode: consumeMcpAuthCode,
   getMembership: getMcpMembershipSnapshot,
+  reportMembershipDiagnostic: (diagnostic) => {
+    process.stdout.write(
+      `MCP_MEMBERSHIP_DIAGNOSTIC ${JSON.stringify(diagnostic)}\n`,
+    );
+  },
 };
 
 export function setupMcpAuthRoutes(app: Express): void {
