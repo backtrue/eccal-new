@@ -219,9 +219,6 @@ export function setupGoogleAuth(app: Express) {
             }
           }
 
-          // Temporarily disable Brevo sync due to IP whitelist issues
-          console.log('Brevo sync disabled due to IP whitelist - user email:', user.email);
-
           // 🔧 CRITICAL FIX: 生成 JWT Token（與 Facebook OAuth 一致）
           const { jwtUtils } = await import('./jwtAuth');
           const jwtToken = jwtUtils.generateToken(user);

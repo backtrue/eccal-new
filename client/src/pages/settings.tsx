@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Link2, Unlink } from "lucide-react";
+import { Loader2, Link2, Mail, Unlink } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,15 @@ interface GAConnection {
   connectedAt: string;
 }
 
+interface EmailPreferenceResponse {
+  success: true;
+  preference: {
+    status: 'pending' | 'subscribed' | 'unsubscribed';
+    providerSync: 'not_required' | 'pending' | 'synced' | 'failed';
+  };
+  providerSync?: 'not_required' | 'pending' | 'synced' | 'failed';
+}
+
 const translations = {
   'zh-TW': {
     title: '帳號設定',
@@ -45,6 +55,14 @@ const translations = {
     confirm: '確認',
     disconnectSuccess: 'Google Analytics 帳號已成功斷開',
     disconnectError: '斷開連結失敗',
+    emailTitle: 'Email 通知',
+    emailDescription: '接收 ECCAL 功能更新、實作教學與課程消息',
+    emailEnabled: '已同意接收',
+    emailDisabled: '目前不接收',
+    emailAccessNotice: '這項設定不影響服務及課程權限，可隨時變更。',
+    emailSaved: 'Email 通知設定已儲存',
+    emailPendingSync: '設定已儲存，郵件服務會稍後同步。',
+    emailError: 'Email 通知設定儲存失敗',
     loading: '載入中...',
   },
   'en': {
@@ -64,6 +82,14 @@ const translations = {
     confirm: 'Confirm',
     disconnectSuccess: 'Google Analytics account disconnected successfully',
     disconnectError: 'Failed to disconnect',
+    emailTitle: 'Email notifications',
+    emailDescription: 'Receive ECCAL product updates, practical lessons, and course news',
+    emailEnabled: 'Subscribed',
+    emailDisabled: 'Not subscribed',
+    emailAccessNotice: 'You can change this at any time without affecting service or course access.',
+    emailSaved: 'Email preference saved',
+    emailPendingSync: 'Your preference was saved. The email service will sync later.',
+    emailError: 'Failed to save email preference',
     loading: 'Loading...',
   },
   'ja': {
@@ -83,6 +109,14 @@ const translations = {
     confirm: '確認',
     disconnectSuccess: 'Google Analytics アカウントが正常に切断されました',
     disconnectError: '接続解除に失敗しました',
+    emailTitle: 'メール通知',
+    emailDescription: 'ECCALの機能アップデート、実践情報、講座のお知らせを受け取る',
+    emailEnabled: '受信する',
+    emailDisabled: '受信しない',
+    emailAccessNotice: 'サービスや講座の利用権限に影響することなく、いつでも変更できます。',
+    emailSaved: 'メール設定を保存しました',
+    emailPendingSync: '設定を保存しました。メールサービスは後ほど同期されます。',
+    emailError: 'メール設定を保存できませんでした',
     loading: '読み込み中...',
   },
 };
@@ -97,6 +131,35 @@ export default function Settings({ locale = 'zh-TW' }: SettingsProps) {
   const { data: gaConnection, isLoading, refetch } = useQuery<GAConnection | null>({
     queryKey: ['/api/analytics/ga-connection'],
     enabled: !!user,
+  });
+
+  const { data: emailPreference, isLoading: isEmailPreferenceLoading } =
+    useQuery<EmailPreferenceResponse | null>({
+      queryKey: ['/api/email-preferences'],
+      enabled: !!user,
+    });
+
+  const emailPreferenceMutation = useMutation({
+    mutationFn: async (subscribed: boolean) => {
+      const response = await apiRequest('PUT', '/api/email-preferences', {
+        subscribed,
+        source: 'settings',
+      });
+      return (await response.json()) as EmailPreferenceResponse;
+    },
+    onSuccess: (response) => {
+      queryClient.setQueryData(['/api/email-preferences'], response);
+      toast({
+        title: t.emailSaved,
+        description:
+          response.providerSync === 'failed' || response.providerSync === 'pending'
+            ? t.emailPendingSync
+            : undefined,
+      });
+    },
+    onError: () => {
+      toast({ title: t.emailError, variant: 'destructive' });
+    },
   });
 
   // Disconnect mutation
@@ -233,6 +296,49 @@ export default function Settings({ locale = 'zh-TW' }: SettingsProps) {
                       {t.connectButton}
                     </Button>
                   </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                {t.emailTitle}
+              </CardTitle>
+              <CardDescription>{t.emailDescription}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-start justify-between gap-6">
+                <div className="space-y-2">
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {emailPreference?.preference.status === 'subscribed'
+                      ? t.emailEnabled
+                      : t.emailDisabled}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {t.emailAccessNotice}
+                  </p>
+                  {(emailPreference?.preference.providerSync === 'failed' ||
+                    emailPreference?.preference.providerSync === 'pending') && (
+                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                      {t.emailPendingSync}
+                    </p>
+                  )}
+                </div>
+                {isEmailPreferenceLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Switch
+                    checked={emailPreference?.preference.status === 'subscribed'}
+                    disabled={!user || emailPreferenceMutation.isPending}
+                    onCheckedChange={(checked) =>
+                      emailPreferenceMutation.mutate(checked)
+                    }
+                    aria-label={t.emailTitle}
+                    data-testid="switch-email-marketing-consent"
+                  />
                 )}
               </div>
             </CardContent>

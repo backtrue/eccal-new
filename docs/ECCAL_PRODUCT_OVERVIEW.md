@@ -661,7 +661,7 @@ Node.js 20 + TypeScript
 - 📊 **Google Analytics 4** - 電商指標
 - 🤖 **OpenAI GPT-4** - AI 分析
 - 💳 **Stripe** - 訂閱付款
-- 📧 **Brevo** - Email 行銷
+- 📧 **Resend** - 經會員同意後的 Email 聯絡人管理
 
 **服務**：
 - ☁️ **Replit** - 應用託管

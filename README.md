@@ -67,7 +67,7 @@
 - **Facebook Marketing API** for real advertising data
 - **Google Analytics 4 API** for e-commerce metrics
 - **Google OAuth 2.0** for secure user authentication
-- **Brevo (Sendinblue)** for automated email marketing
+- **Resend** for consent-based email contact management
 - **Stripe** for subscription billing and payment processing
 - **Meta Pixel** for comprehensive user tracking
 
@@ -119,7 +119,9 @@ FACEBOOK_APP_SECRET=your_facebook_app_secret
 OPENAI_API_KEY=your_openai_api_key
 
 # Email Marketing
-BREVO_API_KEY=your_brevo_api_key
+RESEND_API_KEY=your_resend_api_key
+RESEND_SEGMENT_ID=your_resend_segment_id
+RESEND_WEBHOOK_SECRET=your_resend_webhook_secret
 
 # Payment Processing
 STRIPE_SECRET_KEY=your_stripe_secret_key
@@ -169,9 +171,6 @@ npm run db:studio       # Open Drizzle Studio
 # Type Checking
 npm run check           # Run TypeScript type checking
 
-# Utilities
-npm run sync:brevo      # Sync users to Brevo email list
-npm run export:users    # Export user data to CSV
 ```
 
 ## 🌐 API Documentation

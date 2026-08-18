@@ -110,7 +110,7 @@ export interface TranslationData {
   gaSelectProperty: string;
   gaAutoFill: string;
   
-  // Brevo Integration
+  // Email preferences
   emailSaved: string;
   emailSaveError: string;
   
@@ -464,7 +464,7 @@ const translations: Record<Locale, TranslationData> = {
     gaSelectProperty: '選擇 GA 資源',
     gaAutoFill: '自動填入數據',
     
-    // Brevo Integration
+    // Email preferences
     emailSaved: '電子郵件已儲存',
     emailSaveError: '儲存電子郵件時發生錯誤',
     
@@ -805,7 +805,7 @@ const translations: Record<Locale, TranslationData> = {
     gaSelectProperty: 'Select GA Property',
     gaAutoFill: 'Auto-fill Data',
     
-    // Brevo Integration
+    // Email preferences
     emailSaved: 'Email saved',
     emailSaveError: 'Error saving email',
     
@@ -1129,7 +1129,7 @@ const translations: Record<Locale, TranslationData> = {
     gaSelectProperty: 'GAプロパティを選択',
     gaAutoFill: 'データ自動入力',
     
-    // Brevo Integration
+    // Email preferences
     emailSaved: 'メールアドレスが保存されました',
     emailSaveError: 'メールアドレスの保存中にエラーが発生しました',
     

@@ -8,6 +8,7 @@
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
+    "test:resend": "node --import tsx --test server/resendContactService.test.ts server/emailMarketingConsent.test.ts",
     "test:mcp": "node --import tsx --test server/mcpAuthRoutes.test.ts server/mcpAuthService.test.ts",
     "verify:mcp-scope": "node scripts/verify-mcp-scope.mjs",
     "security:scan:mcp": "secretlint server/mcpAuthRoutes.ts server/mcpAuthService.ts server/mcpAuthRoutes.test.ts server/mcpAuthService.test.ts scripts/verify-mcp-scope.mjs server/index.ts shared/schema.ts package.json package-lock.json && git diff --no-ext-diff --unified=0 d683e78ab8f62c46ef1c0f3ac3171a13f4f14fce -- | secretlint --stdinFileName=mcp.diff",
@@ -16,7 +17,6 @@
     "deploy:adcheck": "npx wrangler deploy --config cloudflare/adcheck-worker/wrangler.jsonc"
   },
   "dependencies": {
-    "@getbrevo/brevo": "^2.2.0",
     "@google/genai": "^1.8.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
@@ -93,6 +93,7 @@
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",
+    "resend": "^6.20.0",
     "stripe": "^18.3.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",

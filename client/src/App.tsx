@@ -18,7 +18,6 @@ import NotFound from "./pages/not-found";
 import CampaignPlanner from "./pages/campaign-planner";
 import CampaignPlannerV2 from "./pages/campaign-planner-v2";
 import Dashboard from "./pages/dashboard";
-import BrevoSync from "./pages/brevo-sync";
 import ProjectDetail from "./pages/project-detail";
 import AdminDashboardSimple from "./pages/admin-dashboard-simple";
 import AdminDashboard from "./pages/admin-dashboard";
@@ -45,6 +44,7 @@ import ProfitMargin from "./pages/profit-margin";
 import PricingSimulator from "./pages/pricing-simulator";
 import Settings from "./pages/settings";
 import V2AdCopilot from "./pages/v2/ad-copilot";
+import MarketingEmailConsentPrompt from "./components/MarketingEmailConsentPrompt";
 
 // 🔧 Lazy load pages with Stripe to prevent unnecessary loading
 const Checkout = lazy(() => import("./pages/checkout"));
@@ -172,7 +172,6 @@ function Router() {
           <AdminDashboard />
         </ProtectedAdminRoute>
       )} />
-      <Route path="/brevo-sync" component={BrevoSync} />
       <Route path="/facebook-permissions" component={FacebookPermissions} />
       <Route path="/facebook-setup" component={() => <FacebookSetup locale="zh-TW" />} />
       <Route path="/privacy-policy" component={Privacy} />
@@ -211,7 +210,6 @@ function Router() {
       <Route path="/en/help/calculator" component={() => <CalculatorHelp locale="en" />} />
       <Route path="/en/help/campaign-planner" component={() => <CampaignPlannerHelp locale="en" />} />
       <Route path="/en/dashboard" component={() => <Dashboard locale="en" />} />
-      <Route path="/en/brevo-sync" component={BrevoSync} />
       <Route path="/en/facebook-setup" component={() => <FacebookSetup locale="en" />} />
       <Route path="/en/privacy-policy" component={Privacy} />
       <Route path="/en/terms-of-service" component={Terms} />
@@ -247,7 +245,6 @@ function Router() {
       <Route path="/jp/help/calculator" component={() => <CalculatorHelp locale="ja" />} />
       <Route path="/jp/help/campaign-planner" component={() => <CampaignPlannerHelp locale="ja" />} />
       <Route path="/jp/dashboard" component={() => <Dashboard locale="ja" />} />
-      <Route path="/jp/brevo-sync" component={BrevoSync} />
       <Route path="/jp/facebook-setup" component={() => <FacebookSetup locale="ja" />} />
       <Route path="/jp/privacy-policy" component={Privacy} />
       <Route path="/jp/terms-of-service" component={Terms} />
@@ -295,6 +292,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <Router />
+          <MarketingEmailConsentPrompt />
           <Toaster />
         </AuthProvider>
       </QueryClientProvider>

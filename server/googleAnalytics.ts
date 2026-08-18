@@ -150,14 +150,14 @@ export class GoogleAnalyticsService {
         conversionRate,
       };
 
-      // Get GA resource name for Brevo integration
+      // Preserve the selected GA resource name with the saved metrics.
       let gaResourceName = '';
       try {
         const properties = await this.getUserAnalyticsProperties(userId);
         const selectedProperty = properties.find(p => p.id === propertyId);
         gaResourceName = selectedProperty ? `${selectedProperty.displayName} (${selectedProperty.accountName})` : '';
       } catch (error) {
-        console.error('Error getting GA resource name for Brevo:', error);
+        console.error('Error getting GA resource name:', error);
       }
 
       // Save metrics to database
