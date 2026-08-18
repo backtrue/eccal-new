@@ -9,7 +9,9 @@ import {
   boolean,
   jsonb,
   index,
+  uniqueIndex,
   check,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -57,6 +59,36 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const aeoCoursePurchases = pgTable(
+  "aeo_course_purchases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    courseSlug: text("course_slug").notNull().default("seo-101"),
+    source: text("source").notNull().default("aeo-class-admin-sync"),
+    recordedAt: timestamp("recorded_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("aeo_course_purchases_email_course_slug_idx").on(
+      table.email,
+      table.courseSlug,
+    ),
+    check(
+      "aeo_course_purchases_course_slug_check",
+      sql`${table.courseSlug} = 'seo-101'`,
+    ),
+    check(
+      "aeo_course_purchases_source_check",
+      sql`${table.source} = 'aeo-class-admin-sync'`,
+    ),
+  ],
+);
+
+export type AeoCoursePurchase = typeof aeoCoursePurchases.$inferSelect;
+export type InsertAeoCoursePurchase = typeof aeoCoursePurchases.$inferInsert;
 
 export const mcpAuthCodes = pgTable(
   "mcp_auth_codes",

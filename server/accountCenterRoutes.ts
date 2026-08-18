@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 import { requireJWTAuth } from './jwtAuth';
 import { db } from './db';
-import { users, userCredits, userReferrals } from '@shared/schema';
+import { aeoCoursePurchases, users, userCredits, userReferrals } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -9,6 +9,119 @@ import { getAccountSnapshot } from './accountSnapshotService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const SERVICE_API_KEY = process.env.SERVICE_API_KEY;
+const AEO_COURSE_SLUG = 'seo-101';
+const AEO_PURCHASE_SOURCE = 'aeo-class-admin-sync';
+
+export interface AeoCoursePurchaseRouteDependencies {
+  getApiKey: () => string | undefined;
+  recordPurchase: (email: string) => Promise<boolean>;
+}
+
+function apiKeysMatch(provided: string, expected: string): boolean {
+  const providedBuffer = Buffer.from(provided);
+  const expectedBuffer = Buffer.from(expected);
+  return providedBuffer.length === expectedBuffer.length
+    && crypto.timingSafeEqual(providedBuffer, expectedBuffer);
+}
+
+async function recordAeoCoursePurchase(email: string): Promise<boolean> {
+  const inserted = await db
+    .insert(aeoCoursePurchases)
+    .values({
+      email,
+      courseSlug: AEO_COURSE_SLUG,
+      source: AEO_PURCHASE_SOURCE,
+    })
+    .onConflictDoNothing({
+      target: [aeoCoursePurchases.email, aeoCoursePurchases.courseSlug],
+    })
+    .returning({ id: aeoCoursePurchases.id });
+
+  return inserted.length > 0;
+}
+
+export function createAeoCoursePurchaseHandler(
+  overrides: Partial<AeoCoursePurchaseRouteDependencies> = {},
+) {
+  const dependencies: AeoCoursePurchaseRouteDependencies = {
+    getApiKey: () => process.env.AEO_SYNC_API_KEY,
+    recordPurchase: recordAeoCoursePurchase,
+    ...overrides,
+  };
+
+  return async (req: Request, res: Response) => {
+    const expectedApiKey = dependencies.getApiKey();
+    const providedApiKey = req.headers['x-api-key'];
+
+    if (!expectedApiKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'AEO sync API key not configured',
+        code: 'API_KEY_NOT_CONFIGURED',
+      });
+    }
+
+    if (typeof providedApiKey !== 'string') {
+      return res.status(401).json({
+        success: false,
+        error: 'API key is required',
+        code: 'API_KEY_MISSING',
+      });
+    }
+
+    if (!apiKeysMatch(providedApiKey, expectedApiKey)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Invalid API key',
+        code: 'INVALID_API_KEY',
+      });
+    }
+
+    const body = req.body;
+    if (
+      !body
+      || typeof body !== 'object'
+      || Array.isArray(body)
+      || Object.keys(body).length !== 1
+      || typeof body.email !== 'string'
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: 'A valid email is required',
+        code: 'INVALID_EMAIL',
+      });
+    }
+
+    const email = body.email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'A valid email is required',
+        code: 'INVALID_EMAIL',
+      });
+    }
+
+    try {
+      const created = await dependencies.recordPurchase(email);
+      return res.json({
+        success: true,
+        purchase: {
+          email,
+          courseSlug: AEO_COURSE_SLUG,
+          source: AEO_PURCHASE_SOURCE,
+        },
+        created,
+      });
+    } catch (error) {
+      console.error('Error recording AEO course purchase');
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to record AEO course purchase',
+        code: 'INTERNAL_ERROR',
+      });
+    }
+  };
+}
 
 // API Key 驗證中間件（用於外部服務）
 const requireServiceApiKey = (req: Request, res: Response, next: any) => {
@@ -626,6 +739,11 @@ export function setupAccountCenterRoutes(app: Express) {
       });
     }
   });
+
+  app.post(
+    '/api/account-center/aeo-course-purchases',
+    createAeoCoursePurchaseHandler(),
+  );
 
   // ==================== 健康檢查端點 ====================
   
