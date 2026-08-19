@@ -3,20 +3,18 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 
-const BASELINE = "d683e78ab8f62c46ef1c0f3ac3171a13f4f14fce";
+const BASELINE = "51e49cd3bfba970ceb22e96875875020df5ad870";
 const ROOT = process.cwd();
 const ALLOWED_PATHS = new Set([
-  ".secretlintignore",
-  ".secretlintrc.json",
   "package-lock.json",
   "package.json",
   "scripts/verify-mcp-scope.mjs",
-  "server/index.ts",
+  "server/accountSnapshotService.test.ts",
+  "server/accountSnapshotService.ts",
   "server/mcpAuthRoutes.test.ts",
   "server/mcpAuthRoutes.ts",
   "server/mcpAuthService.test.ts",
   "server/mcpAuthService.ts",
-  "shared/schema.ts",
 ]);
 
 function runGit(args, options = {}) {
@@ -98,55 +96,16 @@ function baselineText(pathname) {
   return runGit(["show", `${BASELINE}:${pathname}`]);
 }
 
-function assertIndexDelta() {
-  const diff = runGit([
-    "diff",
-    "--no-ext-diff",
-    "--unified=0",
-    BASELINE,
-    "--",
-    "server/index.ts",
-  ]);
-  const allowedAdditions = new Set([
-    "import { setupMcpAuthRoutes } from './mcpAuthRoutes';",
-    "setupMcpAuthRoutes(app);",
-    "  '/mcp/internal',",
-  ]);
-  const additions = [];
-  for (const line of diff.split("\n")) {
-    if (line.startsWith("---") || line.startsWith("+++")) {
-      continue;
-    }
-    if (line.startsWith("-")) {
-      throw new Error("server/index.ts may not delete or rewrite existing lines");
-    }
-    if (line.startsWith("+")) {
-      additions.push(line.slice(1));
-    }
-  }
-  if (
-    additions.length !== allowedAdditions.size ||
-    additions.some((line) => !allowedAdditions.has(line))
-  ) {
-    throw new Error("server/index.ts contains changes outside the fixed MCP wiring");
-  }
-}
-
 async function assertPackageDelta() {
   const baselinePackage = JSON.parse(baselineText("package.json"));
   const currentPackage = JSON.parse(await readFile(path.join(ROOT, "package.json"), "utf8"));
   const expectedPackage = structuredClone(baselinePackage);
   expectedPackage.scripts["test:mcp"] =
-    "node --import tsx --test server/mcpAuthRoutes.test.ts server/mcpAuthService.test.ts";
+    "node --import tsx --test server/accountSnapshotService.test.ts server/aeoCoursePurchases.test.ts server/mcpAuthRoutes.test.ts server/mcpAuthService.test.ts";
   expectedPackage.scripts["verify:mcp-scope"] =
     "node scripts/verify-mcp-scope.mjs";
   expectedPackage.scripts["security:scan:mcp"] =
-    "secretlint server/mcpAuthRoutes.ts server/mcpAuthService.ts server/mcpAuthRoutes.test.ts server/mcpAuthService.test.ts scripts/verify-mcp-scope.mjs server/index.ts shared/schema.ts package.json package-lock.json && git diff --no-ext-diff --unified=0 d683e78ab8f62c46ef1c0f3ac3171a13f4f14fce -- | secretlint --stdinFileName=mcp.diff";
-  expectedPackage.devDependencies.secretlint = "13.0.4";
-  expectedPackage.devDependencies[
-    "@secretlint/secretlint-rule-preset-recommend"
-  ] = "13.0.4";
-  expectedPackage.overrides = { "form-data": "2.5.6" };
+    "secretlint server/accountSnapshotService.ts server/accountSnapshotService.test.ts server/aeoCoursePurchases.test.ts server/mcpAuthRoutes.ts server/mcpAuthService.ts server/mcpAuthRoutes.test.ts server/mcpAuthService.test.ts scripts/verify-mcp-scope.mjs server/index.ts shared/schema.ts package.json package-lock.json && git diff --no-ext-diff --unified=0 51e49cd3bfba970ceb22e96875875020df5ad870 -- | secretlint --stdinFileName=mcp.diff";
   if (stable(currentPackage) !== stable(expectedPackage)) {
     throw new Error("package.json contains changes outside the fixed MCP scripts and dependencies");
   }
@@ -154,25 +113,21 @@ async function assertPackageDelta() {
   const baselineLock = JSON.parse(baselineText("package-lock.json"));
   const currentLockText = await readFile(path.join(ROOT, "package-lock.json"), "utf8");
   const currentLock = JSON.parse(currentLockText);
-  const expectedRoot = structuredClone(baselineLock.packages[""]);
-  expectedRoot.devDependencies.secretlint = "13.0.4";
-  expectedRoot.devDependencies[
-    "@secretlint/secretlint-rule-preset-recommend"
-  ] = "13.0.4";
-  if (stable(currentLock.packages[""]) !== stable(expectedRoot)) {
-    throw new Error("package-lock root contains unauthorized direct dependency changes");
+  if (stable(currentLock) !== stable(baselineLock)) {
+    throw new Error("package-lock contains unauthorized metadata or dependency changes");
   }
+  const baselineLockText = baselineText("package-lock.json");
   if (
     createHash("sha256").update(currentLockText).digest("hex") !==
-    "f6b279cf76ece316131e3f11200be6253fbb898884f8ee2f801fa222d33d5115"
+    createHash("sha256").update(baselineLockText).digest("hex")
   ) {
     throw new Error("package-lock contains changes outside the approved deterministic lockfile");
   }
 }
 
 async function assertProductionSourceBoundaries() {
-  const source = await readFile(path.join(ROOT, "server/mcpAuthRoutes.ts"), "utf8");
-  const forbidden = [
+  const routeSource = await readFile(path.join(ROOT, "server/mcpAuthRoutes.ts"), "utf8");
+  const routeForbidden = [
     /console\s*\./u,
     /googleAccessToken/u,
     /googleRefreshToken/u,
@@ -180,9 +135,23 @@ async function assertProductionSourceBoundaries() {
     /setInterval\s*\(/u,
     /setTimeout\s*\(/u,
   ];
-  for (const pattern of forbidden) {
-    if (pattern.test(source)) {
+  for (const pattern of routeForbidden) {
+    if (pattern.test(routeSource)) {
       throw new Error(`forbidden MCP route source pattern: ${pattern}`);
+    }
+  }
+
+  const snapshotSource = await readFile(
+    path.join(ROOT, "server/accountSnapshotService.ts"),
+    "utf8",
+  );
+  for (const pattern of [
+    /console\s*\./u,
+    /\.(?:insert|update|delete)\s*\(/u,
+    /\b(?:cache|retry)\b/iu,
+  ]) {
+    if (pattern.test(snapshotSource)) {
+      throw new Error(`forbidden account snapshot source pattern: ${pattern}`);
     }
   }
 }
@@ -206,7 +175,6 @@ async function main() {
     console.log(`mcp scope path: ${JSON.stringify(pathname)}`);
   }
 
-  assertIndexDelta();
   await assertPackageDelta();
   await assertProductionSourceBoundaries();
 

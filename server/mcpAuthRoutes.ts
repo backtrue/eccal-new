@@ -425,7 +425,11 @@ export function createMcpAuthRouter(
     }
     try {
       const snapshot = await dependencies.getMembership(body.user_id);
-      if (snapshot === null || snapshot.user_id !== body.user_id) {
+      if (
+        snapshot === null ||
+        snapshot.user_id !== body.user_id ||
+        typeof snapshot.aeo_course_purchased !== "boolean"
+      ) {
         internalError(res, 503, "MEMBERSHIP_UNAVAILABLE", true);
         return;
       }
@@ -435,6 +439,7 @@ export function createMcpAuthRouter(
         membership: snapshot.membership,
         membership_expires: snapshot.membership_expires,
         credits: snapshot.credits,
+        aeo_course_purchased: snapshot.aeo_course_purchased,
         checked_at: snapshot.checked_at,
       });
     } catch {

@@ -336,6 +336,7 @@ test("getMembership delegates once and returns only the fixed safe snapshot", as
         membership: "pro" as const,
         membershipExpires: null,
         credits: 9,
+        aeo_course_purchased: true,
         email: "must-not-leak@example.com",
         name: "must-not-leak",
       };
@@ -349,6 +350,7 @@ test("getMembership delegates once and returns only the fixed safe snapshot", as
     membership: "pro",
     membership_expires: null,
     credits: 9,
+    aeo_course_purchased: true,
     checked_at: "2026-08-12T03:04:05.000Z",
   });
   assert.equal(calls, 1);
@@ -362,6 +364,7 @@ test("getMembership delegates once and returns only the fixed safe snapshot", as
       membership: "free" as const,
       membershipExpires: null,
       credits: 0,
+      aeo_course_purchased: false,
     }),
     randomBytes: deterministicBytes,
     now: () => new Date("2026-08-12T03:04:05.000Z"),
@@ -377,6 +380,7 @@ test("getMembership delegates once and returns only the fixed safe snapshot", as
       membership: "pro" as const,
       membershipExpires: "not-a-timestamp",
       credits: 9,
+      aeo_course_purchased: true,
     }),
     randomBytes: deterministicBytes,
     now: () => new Date("2026-08-12T03:04:05.000Z"),
@@ -395,6 +399,7 @@ test("getMembership delegates once and returns only the fixed safe snapshot", as
       membership: "pro" as const,
       membershipExpires: "2026-09-12T03:04:05.000Z",
       credits: 9,
+      aeo_course_purchased: false,
     }),
     randomBytes: deterministicBytes,
     now: () => new Date("2026-08-12T03:04:05.000Z"),
@@ -404,4 +409,28 @@ test("getMembership delegates once and returns only the fixed safe snapshot", as
       ?.membership_expires,
     "2026-09-12T03:04:05.000Z",
   );
+  assert.equal(
+    (await validTimestampService.getMembership("opaque-user"))
+      ?.aeo_course_purchased,
+    false,
+  );
+});
+
+test("getMembership fails closed when the account source marker is not boolean", async () => {
+  const service = createMcpAuthService({
+    getDatabase: async () => {
+      throw new Error("database dependency must not be called directly");
+    },
+    getAccountSnapshot: async (userId) => ({
+      id: userId,
+      membership: "free",
+      membershipExpires: null,
+      credits: 0,
+      aeo_course_purchased: "true",
+    }),
+    randomBytes: deterministicBytes,
+    now: () => new Date("2026-08-12T03:04:05.000Z"),
+  } as unknown as McpAuthServiceDependencies);
+
+  assert.equal(await service.getMembership("opaque-user"), null);
 });

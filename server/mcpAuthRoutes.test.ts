@@ -88,6 +88,7 @@ function dependencies(overrides: Partial<McpAuthRouteDependencies> = {}): {
         membership: "pro",
         membership_expires: null,
         credits: 9,
+        aeo_course_purchased: true,
         checked_at: "2026-08-12T00:00:00.000Z",
       };
     },
@@ -638,6 +639,7 @@ test("membership diagnostic reporter failure cannot alter the success response",
       membership: "pro",
       membership_expires: null,
       credits: 9,
+      aeo_course_purchased: true,
       checked_at: "2026-08-12T00:00:00.000Z",
     });
   });
@@ -701,8 +703,14 @@ test("4096-byte membership JSON is accepted and returns only the fixed safe snap
         membership: "pro",
         membership_expires: null,
         credits: 9,
+        aeo_course_purchased: false,
         checked_at: "2026-08-12T00:00:00.000Z",
         email: "must-not-leave-eccal@example.invalid",
+        course_slug: "seo-101",
+        source: "must-not-leave-eccal",
+        recorded_at: "2026-08-12T00:00:00.000Z",
+        row_id: "must-not-leave-eccal",
+        row_count: 1,
       };
     },
   });
@@ -717,6 +725,7 @@ test("4096-byte membership JSON is accepted and returns only the fixed safe snap
     assert.equal(response.status, 200);
     const result = (await response.json()) as Record<string, unknown>;
     assert.deepEqual(Object.keys(result).sort(), [
+      "aeo_course_purchased",
       "checked_at",
       "credits",
       "membership",
@@ -726,6 +735,8 @@ test("4096-byte membership JSON is accepted and returns only the fixed safe snap
     ]);
     assert.equal(result.ok, true);
     assert.equal(result.user_id, "a".repeat(4082));
+    assert.equal(result.aeo_course_purchased, false);
+    assert.doesNotMatch(JSON.stringify(result), /must-not-leave-eccal/u);
     assert.equal(fixture.calls.getMembership, 1);
   });
 });
@@ -806,8 +817,20 @@ test("missing or failed membership is one retryable unavailable response without
         membership: "pro" as const,
         membership_expires: null,
         credits: 9,
+        aeo_course_purchased: true,
         checked_at: "2026-08-12T00:00:00.000Z",
       }),
+    },
+    {
+      label: "non-boolean AEO marker",
+      getMembership: async () => ({
+        user_id: "opaque-user",
+        membership: "free" as const,
+        membership_expires: null,
+        credits: 0,
+        aeo_course_purchased: "true",
+        checked_at: "2026-08-12T00:00:00.000Z",
+      }) as unknown as Awaited<ReturnType<McpAuthRouteDependencies["getMembership"]>>,
     },
     {
       label: "snapshot source failure",

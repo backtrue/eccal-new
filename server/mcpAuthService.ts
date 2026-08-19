@@ -21,6 +21,7 @@ type AccountSnapshotSource = Readonly<{
   membership: "free" | "pro";
   membershipExpires: string | null;
   credits: number;
+  aeo_course_purchased: boolean;
 }>;
 
 export type McpMembershipSnapshot = Readonly<{
@@ -28,6 +29,7 @@ export type McpMembershipSnapshot = Readonly<{
   membership: "free" | "pro";
   membership_expires: string | null;
   credits: number;
+  aeo_course_purchased: boolean;
   checked_at: string;
 }>;
 
@@ -216,6 +218,7 @@ export function createMcpAuthService(
     }
     if (
       (snapshot.membership !== "free" && snapshot.membership !== "pro") ||
+      typeof snapshot.aeo_course_purchased !== "boolean" ||
       (snapshot.membershipExpires !== null &&
         (typeof snapshot.membershipExpires !== "string" ||
           !isCanonicalTimestamp(snapshot.membershipExpires))) ||
@@ -228,6 +231,7 @@ export function createMcpAuthService(
       membership: snapshot.membership,
       membership_expires: snapshot.membershipExpires,
       credits: snapshot.credits,
+      aeo_course_purchased: snapshot.aeo_course_purchased,
       checked_at: dependencies.now().toISOString(),
     };
   }
