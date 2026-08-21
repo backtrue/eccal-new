@@ -102,8 +102,14 @@ test("mcp_auth_codes has the exact table, constraints, timestamps, and index", (
   );
   assert.equal(config.foreignKeys.length, 1);
   const reference = config.foreignKeys[0].reference();
-  assert.deepEqual(reference.columns.map((column) => column.name), ["user_id"]);
-  assert.deepEqual(reference.foreignColumns.map((column) => column.name), ["id"]);
+  assert.deepEqual(
+    reference.columns.map((column) => column.name),
+    ["user_id"],
+  );
+  assert.deepEqual(
+    reference.foreignColumns.map((column) => column.name),
+    ["id"],
+  );
   assert.equal(config.foreignKeys[0].onDelete, "cascade");
 });
 
@@ -114,9 +120,11 @@ test("createCode stores only hashes in one cleanup-and-insert transaction", asyn
     async execute(): Promise<never> {
       throw new Error("top-level execute must not be called");
     },
-    async transaction<T>(callback: (transaction: {
-      execute(query: SQL): Promise<{ rows: [] }>;
-    }) => Promise<T>): Promise<T> {
+    async transaction<T>(
+      callback: (transaction: {
+        execute(query: SQL): Promise<{ rows: [] }>;
+      }) => Promise<T>,
+    ): Promise<T> {
       transactionCalls += 1;
       return callback({
         async execute(query) {
@@ -139,7 +147,9 @@ test("createCode stores only hashes in one cleanup-and-insert transaction", asyn
     userId: "opaque-user",
     loginState,
   });
-  const expectedCode = Buffer.from(deterministicBytes(32)).toString("base64url");
+  const expectedCode = Buffer.from(deterministicBytes(32)).toString(
+    "base64url",
+  );
 
   assert.equal(result.code, expectedCode);
   assert.equal(result.code.length, 43);
@@ -185,9 +195,11 @@ test("createCode returns no code when cleanup or insert fails", async (context) 
           async execute(): Promise<never> {
             throw new Error("top-level execute must not be called");
           },
-          async transaction<T>(callback: (transaction: {
-            execute(query: SQL): Promise<{ rows: [] }>;
-          }) => Promise<T>): Promise<T> {
+          async transaction<T>(
+            callback: (transaction: {
+              execute(query: SQL): Promise<{ rows: [] }>;
+            }) => Promise<T>,
+          ): Promise<T> {
             return callback({
               async execute() {
                 executeCalls += 1;
@@ -251,7 +263,10 @@ test("consumeCode uses one atomic bound update and allows exactly one concurrent
   assert.equal(compiledQueries.length, 2);
   for (const compiled of compiledQueries) {
     const statement = normalizeSql(compiled.sql);
-    assert.match(statement, /^UPDATE mcp_auth_codes SET consumed_at = now\(\)/iu);
+    assert.match(
+      statement,
+      /^UPDATE mcp_auth_codes SET consumed_at = now\(\)/iu,
+    );
     assert.match(statement, /code_hash = \$1/iu);
     assert.match(statement, /login_state_hash = \$2/iu);
     assert.match(statement, /audience = \$3/iu);
@@ -433,4 +448,89 @@ test("getMembership fails closed when the account source marker is not boolean",
   } as unknown as McpAuthServiceDependencies);
 
   assert.equal(await service.getMembership("opaque-user"), null);
+});
+
+test("getAccountStatus delegates once and returns normalized Email with the same safe snapshot", async () => {
+  let calls = 0;
+  const service = createMcpAuthService({
+    getDatabase: async () => {
+      throw new Error("database dependency must not be called directly");
+    },
+    getAccountSnapshot: async (userId) => {
+      calls += 1;
+      return {
+        id: userId,
+        email: "  Member.Name@Example.COM  ",
+        membership: "free" as const,
+        membershipExpires: null,
+        credits: 30,
+        aeo_course_purchased: true,
+      };
+    },
+    randomBytes: deterministicBytes,
+    now: () => new Date("2026-08-21T00:00:00.000Z"),
+  } as McpAuthServiceDependencies);
+
+  assert.deepEqual(await service.getAccountStatus("opaque-user"), {
+    user_id: "opaque-user",
+    account_email: "member.name@example.com",
+    membership: "free",
+    membership_expires: null,
+    credits: 30,
+    aeo_course_purchased: true,
+    checked_at: "2026-08-21T00:00:00.000Z",
+  });
+  assert.equal(calls, 1);
+});
+
+test("getAccountStatus fails closed for invalid Email without changing getMembership", async (context) => {
+  for (const email of [
+    undefined,
+    null,
+    "",
+    "not-an-email",
+    "member@example",
+    "member @example.com",
+    "a..b@example.com",
+    ".member@example.com",
+    "member.@example.com",
+    "member@-example.com",
+    "member@example-.com",
+    "a".repeat(321),
+    42,
+  ]) {
+    await context.test(String(email), async () => {
+      let calls = 0;
+      const service = createMcpAuthService({
+        getDatabase: async () => {
+          throw new Error("database dependency must not be called directly");
+        },
+        getAccountSnapshot: async (userId) => {
+          calls += 1;
+          return {
+            id: userId,
+            email,
+            membership: "pro" as const,
+            membershipExpires: null,
+            credits: 9,
+            aeo_course_purchased: false,
+          };
+        },
+        randomBytes: deterministicBytes,
+        now: () => new Date("2026-08-21T00:00:00.000Z"),
+      } as McpAuthServiceDependencies);
+
+      assert.equal(await service.getAccountStatus("opaque-user"), null);
+      assert.equal(calls, 1);
+      assert.deepEqual(await service.getMembership("opaque-user"), {
+        user_id: "opaque-user",
+        membership: "pro",
+        membership_expires: null,
+        credits: 9,
+        aeo_course_purchased: false,
+        checked_at: "2026-08-21T00:00:00.000Z",
+      });
+      assert.equal(calls, 2);
+    });
+  }
 });

@@ -26,6 +26,7 @@ type CallCounts = {
   createCode: number;
   consumeCode: number;
   getMembership: number;
+  getAccountStatus: number;
 };
 
 function signedLoginState(ciphertextBytes = 48): string {
@@ -59,6 +60,7 @@ function dependencies(overrides: Partial<McpAuthRouteDependencies> = {}): {
     createCode: 0,
     consumeCode: 0,
     getMembership: 0,
+    getAccountStatus: 0,
   };
   const defaults: McpAuthRouteDependencies = {
     getServiceToken: () => SERVICE_TOKEN,
@@ -85,6 +87,18 @@ function dependencies(overrides: Partial<McpAuthRouteDependencies> = {}): {
       calls.getMembership += 1;
       return {
         user_id: userId,
+        membership: "pro",
+        membership_expires: null,
+        credits: 9,
+        aeo_course_purchased: true,
+        checked_at: "2026-08-12T00:00:00.000Z",
+      };
+    },
+    getAccountStatus: async (userId) => {
+      calls.getAccountStatus += 1;
+      return {
+        user_id: userId,
+        account_email: "member@example.com",
         membership: "pro",
         membership_expires: null,
         credits: 9,
@@ -213,6 +227,7 @@ test("login_state query is HMAC verified before the fixed secure cookie is set",
       createCode: 0,
       consumeCode: 0,
       getMembership: 0,
+      getAccountStatus: 0,
     });
   });
 });
@@ -238,6 +253,7 @@ test("exact auth_success=1 only redirects clean and the next request performs id
       createCode: 0,
       consumeCode: 0,
       getMembership: 0,
+      getAccountStatus: 0,
     });
 
     const cleanResponse = await fetch(`${baseUrl}/api/mcp/login`, {
@@ -302,6 +318,7 @@ test("wrong, extra, repeated, and mixed auth_success queries fail and clear logi
           createCode: 0,
           consumeCode: 0,
           getMembership: 0,
+          getAccountStatus: 0,
         });
       });
     });
@@ -473,7 +490,7 @@ test("authenticated clean login creates one code and redirects only to the fixed
   });
 });
 
-test("wrong caller credential is a fixed 401 and never enters code or membership services", async () => {
+test("wrong caller credential is a fixed 401 and never enters internal services", async () => {
   const fixture = dependencies();
   await withServer(fixture.dependencies, async (baseUrl) => {
     for (const authorization of [
@@ -481,7 +498,7 @@ test("wrong caller credential is a fixed 401 and never enters code or membership
       "bearer malformed",
       `Bearer ${Buffer.alloc(32, 9).toString("base64url")}`,
     ]) {
-      for (const path of ["exchange", "membership"]) {
+      for (const path of ["exchange", "membership", "account-status"]) {
         const headers: Record<string, string> = {
           "content-type": "application/json",
         };
@@ -502,6 +519,7 @@ test("wrong caller credential is a fixed 401 and never enters code or membership
     }
     assert.equal(fixture.calls.consumeCode, 0);
     assert.equal(fixture.calls.getMembership, 0);
+    assert.equal(fixture.calls.getAccountStatus, 0);
   });
 });
 
@@ -524,17 +542,20 @@ test("internal routes require exact JSON and reject empty, invalid, additional, 
     await context.test(String(fixtureCase.body.length), async () => {
       const fixture = dependencies();
       await withServer(fixture.dependencies, async (baseUrl) => {
-        const response = await fetch(`${baseUrl}/api/mcp/internal/membership`, {
-          method: "POST",
-          headers: fixtureCase.headers,
-          body: fixtureCase.body,
-        });
-        assert.equal(response.status, 400);
-        assert.deepEqual(await response.json(), {
-          ok: false,
-          error: { code: "INVALID_REQUEST", retryable: false },
-        });
+        for (const path of ["membership", "account-status"]) {
+          const response = await fetch(`${baseUrl}/api/mcp/internal/${path}`, {
+            method: "POST",
+            headers: fixtureCase.headers,
+            body: fixtureCase.body,
+          });
+          assert.equal(response.status, 400);
+          assert.deepEqual(await response.json(), {
+            ok: false,
+            error: { code: "INVALID_REQUEST", retryable: false },
+          });
+        }
         assert.equal(fixture.calls.getMembership, 0);
+        assert.equal(fixture.calls.getAccountStatus, 0);
       });
     });
   }
@@ -741,6 +762,156 @@ test("4096-byte membership JSON is accepted and returns only the fixed safe snap
   });
 });
 
+test("4096-byte account-status JSON is accepted and returns only the fixed safe snapshot", async () => {
+  const fixture = dependencies({
+    getAccountStatus: async (userId) => {
+      fixture.calls.getAccountStatus += 1;
+      return {
+        user_id: userId,
+        account_email: "member@example.com",
+        membership: "pro",
+        membership_expires: null,
+        credits: 9,
+        aeo_course_purchased: false,
+        checked_at: "2026-08-21T00:00:00.000Z",
+      };
+    },
+  });
+  const body = membershipBodyOfSize(4096);
+  assert.equal(Buffer.byteLength(body), 4096);
+  await withServer(fixture.dependencies, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/mcp/internal/account-status`, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body,
+    });
+    assert.equal(response.status, 200);
+    const result = (await response.json()) as Record<string, unknown>;
+    assert.deepEqual(Object.keys(result).sort(), [
+      "account_email",
+      "aeo_course_purchased",
+      "checked_at",
+      "credits",
+      "membership",
+      "membership_expires",
+      "ok",
+      "user_id",
+    ]);
+    assert.equal(result.ok, true);
+    assert.equal(result.user_id, "a".repeat(4082));
+    assert.equal(result.account_email, "member@example.com");
+    assert.equal(result.aeo_course_purchased, false);
+    assert.equal(fixture.calls.getAccountStatus, 1);
+    assert.equal(fixture.calls.getMembership, 0);
+  });
+});
+
+test("account status returns only the normalized Email and fixed safe snapshot", async () => {
+  const fixture = dependencies();
+  await withServer(fixture.dependencies, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/mcp/internal/account-status`, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({ user_id: "opaque-user" }),
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      user_id: "opaque-user",
+      account_email: "member@example.com",
+      membership: "pro",
+      membership_expires: null,
+      credits: 9,
+      aeo_course_purchased: true,
+      checked_at: "2026-08-12T00:00:00.000Z",
+    });
+  });
+  assert.equal(fixture.calls.getAccountStatus, 1);
+  assert.equal(fixture.calls.getMembership, 0);
+});
+
+test("account status fails closed for invalid Email, user mismatch, and source failure", async (context) => {
+  const baseSnapshot = {
+    user_id: "opaque-user",
+    account_email: "member@example.com",
+    membership: "free" as const,
+    membership_expires: null,
+    credits: 30,
+    aeo_course_purchased: true,
+    checked_at: "2026-08-21T00:00:00.000Z",
+  };
+  const cases: ReadonlyArray<{
+    label: string;
+    getAccountStatus: McpAuthRouteDependencies["getAccountStatus"];
+  }> = [
+    { label: "missing", getAccountStatus: async () => null },
+    {
+      label: "user mismatch",
+      getAccountStatus: async () => ({
+        ...baseSnapshot,
+        user_id: "different-user",
+      }),
+    },
+    {
+      label: "mixed-case Email",
+      getAccountStatus: async () => ({
+        ...baseSnapshot,
+        account_email: "Member@Example.com",
+      }),
+    },
+    {
+      label: "invalid Email",
+      getAccountStatus: async () => ({
+        ...baseSnapshot,
+        account_email: "not-an-email",
+      }),
+    },
+    {
+      label: "double-dot Email",
+      getAccountStatus: async () => ({
+        ...baseSnapshot,
+        account_email: "a..b@example.com",
+      }),
+    },
+    {
+      label: "source failure",
+      getAccountStatus: async () => {
+        throw new Error("private source detail");
+      },
+    },
+  ];
+
+  for (const fixtureCase of cases) {
+    await context.test(fixtureCase.label, async () => {
+      const fixture = dependencies({
+        getAccountStatus: async (userId) => {
+          fixture.calls.getAccountStatus += 1;
+          return fixtureCase.getAccountStatus(userId);
+        },
+      });
+      await withServer(fixture.dependencies, async (baseUrl) => {
+        const response = await fetch(
+          `${baseUrl}/api/mcp/internal/account-status`,
+          {
+            method: "POST",
+            headers: jsonHeaders(),
+            body: JSON.stringify({ user_id: "opaque-user" }),
+          },
+        );
+        assert.equal(response.status, 503);
+        const text = await response.text();
+        assert.deepEqual(JSON.parse(text), {
+          ok: false,
+          error: { code: "MEMBERSHIP_UNAVAILABLE", retryable: true },
+        });
+        assert.doesNotMatch(text, /member@|private source detail/iu);
+      });
+      assert.equal(fixture.calls.getAccountStatus, 1);
+      assert.equal(fixture.calls.getMembership, 0);
+    });
+  }
+});
+
 test("exchange keeps all binding mismatches indistinguishable and maps storage failure", async () => {
   const fixture = dependencies();
   await withServer(fixture.dependencies, async (baseUrl) => {
@@ -823,14 +994,17 @@ test("missing or failed membership is one retryable unavailable response without
     },
     {
       label: "non-boolean AEO marker",
-      getMembership: async () => ({
-        user_id: "opaque-user",
-        membership: "free" as const,
-        membership_expires: null,
-        credits: 0,
-        aeo_course_purchased: "true",
-        checked_at: "2026-08-12T00:00:00.000Z",
-      }) as unknown as Awaited<ReturnType<McpAuthRouteDependencies["getMembership"]>>,
+      getMembership: async () =>
+        ({
+          user_id: "opaque-user",
+          membership: "free" as const,
+          membership_expires: null,
+          credits: 0,
+          aeo_course_purchased: "true",
+          checked_at: "2026-08-12T00:00:00.000Z",
+        }) as unknown as Awaited<
+          ReturnType<McpAuthRouteDependencies["getMembership"]>
+        >,
     },
     {
       label: "snapshot source failure",
