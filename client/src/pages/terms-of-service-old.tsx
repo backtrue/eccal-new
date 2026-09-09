@@ -48,8 +48,7 @@ export default function TermsOfServicePage() {
       fbHealthCheck: 'Facebook 廣告健檢系統（AI 驅動的廣告帳戶健康檢查）',
       budgetCalculator: '廣告預算計算機（整合 Google Analytics 數據的預算規劃工具）',
       campaignPlanner: '活動預算規劃師（專業的五階段活動預算分配系統）',
-      membershipSystem: '會員積分系統（點數管理和會員升級服務）',
-      
+
       serviceIntegration: '我們的服務能夠互相搭配運作，方便您從一項活動接續執行下一項活動。舉例來說，您可以在廣告預算計算機中計算預算，然後在活動預算規劃師中制定詳細的執行計劃。',
       
       developingServices: '開發、改善及更新報數據服務',
@@ -562,10 +561,10 @@ export default function TermsOfServicePage() {
               {content.serviceProvider}
             </h3>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-              <li>{content.serviceName}</li>
-              <li>{content.taiwanCompany}</li>
-              <li>{content.japanCompany}</li>
-              <li>{content.serviceUrl}</li>
+              <li>{content.companyInfo}</li>
+              <li>{content.taiwanCompanyInfo}</li>
+              <li>{content.japanCompanyInfo}</li>
+              <li>{content.officialWebsite}</li>
             </ul>
 
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mt-6 mb-3">

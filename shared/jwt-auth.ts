@@ -1,16 +1,17 @@
 
-import jwt from "jsonwebtoken";
+import jwt, { type Secret } from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
 import { SharedAuthService } from "./auth-service";
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
+const configuredJwtSecret = process.env.JWT_SECRET;
+if (!configuredJwtSecret) {
   throw new Error("JWT_SECRET environment variable is required");
 }
+const JWT_SECRET: Secret = configuredJwtSecret;
 
 export interface JwtPayload {
   userId: string;
-  email: string;
+  email: string | null;
   iat?: number;
   exp?: number;
 }
@@ -18,7 +19,7 @@ export interface JwtPayload {
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
-    email: string;
+    email: string | null;
     firstName?: string;
     lastName?: string;
     membershipLevel: string;
@@ -27,7 +28,7 @@ export interface AuthenticatedRequest extends Request {
 }
 
 // 生成 JWT Token
-export function generateToken(user: { id: string; email: string }): string {
+export function generateToken(user: { id: string; email: string | null }): string {
   return jwt.sign(
     { userId: user.id, email: user.email },
     JWT_SECRET,
@@ -35,9 +36,27 @@ export function generateToken(user: { id: string; email: string }): string {
   );
 }
 
+export function isJwtPayload(value: unknown): value is JwtPayload {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.userId === "string" &&
+    (typeof candidate.email === "string" || candidate.email === null) &&
+    typeof candidate.iat === "number" &&
+    typeof candidate.exp === "number"
+  );
+}
+
 // 驗證 JWT Token
 export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  const decoded = jwt.verify(token, JWT_SECRET);
+  if (!isJwtPayload(decoded)) {
+    throw new Error("Invalid JWT payload");
+  }
+  return decoded;
 }
 
 // 認證中間件

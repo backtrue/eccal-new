@@ -25,7 +25,8 @@ interface DiscountCode {
   usageLimit?: number;
   usedCount: number;
   perUserLimit: number;
-  minimumAmount?: number;
+  minimumAmount?: number | null;
+  minimumAmountDisplay?: number | null;
   isActive: boolean;
   validFrom?: string;
   validUntil?: string;
@@ -43,7 +44,7 @@ export default function AdminDiscountPage() {
   const queryClient = useQueryClient();
 
   // Fetch discount codes
-  const { data: discountData, isLoading } = useQuery({
+  const { data: discountData, isLoading } = useQuery<{ codes: DiscountCode[] }>({
     queryKey: ['/api/admin/discount-codes/list'],
     retry: false
   });
@@ -211,7 +212,7 @@ export default function AdminDiscountPage() {
                     } else {
                       setFormData({
                         ...formData,
-                        applicableServices: formData.applicableServices.filter(s => s !== service)
+                        applicableServices: formData.applicableServices.filter((s: string) => s !== service)
                       });
                     }
                   }}

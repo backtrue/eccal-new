@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Loader2, Download, AlertCircle } from "lucide-react";
 import type { AnalyticsProperty } from "@/hooks/useAnalyticsData";
 import LogoutButton from "@/components/LogoutButton";
+import { readAnalyticsQueryResult } from "@/typecheckRepairContracts";
 
 interface AnalyticsDataLoaderProps {
   onDataLoaded: (data: { averageOrderValue: number; conversionRate: number }) => void;
@@ -24,7 +25,7 @@ export default function AnalyticsDataLoader({ onDataLoaded }: AnalyticsDataLoade
   
   // 重新啟用所有分析查詢
   const propertiesQuery = useAnalyticsProperties();
-  const analyticsDataMutation = useAnalyticsData();
+  const analyticsDataQuery = useAnalyticsData(selectedProperty, { enabled: false });
   const userMetricsQuery = useUserMetrics();
 
   // Fetch properties when user is authenticated
@@ -37,7 +38,7 @@ export default function AnalyticsDataLoader({ onDataLoaded }: AnalyticsDataLoade
 
   // Auto-fill from saved metrics if available
   useEffect(() => {
-    if (userMetricsQuery.data && !analyticsDataMutation.isSuccess) {
+    if (userMetricsQuery.data && !analyticsDataQuery.isSuccess) {
       const metrics = userMetricsQuery.data as any;
       if (metrics && metrics.averageOrderValue && metrics.conversionRate) {
         onDataLoaded({
@@ -46,17 +47,15 @@ export default function AnalyticsDataLoader({ onDataLoaded }: AnalyticsDataLoade
         });
       }
     }
-  }, [userMetricsQuery.data, onDataLoaded, analyticsDataMutation.isSuccess]);
+  }, [userMetricsQuery.data, onDataLoaded, analyticsDataQuery.isSuccess]);
 
   const handleFetchData = async () => {
     if (!selectedProperty) return;
     
     try {
-      const data = await analyticsDataMutation.mutateAsync(selectedProperty);
-      onDataLoaded({
-        averageOrderValue: Math.round(data.averageOrderValue), // 取整數
-        conversionRate: Math.round(data.conversionRate * 100) / 100, // 保留小數點後兩位
-      });
+      const data = await readAnalyticsQueryResult(() => analyticsDataQuery.refetch());
+      if (!data) return;
+      onDataLoaded(data);
     } catch (error) {
       console.error("Failed to fetch analytics data:", error);
     }
@@ -117,10 +116,10 @@ export default function AnalyticsDataLoader({ onDataLoaded }: AnalyticsDataLoade
 
                 <Button
                   onClick={handleFetchData}
-                  disabled={!selectedProperty || analyticsDataMutation.isPending}
+                  disabled={!selectedProperty || analyticsDataQuery.isFetching}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  {analyticsDataMutation.isPending ? (
+                  {analyticsDataQuery.isFetching ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       正在取得數據...
@@ -135,7 +134,7 @@ export default function AnalyticsDataLoader({ onDataLoaded }: AnalyticsDataLoade
               </div>
             )}
 
-            {analyticsDataMutation.isError && (
+            {analyticsDataQuery.isError && (
               <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <AlertCircle className="h-4 w-4 text-orange-600" />
@@ -152,7 +151,7 @@ export default function AnalyticsDataLoader({ onDataLoaded }: AnalyticsDataLoade
               </div>
             )}
 
-            {analyticsDataMutation.isSuccess && (
+            {analyticsDataQuery.isSuccess && (
               <div className="mt-3 p-3 bg-green-100 border border-green-200 rounded-lg">
                 <p className="text-sm text-green-700">
                   ✓ 成功取得數據並已自動填入計算機欄位
@@ -160,7 +159,7 @@ export default function AnalyticsDataLoader({ onDataLoaded }: AnalyticsDataLoade
               </div>
             )}
 
-            {userMetricsQuery.data && !analyticsDataMutation.isSuccess ? (
+            {userMetricsQuery.data && !analyticsDataQuery.isSuccess ? (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-700">
                   ℹ️ 已載入您上次儲存的 Analytics 數據

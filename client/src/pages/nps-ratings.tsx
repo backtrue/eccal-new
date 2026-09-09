@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocale } from '@/hooks/useLocale';
 import NavigationBar from '@/components/NavigationBar';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,15 +13,16 @@ import { useToast } from '@/hooks/use-toast';
 import { Star, MessageSquare, Calendar, User, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
+import { readNpsRatingsResponse } from '@/typecheckRepairContracts';
 
 interface NPSRating {
   id: string;
   userId: string;
-  userEmail: string;
-  userName: string;
+  userEmail: string | null;
+  userName: string | null;
   npsScore: number;
   npsComment: string | null;
-  npsSubmittedAt: string;
+  npsSubmittedAt: string | null;
   adAccountName: string;
   industryType: string;
 }
@@ -36,6 +38,7 @@ interface NPSStats {
 
 export default function NPSRatingsPage() {
   const { user } = useAuth();
+  const { locale } = useLocale();
   const { toast } = useToast();
   const [ratings, setRatings] = useState<NPSRating[]>([]);
   const [stats, setStats] = useState<NPSStats | null>(null);
@@ -48,9 +51,10 @@ export default function NPSRatingsPage() {
   const fetchNPSData = async () => {
     try {
       setLoading(true);
-      const data = await apiRequest('GET', '/api/bdmin/nps-ratings');
-      setRatings(data.ratings || []);
-      setStats(data.stats || null);
+      const response = await apiRequest('GET', '/api/bdmin/nps-ratings');
+      const data = await readNpsRatingsResponse(response);
+      setRatings(data.ratings);
+      setStats(data.stats);
     } catch (error) {
       console.error('獲取 NPS 數據失敗:', error);
       toast({
@@ -78,7 +82,7 @@ export default function NPSRatingsPage() {
   if (!user?.isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <NavigationBar />
+        <NavigationBar locale={locale} />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-red-600 mb-4">權限不足</h1>
@@ -92,7 +96,7 @@ export default function NPSRatingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavigationBar />
+      <NavigationBar locale={locale} />
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -177,11 +181,11 @@ export default function NPSRatingsPage() {
             <CardContent className="p-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Net Promoter Score (NPS)</h3>
-                <div className={`text-4xl font-bold ${stats.npsScore >= 50 ? 'text-green-600' : stats.npsScore >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
-                  {stats.npsScore.toFixed(0)}
+                <div className={`text-4xl font-bold ${(stats.totalRatings > 0 ? ((stats.promoters - stats.detractors) / stats.totalRatings) * 100 : 0) >= 50 ? 'text-green-600' : (stats.totalRatings > 0 ? ((stats.promoters - stats.detractors) / stats.totalRatings) * 100 : 0) >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {(stats.totalRatings > 0 ? ((stats.promoters - stats.detractors) / stats.totalRatings) * 100 : 0).toFixed(0)}
                 </div>
                 <p className="text-sm text-gray-600 mt-2">
-                  NPS = (推薦者% - 批評者%) = ({((stats.promoters / stats.totalRatings) * 100).toFixed(1)}% - {((stats.detractors / stats.totalRatings) * 100).toFixed(1)}%)
+                  NPS = (推薦者% - 批評者%) = ({(stats.totalRatings > 0 ? (stats.promoters / stats.totalRatings) * 100 : 0).toFixed(1)}% - {(stats.totalRatings > 0 ? (stats.detractors / stats.totalRatings) * 100 : 0).toFixed(1)}%)
                 </p>
               </div>
             </CardContent>
@@ -275,7 +279,7 @@ export default function NPSRatingsPage() {
                           <div className="flex items-center">
                             <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                             <span className="text-sm">
-                              {format(new Date(rating.npsSubmittedAt), 'yyyy/MM/dd HH:mm', { locale: zhTW })}
+                              {rating.npsSubmittedAt ? format(new Date(rating.npsSubmittedAt), 'yyyy/MM/dd HH:mm', { locale: zhTW }) : '-'}
                             </span>
                           </div>
                         </TableCell>

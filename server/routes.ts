@@ -5,8 +5,9 @@ import { analyticsService } from "./googleAnalytics";
 import { storage } from "./storage";
 import { db } from "./db";
 import { users as usersTable, userMetrics, userCredits } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, gte, isNotNull, lt, sql } from "drizzle-orm";
 import { secureTokenService } from "./secureTokenService";
+import { buildNpsRatingsPayload, getAuthenticatedEccalUser } from "./typecheckRepairTypes";
 import { setupCampaignPlannerRoutes } from "./campaignPlannerRoutes";
 import { setupDiagnosisRoutes } from "./diagnosisRoutes";
 import { setupFbAuditRoutes } from "./fbAuditRoutes";
@@ -68,233 +69,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { batchFixExpiredTokens, forceFixUserToken } = await import('./autoTokenFix');
   
   // 批量修復過期 token (管理員端點)
-  app.post('/api/admin/fix-expired-tokens', async (req, res) => {
+  app.post('/api/admin/fix-expired-tokens', requireJWTAuth, async (req, res) => {
     try {
-      console.log('[ADMIN-FIX] 收到批量修復請求');
-      const result = await batchFixExpiredTokens();
+      const authenticatedUser = getAuthenticatedEccalUser(req.user);
+      if (!authenticatedUser) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      const { batchFixExpiredTokens } = await import('./autoTokenFix');
+      const result = await batchFixExpiredTokens(authenticatedUser.id);
       res.json({
         success: true,
-        message: `成功修復 ${result.fixed} 個過期 token`,
+        message: 'Token 修復完成',
         fixed: result.fixed,
-        details: result.details.slice(0, 10) // 只返回前10個詳情
+        details: result.details,
       });
-    } catch (error) {
-      console.error('[ADMIN-FIX] 批量修復失敗:', error);
-      res.status(500).json({ 
-        success: false, 
-        error: '修復失敗', 
-        message: error.message 
+    } catch (error: unknown) {
+      console.error('Token 修復失敗:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : '未知錯誤',
       });
     }
   });
 
   // 強制修復特定用戶 token
-  app.post('/api/admin/fix-user-token', async (req, res) => {
+  app.post('/api/admin/fix-user-token', requireJWTAuth, async (req, res) => {
     try {
-      const { email } = req.body;
-      if (!email) {
-        return res.status(400).json({ success: false, error: '需要提供 email' });
+      const authenticatedUser = getAuthenticatedEccalUser(req.user);
+      if (!authenticatedUser) {
+        return res.status(401).json({ error: 'Not authenticated' });
       }
-      
-      console.log(`[ADMIN-FIX] 收到強制修復請求: ${email}`);
-      const result = await forceFixUserToken(email);
-      
+      const email = typeof req.body?.email === 'string' ? req.body.email : '';
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          error: '請提供 email',
+        });
+      }
+      if (!authenticatedUser.email || email !== authenticatedUser.email) {
+        return res.status(403).json({
+          success: false,
+          error: '只能修復目前已驗證會員的 token',
+        });
+      }
+
+      const { forceFixUserToken } = await import('./autoTokenFix');
+      const result = await forceFixUserToken(authenticatedUser.id);
       if (result.success) {
         res.json({
           success: true,
-          message: `成功修復用戶 ${email}`,
-          user: result.user,
-          newExpiry: result.newExpiry
+          message: '用戶 token 修復成功',
+          user: {
+            id: authenticatedUser.id,
+            email: authenticatedUser.email,
+            membershipLevel: authenticatedUser.membershipLevel,
+            credits: authenticatedUser.credits,
+          },
+          newExpiry: result.newExpiry,
         });
       } else {
-        res.status(404).json({
-          success: false,
-          error: result.error
-        });
+        res.status(404).json(result);
       }
-    } catch (error) {
-      console.error('[ADMIN-FIX] 用戶修復失敗:', error);
-      res.status(500).json({ 
-        success: false, 
-        error: '修復失敗', 
-        message: error.message 
+    } catch (error: unknown) {
+      console.error('用戶 token 修復失敗:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : '未知錯誤',
       });
     }
   });
 
-  // 批量修復所有問題用戶
-  app.post('/api/admin/emergency-batch-fix', async (req, res) => {
+  // 緊急批量修復 API：只處理目前已驗證會員的 Google token
+  app.post('/api/admin/emergency-batch-fix', requireJWTAuth, async (req, res) => {
     try {
-      console.log('[BATCH-EMERGENCY-FIX] 開始批量修復所有問題用戶');
-      
-      // 獲取所有有問題的用戶
-      const { db } = await import('./db');
-      const { users: usersTable } = await import('../shared/schema');
-      const { like, or } = await import('drizzle-orm');
-      
-      const problemUsers = await db
-        .select({ email: usersTable.email })
-        .from(usersTable)
-        .where(
-          or(
-            like(usersTable.googleAccessToken, 'ya29.%'),
-            like(usersTable.googleAccessToken, 'ya30.%')
-          )
-        )
-        .limit(100); // 分批處理避免超時
-      
-      const emails = problemUsers.map(u => u.email);
-      
+      const authenticatedUser = getAuthenticatedEccalUser(req.user);
+      if (!authenticatedUser) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      const { batchFixExpiredTokens } = await import('./autoTokenFix');
+      const result = await batchFixExpiredTokens(authenticatedUser.id);
+      res.json({
+        success: true,
+        fixedCount: result.fixed,
+        affectedUsers:
+          result.fixed > 0 && authenticatedUser.email
+            ? [authenticatedUser.email]
+            : [],
+        message: result.fixed > 0
+          ? '已修復目前會員的 Google token 到期時間'
+          : '目前會員沒有需要修復的 Google token',
+      });
+    } catch (error: unknown) {
+      console.error('緊急修復失敗:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : '未知錯誤',
+      });
+    }
+  });
+
+  // 緊急 JWT 修復：輸入只能指向目前已驗證會員
+  app.post('/api/admin/emergency-jwt-fix', requireJWTAuth, async (req, res) => {
+    try {
+      const authenticatedUser = getAuthenticatedEccalUser(req.user);
+      if (!authenticatedUser || !authenticatedUser.email) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      const emails = Array.isArray(req.body?.emails)
+        ? req.body.emails.filter((email: unknown): email is string => typeof email === 'string')
+        : [];
       if (emails.length === 0) {
-        return res.json({
-          success: true,
-          message: '沒有發現問題用戶',
-          results: []
+        return res.status(400).json({
+          success: false,
+          error: '請提供用戶信箱陣列',
         });
       }
-      
-      console.log(`[BATCH-EMERGENCY-FIX] 發現 ${emails.length} 個問題用戶`);
-      
-      // 直接批量清除錯誤的 Google Access Token
-      const { eq, inArray } = await import('drizzle-orm');
-      
-      const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      
-      const updateResult = await db
-        .update(usersTable)
-        .set({
-          googleAccessToken: null, // 清除錯誤的 Google Access Token
-          tokenExpiresAt: newExpiry,
-          updatedAt: new Date()
-        })
-        .where(inArray(usersTable.email, emails));
-      
-      console.log(`[BATCH-EMERGENCY-FIX] 批量修復完成，更新了 ${emails.length} 個用戶`);
-      
+      if (emails.some((email: string) => email !== authenticatedUser.email)) {
+        return res.status(403).json({
+          success: false,
+          error: '只能修復目前已驗證會員的 JWT',
+        });
+      }
+
+      const canonicalUser = await storage.getUser(authenticatedUser.id);
+      if (!canonicalUser?.email) {
+        return res.status(404).json({
+          success: false,
+          error: '找不到目前會員資料',
+        });
+      }
+      const { generateJWTForExistingUser } = await import('./jwtAuth');
+      const generatedToken = await generateJWTForExistingUser(canonicalUser.id);
+      if (!generatedToken) {
+        return res.status(500).json({
+          success: false,
+          error: 'JWT 重新生成失敗',
+        });
+      }
+
       res.json({
         success: true,
-        message: `批量修復完成：修復了 ${emails.length} 個用戶的認證問題`,
-        fixedCount: emails.length,
-        newExpiry: newExpiry.toLocaleString(),
-        affectedUsers: emails.slice(0, 10) // 只顯示前10個
+        message: 'JWT 修復完成',
+        results: [{
+          email: authenticatedUser.email,
+          success: true,
+          message: 'JWT 已使用目前會員資料重新生成',
+        }],
       });
-      
-    } catch (error) {
-      console.error('[BATCH-EMERGENCY-FIX] 批量修復失敗:', error);
+    } catch (error: unknown) {
+      console.error('JWT 修復失敗:', error);
       res.status(500).json({
         success: false,
-        error: '批量修復失敗',
-        message: error instanceof Error ? error.message : '未知錯誤'
+        error: error instanceof Error ? error.message : '未知錯誤',
       });
     }
   });
 
-  // 緊急修復 JWT 格式問題（Google Access Token 錯誤存儲為 JWT）
-  app.post('/api/admin/emergency-jwt-fix', async (req, res) => {
-    try {
-      const { emails } = req.body;
-      if (!emails || !Array.isArray(emails)) {
-        return res.status(400).json({ success: false, error: '需要提供 emails 陣列' });
-      }
-      
-      console.log(`[EMERGENCY-JWT-FIX] 開始緊急修復 ${emails.length} 個用戶的 JWT 問題`);
-      
-      const results = [];
-      
-      for (const email of emails) {
-        try {
-          console.log(`[EMERGENCY-JWT-FIX] 正在修復: ${email}`);
-          
-          // 直接從資料庫獲取用戶
-          const { db } = await import('./db');
-          const { users: usersTable } = await import('../shared/schema');
-          const { eq } = await import('drizzle-orm');
-          
-          const userResult = await db
-            .select()
-            .from(usersTable)
-            .where(eq(usersTable.email, email))
-            .limit(1);
-          
-          const user = userResult[0];
-          
-          if (!user) {
-            results.push({ email, success: false, error: '用戶不存在' });
-            continue;
-          }
-          
-          // 檢查是否有 Google Access Token 格式問題
-          const currentToken = user.googleAccessToken;
-          if (!currentToken || !currentToken.startsWith('ya29.')) {
-            results.push({ email, success: false, error: '用戶 token 格式正常' });
-            continue;
-          }
-          
-          console.log(`[EMERGENCY-JWT-FIX] 發現 Google Access Token 錯誤: ${email}`);
-          
-          // 生成新的 JWT token
-          const { jwtUtils } = await import('./jwtAuth');
-          const newJwtToken = jwtUtils.generateToken(user);
-          
-          // 更新資料庫：清除錯誤的 Google Access Token，延長過期時間
-          
-          const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-          
-          await db
-            .update(usersTable)
-            .set({
-              googleAccessToken: null, // 清除錯誤的 Google Access Token
-              tokenExpiresAt: newExpiry,
-              updatedAt: new Date()
-            })
-            .where(eq(usersTable.email, email));
-          
-          console.log(`[EMERGENCY-JWT-FIX] 成功修復: ${email} - 新的 JWT: ${newJwtToken.substring(0, 20)}...`);
-          
-          results.push({
-            email,
-            success: true,
-            message: '成功清除錯誤的 Google Access Token 並生成新 JWT',
-            newJwt: newJwtToken.substring(0, 20) + '...',
-            newExpiry: newExpiry.toLocaleString()
-          });
-          
-        } catch (error) {
-          console.error(`[EMERGENCY-JWT-FIX] 修復 ${email} 失敗:`, error);
-          results.push({
-            email,
-            success: false,
-            error: error instanceof Error ? error.message : '未知錯誤'
-          });
-        }
-      }
-      
-      const successCount = results.filter(r => r.success).length;
-      const failCount = results.length - successCount;
-      
-      console.log(`[EMERGENCY-JWT-FIX] 修復完成: ${successCount} 成功, ${failCount} 失敗`);
-      
-      res.json({
-        success: true,
-        message: `緊急修復完成: ${successCount} 成功, ${failCount} 失敗`,
-        results,
-        summary: {
-          total: results.length,
-          success: successCount,
-          failed: failCount
-        }
-      });
-      
-    } catch (error) {
-      console.error('[EMERGENCY-JWT-FIX] 緊急修復失敗:', error);
-      res.status(500).json({
-        success: false,
-        error: '緊急修復失敗',
-        message: error instanceof Error ? error.message : '未知錯誤'
-      });
-    }
-  });
-  
   // 用戶登入狀況監控 API (admin only) - 使用預先定義的 requireAdmin
   
   app.get('/api/bdmin/user-activity', requireJWTAuth, async (req: any, res) => {
@@ -378,122 +308,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/eccal-purchase", eccalPurchaseRoutes);
 
   // Debug endpoint for specific user status
-  app.get('/api/debug/user-status', async (req, res) => {
+  app.get('/api/debug/user-status', requireJWTAuth, async (req, res) => {
     try {
-      const email = req.query.email as string;
+      const authenticatedUser = getAuthenticatedEccalUser(req.user);
+      if (!authenticatedUser) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      const email = typeof req.query.email === 'string' ? req.query.email : '';
       if (!email) {
         return res.status(400).json({ error: 'Email parameter required' });
       }
-
-      // 查詢用戶狀態
-      const user = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
-      
-      if (user.length === 0) {
-        return res.json({
-          status: 'user_not_found',
-          email: email,
-          message: '用戶不存在'
-        });
+      if (!authenticatedUser.email || email !== authenticatedUser.email) {
+        return res.status(403).json({ error: '只能查詢目前已驗證會員' });
       }
 
-      const userData = user[0];
-      const now = new Date();
-      const tokenExpired = userData.tokenExpiresAt ? new Date(userData.tokenExpiresAt) < now : true;
+      const { getOwnedGoogleToken } = await import('./autoTokenFix');
+      const [userData, tokenData] = await Promise.all([
+        storage.getUser(authenticatedUser.id),
+        getOwnedGoogleToken(authenticatedUser.id),
+      ]);
+      if (!userData) {
+        return res.status(404).json({ error: 'User not found' });
+      }
 
-      return res.json({
-        status: 'user_found',
+      const now = new Date();
+      const expiresAt = tokenData?.expiresAt ?? null;
+      const isExpired = expiresAt ? expiresAt.getTime() < now.getTime() : null;
+      res.json({
         email: userData.email,
-        userId: userData.id,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        membershipLevel: userData.membershipLevel,
-        hasGoogleToken: !!userData.googleAccessToken,
-        hasRefreshToken: !!userData.googleRefreshToken,
-        tokenExpiresAt: userData.tokenExpiresAt,
-        tokenExpired: tokenExpired,
-        lastLoginAt: userData.lastLoginAt,
-        createdAt: userData.createdAt,
-        updatedAt: userData.updatedAt
+        status: {
+          hasToken: Boolean(tokenData),
+          tokenExpiry: expiresAt,
+          isExpired,
+          expiresIn: expiresAt
+            ? Math.round((expiresAt.getTime() - now.getTime()) / 1000 / 60)
+            : null,
+          tokenType: tokenData ? 'secure_token_store' : null,
+          hasRefreshToken: Boolean(tokenData?.refreshToken),
+        },
+        userInfo: {
+          name: userData.name,
+          membershipLevel: userData.membershipLevel,
+          credits: userData.credits,
+          updatedAt: userData.updatedAt,
+        },
+        timestamp: now.toISOString(),
       });
     } catch (error) {
       console.error('Debug user status error:', error);
-      return res.status(500).json({ 
-        error: 'Internal server error',
-        message: error.message 
-      });
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
-  // 測試特定用戶登入狀態的診斷端點
-  app.get('/api/debug/test-login/:email', async (req, res) => {
+  // Test login endpoint - 診斷登入問題
+  app.get('/api/debug/test-login/:email', requireJWTAuth, async (req, res) => {
     try {
-      const { email } = req.params;
-      
-      const user = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
-      
-      if (user.length === 0) {
-        return res.status(404).json({ error: '用戶不存在' });
+      const authenticatedUser = getAuthenticatedEccalUser(req.user);
+      if (!authenticatedUser || !authenticatedUser.email) {
+        return res.status(401).json({ error: 'Not authenticated' });
       }
-      
-      const userData = user[0];
+      const { email } = req.params;
+      if (email !== authenticatedUser.email) {
+        return res.status(403).json({ error: '只能測試目前已驗證會員' });
+      }
+      const { getOwnedGoogleToken } = await import('./autoTokenFix');
+      const [userData, tokenData] = await Promise.all([
+        storage.getUser(authenticatedUser.id),
+        getOwnedGoogleToken(authenticatedUser.id),
+      ]);
+      if (!userData) {
+        return res.status(404).json({ error: 'User not found', email });
+      }
+
       const now = new Date();
-      const tokenValid = userData.tokenExpiresAt && userData.tokenExpiresAt > now;
-      
-      return res.json({
-        email: userData.email,
-        userId: userData.id,
-        hasGoogleAccessToken: !!userData.googleAccessToken,
-        hasGoogleRefreshToken: !!userData.googleRefreshToken,
-        tokenExpiresAt: userData.tokenExpiresAt,
-        tokenValid: tokenValid,
-        membershipLevel: userData.membershipLevel,
-        credits: userData.credits,
-        lastLoginAt: userData.lastLoginAt,
-        serverTime: now.toISOString(),
-        loginUrl: `https://629e49c6-8dc3-42cd-b86c-d35b18e038dd-00-2e3bopfmdivrv.kirk.replit.dev/auth/google?returnTo=${encodeURIComponent('https://629e49c6-8dc3-42cd-b86c-d35b18e038dd-00-2e3bopfmdivrv.kirk.replit.dev/dashboard')}`,
-        directTestUrl: `https://629e49c6-8dc3-42cd-b86c-d35b18e038dd-00-2e3bopfmdivrv.kirk.replit.dev/api/debug/simulate-login/${email}`
+      res.json({
+        found: true,
+        user: {
+          id: userData.id,
+          email: userData.email,
+          name: userData.name,
+          membershipLevel: userData.membershipLevel,
+          credits: userData.credits,
+          hasGoogleToken: Boolean(tokenData),
+          tokenExpiresAt: tokenData?.expiresAt ?? null,
+          tokenIsExpired: tokenData?.expiresAt
+            ? tokenData.expiresAt.getTime() < now.getTime()
+            : null,
+          updatedAt: userData.updatedAt,
+        },
+        recommendations: {
+          needsReauth: !tokenData,
+          hasValidToken: Boolean(
+            tokenData &&
+            (!tokenData.expiresAt || tokenData.expiresAt.getTime() >= now.getTime()),
+          ),
+          loginUrl: '/api/login?redirectTo=/dashboard',
+          directLoginUrl: '/api/auth/google?returnTo=/dashboard',
+        },
+        timestamp: now.toISOString(),
       });
     } catch (error) {
       console.error('Test login error:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
-  // 強制重置特定用戶的認證狀態
-  app.post('/api/debug/reset-auth', async (req, res) => {
+  // Force token reset endpoint - 緊急修復
+  app.post('/api/debug/reset-auth', requireJWTAuth, async (req, res) => {
     try {
-      const { email } = req.body;
+      const authenticatedUser = getAuthenticatedEccalUser(req.user);
+      if (!authenticatedUser || !authenticatedUser.email) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      const email = typeof req.body?.email === 'string' ? req.body.email : '';
       if (!email) {
         return res.status(400).json({ error: 'Email required' });
       }
-
-      // 清除該用戶的所有 session 和快取
-      req.session?.destroy(() => {});
-      
-      // 更新用戶的認證狀態，強制重新登入
-      const user = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
-      
-      if (user.length > 0) {
-        await db
-          .update(usersTable)
-          .set({
-            tokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24小時
-            updatedAt: new Date(),
-            lastLoginAt: new Date()
-          })
-          .where(eq(usersTable.email, email));
-
-        return res.json({
-          success: true,
-          message: `已重置 ${email} 的認證狀態`,
-          newTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000)
-        });
-      } else {
-        return res.status(404).json({ error: '用戶不存在' });
+      if (email !== authenticatedUser.email) {
+        return res.status(403).json({ error: '只能重設目前已驗證會員' });
       }
+
+      const { getOwnedGoogleToken } = await import('./autoTokenFix');
+      const tokenData = await getOwnedGoogleToken(authenticatedUser.id);
+      if (!tokenData) {
+        return res.status(404).json({ error: 'User not found or no Google token' });
+      }
+      const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await secureTokenService.storeToken(authenticatedUser.id, 'google', {
+        accessToken: tokenData.accessToken,
+        refreshToken: tokenData.refreshToken,
+        expiresAt: newExpiry,
+      });
+
+      req.session.destroy((sessionError) => {
+        if (sessionError) {
+          console.error('Session destroy error:', sessionError);
+        }
+        res.json({
+          success: true,
+          message: 'Authentication reset completed',
+          newTokenExpiry: newExpiry,
+          nextStep: 'Please login again at /api/login',
+          timestamp: new Date().toISOString(),
+        });
+      });
     } catch (error) {
       console.error('Reset auth error:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
@@ -1552,16 +1513,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Google Analytics API 權限診斷
-  app.get("/api/analytics/test-permissions", requireJWTAuth, async (req: any, res: any) => {
+  app.get("/api/analytics/test-permissions", requireJWTAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = getAuthenticatedEccalUser(req.user);
       if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const dbUser = await storage.getUser(user.id);
-      if (!dbUser || !dbUser.googleAccessToken) {
-        return res.status(400).json({ 
+      const { getOwnedGoogleToken } = await import('./autoTokenFix');
+      const tokenData = await getOwnedGoogleToken(user.id);
+      if (!tokenData) {
+        return res.status(400).json({
           error: 'No Google access token found',
           message: 'Please re-login to grant Analytics permissions',
           needReauth: true
@@ -1569,13 +1531,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { google } = require('googleapis');
-      const { createSafeOAuth2Client } = require('./googleOAuthHelper');
-
-      const oauth2Client = createSafeOAuth2Client({
-        access_token: dbUser.googleAccessToken,
-        refresh_token: dbUser.googleRefreshToken,
-        expiry_date: dbUser.tokenExpiresAt,
-      });
+      const { buildOAuthClientFromToken } = require('./googleOAuthHelper');
+      const oauth2Client = buildOAuthClientFromToken(tokenData);
 
       // 測試 GA4 API 權限
       try {
@@ -2155,7 +2112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/bdmin/nps-ratings', requireJWTAuth, requireAdmin, async (req: any, res) => {
     try {
       const { fbHealthChecks, users } = await import('@shared/schema');
-      const { isNotNull, desc, sql } = await import('drizzle-orm');
+      const { isNotNull, desc } = await import('drizzle-orm');
       
       // 獲取所有 NPS 評分記錄
       const ratings = await db
@@ -2175,44 +2132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(isNotNull(fbHealthChecks.npsScore))
         .orderBy(desc(fbHealthChecks.npsSubmittedAt));
 
-      // 計算 NPS 統計數據
-      const totalRatings = ratings.length;
-      let promoters = 0;
-      let passives = 0; 
-      let detractors = 0;
-      let totalScore = 0;
-
-      ratings.forEach(rating => {
-        const score = rating.npsScore || 0;
-        totalScore += score;
-        
-        if (score >= 9) {
-          promoters++;
-        } else if (score >= 7) {
-          passives++;
-        } else {
-          detractors++;
-        }
-      });
-
-      const averageScore = totalRatings > 0 ? totalScore / totalRatings : 0;
-      const promoterPercentage = totalRatings > 0 ? (promoters / totalRatings) * 100 : 0;
-      const detractorPercentage = totalRatings > 0 ? (detractors / totalRatings) * 100 : 0;
-      const npsScore = promoterPercentage - detractorPercentage;
-
-      const stats = {
-        totalRatings,
-        averageScore,
-        promoters,
-        passives,
-        detractors,
-        npsScore
-      };
-
-      res.json({
-        ratings,
-        stats
-      });
+      res.json(buildNpsRatingsPayload(ratings));
     } catch (error) {
       console.error('Error fetching NPS ratings:', error);
       res.status(500).json({ message: 'Failed to fetch NPS ratings' });
@@ -2978,7 +2898,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profit Margin Calculator routes
   app.post('/api/profit-margin', requireJWTAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const authenticatedUser = getAuthenticatedEccalUser(req.user);
+      if (!authenticatedUser) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      const userId = authenticatedUser.id;
       const calculationData = req.body;
       
       const saved = await storage.saveProfitMarginCalculation({
@@ -2995,7 +2919,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/profit-margin', requireJWTAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const authenticatedUser = getAuthenticatedEccalUser(req.user);
+      if (!authenticatedUser) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      const userId = authenticatedUser.id;
       const { type } = req.query;
       
       const calculations = await storage.getUserProfitMarginCalculations(
@@ -3012,7 +2940,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/profit-margin/:id', requireJWTAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const authenticatedUser = getAuthenticatedEccalUser(req.user);
+      if (!authenticatedUser) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      const userId = authenticatedUser.id;
       const { id } = req.params;
       
       const calculation = await storage.getProfitMarginCalculation(id, userId);
@@ -3030,7 +2962,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/profit-margin/:id', requireJWTAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const authenticatedUser = getAuthenticatedEccalUser(req.user);
+      if (!authenticatedUser) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      const userId = authenticatedUser.id;
       const { id } = req.params;
       
       const deleted = await storage.deleteProfitMarginCalculation(id, userId);

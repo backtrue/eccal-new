@@ -87,6 +87,7 @@ import {
   type InsertKnowledgeSearchIndex,
   profitMarginCalculations,
   type ProfitMarginCalculation,
+  type InsertProfitMarginCalculation,
   type InsertProfitMarginCalculationType,
   calculatorAnalytics,
   type CalculatorAnalytics,
@@ -2108,7 +2109,23 @@ export class DatabaseStorage implements IStorage {
 
   // Profit Margin Calculator operations
   async saveProfitMarginCalculation(calculation: InsertProfitMarginCalculationType): Promise<ProfitMarginCalculation> {
-    const [saved] = await db.insert(profitMarginCalculations).values([calculation]).returning();
+    const {
+      revenue,
+      totalFixedCosts,
+      totalVariableCosts,
+      productCost,
+      targetProfitMarginPercent,
+      ...unchangedValues
+    } = calculation;
+    const values: InsertProfitMarginCalculation = {
+      ...unchangedValues,
+      ...(revenue === undefined ? {} : { revenue: String(revenue) }),
+      ...(totalFixedCosts === undefined ? {} : { totalFixedCosts: String(totalFixedCosts) }),
+      ...(totalVariableCosts === undefined ? {} : { totalVariableCosts: String(totalVariableCosts) }),
+      ...(productCost === undefined ? {} : { productCost: String(productCost) }),
+      ...(targetProfitMarginPercent === undefined ? {} : { targetProfitMarginPercent: String(targetProfitMarginPercent) }),
+    };
+    const [saved] = await db.insert(profitMarginCalculations).values([values]).returning();
     return saved;
   }
 

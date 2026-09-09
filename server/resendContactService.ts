@@ -1,8 +1,9 @@
 import { Resend, type ErrorResponse, type WebhookEventPayload } from "resend";
 
-type ApiResult<T> =
-  | { data: T; error: null }
-  | { data: null; error: ErrorResponse };
+type ApiResult<T> = {
+  data: T | null;
+  error: ErrorResponse | null;
+};
 
 type ContactRecord = {
   id: string;
@@ -103,6 +104,10 @@ export class ResendContactService {
       throw this.toServiceError("lookup", existing.error);
     }
 
+    if (!existing.error && !existing.data) {
+      throw this.emptyResponseError("lookup");
+    }
+
     if (existing.error?.name === "not_found") {
       if (!input.subscribed) {
         return { contactId: null, providerState: "not_found" };
@@ -116,11 +121,8 @@ export class ResendContactService {
         segments: [{ id: segmentId }],
       });
 
-      if (created.error) {
-        throw this.toServiceError("create", created.error);
-      }
-
-      return { contactId: created.data.id, providerState: "subscribed" };
+      const createdData = this.requireData("create", created);
+      return { contactId: createdData.id, providerState: "subscribed" };
     }
 
     const updated = await client.contacts.update(
@@ -137,29 +139,23 @@ export class ResendContactService {
           },
     );
 
-    if (updated.error) {
-      throw this.toServiceError("update", updated.error);
-    }
+    const updatedData = this.requireData("update", updated);
 
     if (input.subscribed) {
       const segments = await client.contacts.segments.list({ email });
-      if (segments.error) {
-        throw this.toServiceError("list_segments", segments.error);
-      }
+      const segmentsData = this.requireData("list_segments", segments);
 
-      const belongsToGeneralSegment = segments.data.data.some(
+      const belongsToGeneralSegment = segmentsData.data.some(
         (segment) => segment.id === segmentId,
       );
       if (!belongsToGeneralSegment) {
         const added = await client.contacts.segments.add({ email, segmentId });
-        if (added.error) {
-          throw this.toServiceError("add_segment", added.error);
-        }
+        this.requireData("add_segment", added);
       }
     }
 
     return {
-      contactId: updated.data.id,
+      contactId: updatedData.id,
       providerState: input.subscribed ? "subscribed" : "unsubscribed",
     };
   }
@@ -171,6 +167,20 @@ export class ResendContactService {
   }): WebhookEventPayload {
     const client = this.createClient(this.getApiKey() || "re_webhook_verification");
     return client.webhooks.verify(input);
+  }
+
+  private requireData<T>(operation: string, result: ApiResult<T>): T {
+    if (result.error) {
+      throw this.toServiceError(operation, result.error);
+    }
+    if (!result.data) {
+      throw this.emptyResponseError(operation);
+    }
+    return result.data;
+  }
+
+  private emptyResponseError(operation: string) {
+    return new ResendContactServiceError(operation, "empty_response", null);
   }
 
   private toServiceError(operation: string, error: ErrorResponse) {

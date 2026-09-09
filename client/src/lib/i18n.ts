@@ -313,6 +313,7 @@ export interface TranslationData {
       reputation_coach: string;
       reputation_open: string;
       philosophy: string;
+      vision: string;
       target_audience_title: string;
       target_audience_intro: string;
       target_1: string;
@@ -357,6 +358,13 @@ export interface TranslationData {
 
 const translations: Record<Locale, TranslationData> = {
   'zh-TW': {
+    checkout: {
+      title: '升級至 Pro 方案', subtitle: '解鎖所有功能，享受完整的廣告分析體驗',
+      loginRequired: '需要登入', loginRequiredDesc: '請先登入您的 Google 帳戶以繼續付款流程',
+      subscriptionError: '付款初始化失敗', subscriptionErrorDesc: '無法初始化付款',
+      preparingPayment: '正在準備付款...', backToPricing: '返回定價頁面',
+      user: '用戶', planFeatures: '方案功能', securePayment: '安全付款',
+    },
     // Navigation
     home: '首頁',
     calculator: '成效規劃',
@@ -655,6 +663,7 @@ const translations: Record<Locale, TranslationData> = {
         reputation_coach: '行銷老師的老師：我曾培養出多位現任講師與顧問，被業界評為「教練的教練」。',
         reputation_open: '不藏私的顧問：最常被提到的是「邱小黑從來沒在藏，他就把會的都交出來」。',
         philosophy: '我不是為了做一個品牌而去包裝自己，而是從一開始就決定：把那些真正能讓人變強的東西留下來、系統化、讓它變成你也能拿來用的工具。',
+        vision: '《報數據》正是這樣的存在。它不只是一個工具，更是你背後的邏輯支援，是協助你找到突破口並提供建議的策略顧問。',
         target_audience_title: '你需要什麼，我就做什麼',
         target_audience_intro: '如果你現在是個：',
         target_1: '想升職加薪的行銷人員',
@@ -698,6 +707,13 @@ const translations: Record<Locale, TranslationData> = {
   },
   
   'en': {
+    checkout: {
+      title: 'Upgrade to Pro', subtitle: 'Unlock all features and enjoy the complete advertising analytics experience',
+      loginRequired: 'Login Required', loginRequiredDesc: 'Please login with your Google account to continue with payment',
+      subscriptionError: 'Payment initialization failed', subscriptionErrorDesc: 'Failed to initialize payment',
+      preparingPayment: 'Preparing payment...', backToPricing: 'Back to Pricing',
+      user: 'User', planFeatures: 'Plan Features', securePayment: 'Secure Payment',
+    },
     // Navigation
     home: 'Home',
     calculator: 'Performance Planning',
@@ -982,10 +998,28 @@ const translations: Record<Locale, TranslationData> = {
       },
       founder: {
         title: 'Founder Introduction | Qiu Yu-Ting (Mr.Kuro)',
+        subtitle: 'A teacher to marketing teachers, with more than ten years of hands-on experience helping you understand data and improve performance.',
         intro: 'You might have seen me in a class or read something I wrote in a post, but if I really had to introduce myself, it would be like this:',
+        early_motivation: 'While I was still in university, I kept wondering: “Why do good products sometimes go unnoticed?” That question led me into marketing.',
         career_path: 'I\'ve been involved in this industry since Facebook advertising first launched, from one-person studios to multinational corporations, from 10,000 budgets to 10-million scale, across almost every industry. Over the years, I\'ve seen too many excellent marketers stuck in the anxiety of "can\'t find anyone to ask" and "don\'t know how to do it."',
+        transition: 'Later, I moved into consulting and education, creating courses and serving as a research consultant to help brands understand their market and build methods that can be applied in practice.',
+        pain_point: 'I know the hardest part of running Facebook ads is often not the back-end controls, but understanding the data, identifying the problem, and deciding the next step.',
+        solution: 'So I created Report Data as a sharing system that can grow with you. I cannot reply to every message immediately, but I can preserve what I have learned and turn it into actionable reasoning, so you can move forward instead of starting from scratch.',
+        reputation_title: 'How Others See Me',
+        reputation_intro: 'In the eyes of students, clients, and industry peers, Mr. Kuro is often associated with these qualities:',
+        reputation_mentor: 'Inspiring mentor: regarded by many marketing professionals and lecturers as a go-to teacher, with more than a thousand practitioners reached through courses and consulting.',
+        reputation_strategist: 'Practical strategist: he does not only explain theory. He focuses on performance optimization in real business settings. Students say every sentence can be applied in practice.',
+        reputation_coach: 'A coach to advertising teachers: I have trained many active lecturers and consultants, and have been called “the coach behind the coaches”.',
+        reputation_open: 'Open with what he knows: the comment heard most often is that Mr. Kuro shares everything, laying out every useful idea openly.',
         philosophy: 'I often joke that I\'m hard to find and don\'t like replying to messages, so I thought, could there be more "versions of me" to accompany you through those late nights facing reports alone?',
-        vision: '"Report Data" is exactly that kind of existence. It\'s not just a tool, it\'s the logical support behind you, the strategy consultant that helps you find breakthroughs and provides recommendations.'
+        vision: '"Report Data" is exactly that kind of existence. It\'s not just a tool, it\'s the logical support behind you, the strategy consultant that helps you find breakthroughs and provides recommendations.',
+        target_audience_title: 'Tell Me What You Need, and I Will Build It',
+        target_audience_intro: 'You may be:',
+        target_1: 'A marketing professional who wants to increase income',
+        target_2: 'An advertising specialist who wants more confidence when presenting reports to clients',
+        target_3: 'Someone who is asked by a supervisor or client why an ad did not work, but cannot explain the answer',
+        promise: 'I hope Report Data becomes the reliable partner you open every day when you need an idea.',
+        approach: 'We do not rely on slogans or superstition. We break down data, examine trends, calculate budgets, and show you how your decisions affect performance.',
       },
       company: {
         title: 'Who Are We?',
@@ -1022,6 +1056,13 @@ const translations: Record<Locale, TranslationData> = {
   },
   
   'ja': {
+    checkout: {
+      title: 'Proにアップグレード', subtitle: 'すべての機能を解除し、完全な広告分析体験をお楽しみください',
+      loginRequired: 'ログインが必要', loginRequiredDesc: 'お支払いを続行するには、Googleアカウントでログインしてください',
+      subscriptionError: '支払いの初期化に失敗', subscriptionErrorDesc: '支払いの初期化に失敗しました',
+      preparingPayment: '支払いを準備中...', backToPricing: '料金ページに戻る',
+      user: 'ユーザー', planFeatures: 'プラン機能', securePayment: '安全な支払い',
+    },
     // Navigation
     home: 'ホーム',
     calculator: '予算計算機',
@@ -1306,10 +1347,28 @@ const translations: Record<Locale, TranslationData> = {
       },
       founder: {
         title: '創設者紹介｜邱煜庭（小黒先生）',
+        subtitle: 'マーケティング講師の先生。10年以上の実務経験をもとに、データの理解と成果改善に伴走します。',
         intro: 'どこかのクラスで私を見たことがあるか、投稿で私の言葉を読んだことがあるかもしれませんが、本当に自己紹介をするなら、こんな感じです：',
+        early_motivation: '大学生の頃から、「良い商品なのに、なぜ知られないのか」と考えていました。この疑問が、私をマーケティングの道へ導きました。',
         career_path: 'Facebook広告が世に出た時からこの業界に携わり、一人の小さな作業室から多国籍企業まで、1万円の予算から1000万円規模まで、ほぼすべての業界で経験を積んできました。この年月で、「聞ける人がいない」「どうしたらいいかわからない」という不安に陥る多くの優秀なマーケターを見てきました。',
+        transition: 'その後はコンサルティングと教育に軸足を移し、講座を開設しながら研究コンサルタントも務め、ブランドが市場を理解し、実行できる方法を築けるよう支援してきました。',
+        pain_point: 'Facebook広告の運用で最も難しいのは、管理画面の操作ではなく、データを読み、問題を見つけ、次の一手を判断することだと知っています。',
+        solution: 'そこで、一緒に成長できる共有システムとして「報數據」を作りました。すべてのメッセージにすぐ返信することはできませんが、私が学んだことを残し、実行できる考え方に整理することで、ゼロから迷わず前に進めるようにします。',
+        reputation_title: '周囲から見た私',
+        reputation_intro: '受講生、顧客、業界の仲間から見た小黒先生は、次のように語られています。',
+        reputation_mentor: '気づきを与える指導者：多くのマーケターや講師から「頼れる先生」と見なされ、講座とコンサルティングを通じて1,000人を超える実務者に関わってきました。',
+        reputation_strategist: '実践派の戦略家：理論だけでなく、実際の事業環境での成果改善を重視します。受講生からは「どの言葉も実務に落とし込める」と評価されています。',
+        reputation_coach: '広告講師を育てる講師：現役の講師やコンサルタントを数多く育成し、「講師の指導者」と呼ばれています。',
+        reputation_open: '惜しみなく共有するコンサルタント：「小黒先生は出し惜しみせず、役立つ考え方をすべて公開してくれる」とよく言われます。',
         philosophy: 'よく冗談で、私は見つけにくいし、メッセージの返信も好きではないと言っています。だから、深夜一人でレポートと向き合う時に、もっと多くの「私の分身」があなたに寄り添えないかと考えました。',
-        vision: '《レポートデータ》は、まさにそのような存在です。これは単なるツールではなく、あなたの背後にある論理的なサポートであり、突破口を見つけて提案を行う戦略コンサルタントです。'
+        vision: '《レポートデータ》は、まさにそのような存在です。これは単なるツールではなく、あなたの背後にある論理的なサポートであり、突破口を見つけて提案を行う戦略コンサルタントです。',
+        target_audience_title: '必要なものを、形にします',
+        target_audience_intro: '今のあなたは、次のいずれかかもしれません。',
+        target_1: '収入を増やしたいマーケティング担当者',
+        target_2: '顧客へのレポート説明に、もっと自信を持ちたい広告運用者',
+        target_3: '上司や顧客から「なぜこの広告は成果が出なかったのか」と聞かれても、答えを整理できない方',
+        promise: '「報數據」が、毎日開くとアイデアが見つかる、頼れるパートナーになれればと思っています。',
+        approach: '私たちは標語や根拠のない思い込みに頼りません。データを分解し、傾向を確認し、予算を計算し、意思決定が成果にどう影響するかを示します。',
       },
       company: {
         title: '私たちは誰ですか？',

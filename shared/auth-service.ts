@@ -139,7 +139,7 @@ export class SharedAuthService {
       await sharedDb
         .update(appUsageRecords)
         .set({
-          usageCount: existing.usageCount + 1,
+          usageCount: (existing.usageCount ?? 0) + 1,
           lastUsedAt: new Date(),
         })
         .where(eq(appUsageRecords.id, existing.id));

@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ResendContactService } from "./resendContactService";
+import {
+  ResendContactService,
+  ResendContactServiceError,
+} from "./resendContactService";
 
 const notFound = {
   data: null,
@@ -226,5 +229,86 @@ test("provider errors are sanitized and do not expose an email", async () => {
       assert.doesNotMatch(error.message, /student@example\.com|secret token/);
       return true;
     },
+  );
+});
+
+const subscribedInput = {
+  email: "student@example.com",
+  subscribed: true,
+};
+
+function assertEmptyResponse(operation: string) {
+  return (error: unknown) => {
+    assert.ok(error instanceof ResendContactServiceError);
+    assert.equal(error.operation, operation);
+    assert.equal(error.code, "empty_response");
+    return true;
+  };
+}
+
+test("rejects a null create response", async () => {
+  const { client } = createClient({
+    create: async () => ({ data: null, error: null }),
+  });
+  const service = new ResendContactService({
+    getApiKey: () => "re_test",
+    getSegmentId: () => "general-segment",
+    createClient: () => client as never,
+  });
+
+  await assert.rejects(
+    () => service.syncContact(subscribedInput),
+    assertEmptyResponse("create"),
+  );
+});
+
+test("rejects a null update response", async () => {
+  const { client } = createClient({
+    get: async () => ({
+      data: {
+        id: "contact-existing",
+        email: "student@example.com",
+        unsubscribed: false,
+      },
+      error: null,
+    }),
+    update: async () => ({ data: null, error: null }),
+  });
+  const service = new ResendContactService({
+    getApiKey: () => "re_test",
+    getSegmentId: () => "general-segment",
+    createClient: () => client as never,
+  });
+
+  await assert.rejects(
+    () => service.syncContact(subscribedInput),
+    assertEmptyResponse("update"),
+  );
+});
+
+test("rejects a null segment-list response", async () => {
+  const { client } = createClient({
+    get: async () => ({
+      data: {
+        id: "contact-existing",
+        email: "student@example.com",
+        unsubscribed: false,
+      },
+      error: null,
+    }),
+    segments: {
+      list: async () => ({ data: null, error: null }),
+      add: async () => ({ data: { id: "segment-added" }, error: null }),
+    },
+  });
+  const service = new ResendContactService({
+    getApiKey: () => "re_test",
+    getSegmentId: () => "general-segment",
+    createClient: () => client as never,
+  });
+
+  await assert.rejects(
+    () => service.syncContact(subscribedInput),
+    assertEmptyResponse("list_segments"),
   );
 });

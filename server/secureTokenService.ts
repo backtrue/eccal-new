@@ -9,7 +9,7 @@ import { oauthTokens } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 
-interface TokenData {
+export interface TokenData {
   accessToken: string;
   refreshToken?: string;
   expiresAt?: Date;

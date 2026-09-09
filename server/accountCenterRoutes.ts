@@ -6,6 +6,11 @@ import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { getAccountSnapshot } from './accountSnapshotService';
+import {
+  getAuthenticatedEccalUser,
+  mapPublicProfileUpdate,
+  projectPublicAccountMember,
+} from './typecheckRepairTypes';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const SERVICE_API_KEY = process.env.SERVICE_API_KEY;
@@ -268,7 +273,7 @@ export function setupAccountCenterRoutes(app: Express) {
           });
         }
       } catch (e) {
-        console.log('Origin parsing error:', e.message);
+        console.log('Origin parsing error:', e instanceof Error ? e.message : 'Unknown error');
       }
     }
     
@@ -288,7 +293,7 @@ export function setupAccountCenterRoutes(app: Express) {
   app.get('/api/sso/callback', requireJWTAuth, async (req: Request, res: Response) => {
     try {
       const { state } = req.query;
-      const user = req.user;
+      const user = getAuthenticatedEccalUser(req.user);
       
       if (!user) {
         return res.status(401).json({ error: 'User not authenticated' });
@@ -309,13 +314,14 @@ export function setupAccountCenterRoutes(app: Express) {
       }
       
       // 生成新的 JWT Token 給外部網站使用 (包含 membership 和 credits)
+      const publicUser = projectPublicAccountMember(user);
       const token = jwt.sign(
         { 
-          sub: user.id,
-          email: user.email,
-          name: user.name,
-          membership: user.membership_level,
-          credits: user.credits,
+          sub: publicUser.id,
+          email: publicUser.email,
+          name: publicUser.name,
+          membership: publicUser.membership,
+          credits: publicUser.credits,
           iss: 'eccal.thinkwithblack.com',
           aud: origin
         },
@@ -395,19 +401,20 @@ export function setupAccountCenterRoutes(app: Express) {
    * 刷新 Token
    */
   app.post('/api/sso/refresh-token', requireJWTAuth, (req: Request, res: Response) => {
-    const user = req.user;
+    const user = getAuthenticatedEccalUser(req.user);
     
     if (!user) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
     
+    const publicUser = projectPublicAccountMember(user);
     const newToken = jwt.sign(
       { 
-        sub: user.id,
-        email: user.email,
-        name: user.name,
-        membership: user.membership_level,
-        credits: user.credits,
+        sub: publicUser.id,
+        email: publicUser.email,
+        name: publicUser.name,
+        membership: publicUser.membership,
+        credits: publicUser.credits,
         iss: 'eccal.thinkwithblack.com'
       },
       JWT_SECRET,
@@ -461,9 +468,8 @@ export function setupAccountCenterRoutes(app: Express) {
       const { name, profilePicture } = req.body;
       
       const updatedUser = await db.update(users)
-        .set({ 
-          name, 
-          profilePicture,
+        .set({
+          ...mapPublicProfileUpdate({ name, profilePicture }),
           updatedAt: new Date()
         })
         .where(eq(users.id, userId))

@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { trackPurchaseEvent } from '@/lib/meta-pixel';
+import {
+  parseMetaPurchaseEventsResponse,
+  parseMetaTriggerResponse,
+  type MetaPurchaseEvent,
+  type MetaPurchaseEventsResponse,
+} from '@/typecheckRepairContracts';
 
 // Hook to automatically track purchase events when they occur
 export function useMetaTracking() {
@@ -8,8 +14,9 @@ export function useMetaTracking() {
   const lastProcessedEvent = useRef<string | null>(null);
 
   // Poll for purchase events
-  const { data: eventData } = useQuery({
+  const { data: eventData } = useQuery<MetaPurchaseEventsResponse>({
     queryKey: ['/api/meta-events/purchase-events'],
+    select: parseMetaPurchaseEventsResponse,
     refetchInterval: 5000, // Poll every 5 seconds
     retry: false,
     staleTime: 0 // Always consider stale to ensure fresh data
@@ -46,8 +53,8 @@ export function useMetaTracking() {
   }, [eventData, queryClient]);
 
   return {
-    isTracking: !!eventData?.event,
-    lastEvent: eventData?.event || null
+    isTracking: eventData?.success === true && !!eventData.event,
+    lastEvent: eventData?.success === true ? eventData.event : null
   };
 }
 
@@ -67,7 +74,7 @@ export function useTestPurchaseEvent() {
         })
       });
       
-      const result = await response.json();
+      const result = parseMetaTriggerResponse(await response.json());
       
       if (result.success) {
         console.log('Test purchase event triggered:', result.eventId);

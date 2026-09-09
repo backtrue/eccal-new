@@ -225,7 +225,7 @@ export default function FacebookSetup({ locale }: FacebookSetupProps) {
         </div>
       </div>
       
-      <Footer locale={locale} />
+      <Footer />
     </div>
   );
 }

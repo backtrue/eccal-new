@@ -1,108 +1,108 @@
-// 專為 kaoic08@gmail.com 等問題用戶建立的自動修復系統
-import { db } from "./db";
-import { users } from "../shared/schema";
-import { eq, lt, isNotNull, and } from "drizzle-orm";
+import { secureTokenService, type TokenData } from "./secureTokenService";
 
-// 批量修復過期 token 的服務
-export async function batchFixExpiredTokens() {
+export interface GoogleTokenService {
+  getToken(userId: string, provider: "google"): Promise<TokenData | null>;
+  storeToken(
+    userId: string,
+    provider: "google",
+    token: Pick<TokenData, "accessToken" | "refreshToken" | "expiresAt">,
+  ): Promise<void>;
+  deleteToken(userId: string, provider: "google"): Promise<void>;
+}
+
+type Clock = () => Date;
+
+const hoursFrom = (date: Date, hours: number): Date =>
+  new Date(date.getTime() + hours * 60 * 60 * 1000);
+
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : "未知錯誤";
+
+export function isOwnedGoogleToken(
+  token: TokenData | null,
+  userId: string,
+): token is TokenData {
+  return token?.userId === userId && token.provider === "google";
+}
+
+export async function getOwnedGoogleToken(
+  userId: string,
+  tokenService: GoogleTokenService = secureTokenService,
+): Promise<TokenData | null> {
+  const token = await tokenService.getToken(userId, "google");
+  return isOwnedGoogleToken(token, userId) ? token : null;
+}
+
+async function extendGoogleTokenExpiry(
+  userId: string,
+  token: TokenData,
+  expiresAt: Date,
+  tokenService: GoogleTokenService,
+): Promise<void> {
+  await tokenService.storeToken(userId, "google", {
+    accessToken: token.accessToken,
+    refreshToken: token.refreshToken,
+    expiresAt,
+  });
+}
+
+export async function batchFixExpiredTokens(
+  userId: string,
+  tokenService: GoogleTokenService = secureTokenService,
+  now: Clock = () => new Date(),
+): Promise<{ fixed: number; details: string[] }> {
   try {
-    console.log('[BATCH-FIX] 開始批量修復過期 token...');
-    
-    const now = new Date();
-    const expiredUsers = await db
-      .select({ 
-        email: users.email, 
-        id: users.id,
-        membershipLevel: users.membershipLevel,
-        lastLoginAt: users.lastLoginAt
-      })
-      .from(users)
-      .where(
-        and(
-          lt(users.tokenExpiresAt, now), // 已過期
-          isNotNull(users.googleAccessToken) // 有 Google token
-        )
-      );
-
-    if (expiredUsers.length === 0) {
-      console.log('[BATCH-FIX] 沒有發現過期的 token');
+    const currentTime = now();
+    const token = await getOwnedGoogleToken(userId, tokenService);
+    if (!token || !token.expiresAt || token.expiresAt.getTime() >= currentTime.getTime()) {
       return { fixed: 0, details: [] };
     }
 
-    console.log(`[BATCH-FIX] 發現 ${expiredUsers.length} 個過期 token，開始修復...`);
-
-    // 延長 48 小時有效期
-    const newExpiry = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-    const fixDetails = [];
-
-    for (const user of expiredUsers) {
-      await db
-        .update(users)
-        .set({
-          tokenExpiresAt: newExpiry,
-          updatedAt: now
-        })
-        .where(eq(users.id, user.id));
-
-      const detail = {
-        email: user.email,
-        membership: user.membershipLevel || 'free',
-        lastLogin: user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : '從未登入',
-        newExpiry: newExpiry.toLocaleString()
-      };
-      fixDetails.push(detail);
-
-      // 特別記錄 PRO 用戶
-      if (user.membershipLevel === 'pro') {
-        console.log(`[BATCH-FIX] 🎯 修復 PRO 會員: ${user.email}`);
-      }
-    }
-
-    console.log(`[BATCH-FIX] 成功修復 ${expiredUsers.length} 個過期 token`);
-    return { fixed: expiredUsers.length, details: fixDetails };
-
-  } catch (error) {
-    console.error('[BATCH-FIX] 批量修復失敗:', error);
-    throw error;
+    await extendGoogleTokenExpiry(
+      userId,
+      token,
+      hoursFrom(currentTime, 48),
+      tokenService,
+    );
+    return {
+      fixed: 1,
+      details: ["已更新已驗證會員的 Google token 到期時間"],
+    };
+  } catch (error: unknown) {
+    return {
+      fixed: 0,
+      details: ["Google token 修復失敗：" + errorMessage(error)],
+    };
   }
 }
 
-// 針對特定用戶的強制修復
-export async function forceFixUserToken(email: string) {
+export async function forceFixUserToken(
+  userId: string,
+  tokenService: GoogleTokenService = secureTokenService,
+  now: Clock = () => new Date(),
+): Promise<{ success: boolean; newExpiry?: Date; error?: string }> {
   try {
-    console.log(`[FORCE-FIX] 強制修復用戶 token: ${email}`);
-    
-    const now = new Date();
-    const newExpiry = new Date(now.getTime() + 72 * 60 * 60 * 1000); // 72 小時
-
-    const result = await db
-      .update(users)
-      .set({
-        tokenExpiresAt: newExpiry,
-        updatedAt: now,
-        lastLoginAt: now // 更新最後登入時間
-      })
-      .where(eq(users.email, email))
-      .returning({
-        email: users.email,
-        membershipLevel: users.membershipLevel,
-        credits: users.credits
-      });
-
-    if (result.length > 0) {
-      console.log(`[FORCE-FIX] 成功修復 ${email}，新到期時間: ${newExpiry}`);
-      return {
-        success: true,
-        user: result[0],
-        newExpiry: newExpiry.toLocaleString()
-      };
-    } else {
-      console.log(`[FORCE-FIX] 找不到用戶: ${email}`);
-      return { success: false, error: '用戶不存在' };
+    const token = await getOwnedGoogleToken(userId, tokenService);
+    if (!token) {
+      return { success: false, error: "找不到此會員的 Google token" };
     }
 
-  } catch (error) {
-    console.error(`[FORCE-FIX] 修復 ${email} 失敗:`, error);
-    return { success: false, error: error.message };
+    const newExpiry = hoursFrom(now(), 72);
+    await extendGoogleTokenExpiry(userId, token, newExpiry, tokenService);
+    return { success: true, newExpiry };
+  } catch (error: unknown) {
+    return { success: false, error: errorMessage(error) };
   }
+}
+
+export async function clearGoogleTokenForOwner(
+  userId: string,
+  tokenService: GoogleTokenService = secureTokenService,
+): Promise<boolean> {
+  const token = await getOwnedGoogleToken(userId, tokenService);
+  if (!token) {
+    return false;
+  }
+  await tokenService.deleteToken(userId, "google");
+  return true;
 }

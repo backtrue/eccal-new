@@ -1,41 +1,55 @@
-import { Router } from 'express';
-import { storage } from '../storage';
+import { type Request, Router } from 'express';
+import type { User } from '@shared/schema';
+import { requireAuth } from '../googleAuth';
+import { secureTokenService } from '../secureTokenService';
+import { getAuthenticatedEccalUser } from '../typecheckRepairTypes';
 
 const router = Router();
 
+type DiagnosticUser = Pick<
+  User,
+  'id' | 'email' | 'membershipLevel' | 'credits' | 'lastLoginAt' | 'createdAt'
+>;
+
+function getAuthenticatedUser(req: Request): DiagnosticUser | null {
+  if (!req.isAuthenticated() || !getAuthenticatedEccalUser(req.user)) {
+    return null;
+  }
+
+  // googleAuth deserializes req.user from storage.getUser, the canonical User source.
+  return req.user as DiagnosticUser;
+}
+
 // 診斷特定用戶的認證狀態
-router.post('/api/admin/diagnose-user', async (req, res) => {
+router.post('/api/admin/diagnose-user', requireAuth, async (req, res) => {
   try {
-    const { email } = req.body;
-    
-    if (!email) {
+    const email: unknown = req.body?.email;
+
+    if (typeof email !== 'string' || email.length === 0) {
       return res.status(400).json({ error: '需要提供用戶郵箱' });
     }
-    
-    console.log(`[USER-DIAGNOSIS] 開始診斷用戶: ${email}`);
-    
-    // 1. 檢查用戶是否存在
-    const users = await storage.getAllUsers();
-    const user = users.find(u => u.email === email);
-    
+
+    const user = getAuthenticatedUser(req);
     if (!user) {
-      return res.status(404).json({ 
-        error: '用戶不存在',
-        email,
-        diagnosis: 'USER_NOT_FOUND'
-      });
+      return res.status(401).json({ error: 'Authentication required' });
     }
+    if (user.email !== email) {
+      return res.status(403).json({ error: '只能診斷已驗證的會員' });
+    }
+
+    console.log(`[USER-DIAGNOSIS] 開始診斷用戶: ${email}`);
     
     // 2. 檢查 token 狀態
     const now = new Date();
-    const tokenExpiry = user.tokenExpiresAt ? new Date(user.tokenExpiresAt) : null;
+    const token = await secureTokenService.getToken(user.id, 'google');
+    const tokenExpiry = token?.expiresAt ?? null;
     const hoursRemaining = tokenExpiry ? Math.floor((tokenExpiry.getTime() - now.getTime()) / (1000 * 60 * 60)) : 0;
-    
+
     // 3. 檢查 Google OAuth 數據完整性
-    const hasGoogleAccessToken = !!user.googleAccessToken;
-    const hasGoogleRefreshToken = !!user.googleRefreshToken;
-    const tokenLength = user.googleAccessToken ? user.googleAccessToken.length : 0;
-    
+    const hasGoogleAccessToken = Boolean(token?.accessToken);
+    const hasGoogleRefreshToken = Boolean(token?.refreshToken);
+    const tokenLength = token?.accessToken.length ?? 0;
+
     // 4. 判斷認證問題的根本原因
     let diagnosis = 'UNKNOWN';
     let issue = '';
@@ -102,7 +116,7 @@ router.post('/api/admin/diagnose-user', async (req, res) => {
 });
 
 // 批量診斷問題用戶
-router.post('/api/admin/diagnose-problem-users', async (req, res) => {
+router.post('/api/admin/diagnose-problem-users', requireAuth, async (req, res) => {
   try {
     const problemUsers = [
       'ming2635163@gmail.com',
@@ -110,44 +124,38 @@ router.post('/api/admin/diagnose-problem-users', async (req, res) => {
       'pin10andy@gmail.com',
       'jamesboyphs@gmail.com'
     ];
+
+    const authenticatedUser = getAuthenticatedUser(req);
+    if (!authenticatedUser) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    if (!authenticatedUser.email || !problemUsers.includes(authenticatedUser.email)) {
+      return res.status(403).json({ error: '只能診斷已驗證的會員' });
+    }
+    const authorizedProblemUsers = [authenticatedUser.email];
     
     console.log('[BATCH-DIAGNOSIS] 開始批量診斷問題用戶');
     
     const results = [];
     
-    for (const email of problemUsers) {
+    for (const email of authorizedProblemUsers) {
       try {
-        const diagnosisReq = { body: { email } };
-        const diagnosisRes = { 
-          json: (data: any) => results.push(data),
-          status: () => ({ json: (data: any) => results.push({ error: true, ...data }) })
-        };
-        
-        // 重用單個用戶診斷邏輯
-        const users = await storage.getAllUsers();
-        const user = users.find(u => u.email === email);
-        
-        if (user) {
-          const now = new Date();
-          const tokenExpiry = user.tokenExpiresAt ? new Date(user.tokenExpiresAt) : null;
-          const hoursRemaining = tokenExpiry ? Math.floor((tokenExpiry.getTime() - now.getTime()) / (1000 * 60 * 60)) : 0;
-          
-          results.push({
-            email,
-            status: tokenExpiry && tokenExpiry > now ? 'NORMAL' : 'PROBLEM',
-            hoursRemaining,
-            lastLogin: user.lastLoginAt,
-            membershipLevel: user.membershipLevel,
-            hasTokens: !!user.googleAccessToken && !!user.googleRefreshToken
-          });
-        } else {
-          results.push({
-            email,
-            status: 'USER_NOT_FOUND',
-            error: '用戶不存在'
-          });
-        }
-      } catch (error) {
+        // 重用單個用戶診斷邏輯，但只使用 request-local 驗證會員
+      const user = authenticatedUser;
+      const now = new Date();
+      const token = await secureTokenService.getToken(user.id, 'google');
+      const tokenExpiry = token?.expiresAt ?? null;
+      const hoursRemaining = tokenExpiry ? Math.floor((tokenExpiry.getTime() - now.getTime()) / (1000 * 60 * 60)) : 0;
+
+      results.push({
+        email,
+        status: tokenExpiry && tokenExpiry > now ? 'NORMAL' : 'PROBLEM',
+        hoursRemaining,
+        lastLogin: user.lastLoginAt,
+        membershipLevel: user.membershipLevel,
+        hasTokens: Boolean(token?.accessToken) && Boolean(token?.refreshToken),
+      });
+    } catch (error) {
         results.push({
           email,
           status: 'DIAGNOSIS_ERROR',
@@ -157,7 +165,7 @@ router.post('/api/admin/diagnose-problem-users', async (req, res) => {
     }
     
     const summary = {
-      totalUsers: problemUsers.length,
+      totalUsers: authorizedProblemUsers.length,
       normalUsers: results.filter(r => r.status === 'NORMAL').length,
       problemUsers: results.filter(r => r.status !== 'NORMAL').length,
       timestamp: new Date().toISOString()

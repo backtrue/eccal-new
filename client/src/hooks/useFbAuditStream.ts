@@ -94,7 +94,7 @@ export function useFbAuditStream() {
                   setState(prev => ({
                     ...prev,
                     message: data.message,
-                    generatingMetrics: new Set([...prev.generatingMetrics, data.metric])
+                    generatingMetrics: new Set(Array.from(prev.generatingMetrics).concat(data.metric))
                   }));
                   break;
 
