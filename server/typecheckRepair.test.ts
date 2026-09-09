@@ -1,10 +1,42 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  findVerifiedDiagnosticUser,
   getAuthenticatedEccalUser,
   mapPublicProfileUpdate,
   projectPublicAccountMember,
 } from './typecheckRepairTypes';
+
+test('user diagnosis searches the canonical users array for the verified owner', () => {
+  const verified = {
+    id: 'member-verified',
+    email: 'verified@example.com',
+    membershipLevel: 'pro',
+  };
+  const other = {
+    id: 'member-other',
+    email: 'other@example.com',
+    membershipLevel: 'free',
+  };
+  const result = { users: [other, verified], total: 2 };
+
+  assert.equal(
+    findVerifiedDiagnosticUser(
+      result,
+      { id: verified.id, email: verified.email },
+      verified.email,
+    ),
+    verified,
+  );
+  assert.equal(
+    findVerifiedDiagnosticUser(
+      result,
+      { id: verified.id, email: verified.email },
+      other.email,
+    ),
+    null,
+  );
+});
 
 test('authenticated ECCAL user preserves canonical member fields', () => {
   const user = getAuthenticatedEccalUser({

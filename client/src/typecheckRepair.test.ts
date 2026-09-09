@@ -142,6 +142,22 @@ test("all supported locales provide the required existing text", () => {
   }
 });
 
+test("Traditional Chinese checkout keys preserve the existing checkout screen text", () => {
+  assert.deepEqual(getTranslations("zh-TW").checkout, {
+    title: "升級至 Pro 方案",
+    subtitle: "解鎖所有功能，享受完整的廣告分析體驗",
+    loginRequired: "需要登入",
+    loginRequiredDesc: "請先登入您的 Google 帳戶以繼續付款流程",
+    subscriptionError: "付款初始化失敗",
+    subscriptionErrorDesc: "無法初始化付款",
+    preparingPayment: "正在準備付款...",
+    backToPricing: "返回定價頁面",
+    user: "用戶:",
+    planFeatures: "方案內容:",
+    securePayment: "安全付款",
+  });
+});
+
 test("unknown currency conversion keeps the original amount", () => {
   const originalWarn = console.warn;
   console.warn = () => undefined;

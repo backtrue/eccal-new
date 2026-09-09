@@ -33,6 +33,19 @@ export function getAuthenticatedEccalUser(value: unknown): AuthenticatedEccalUse
   };
 }
 
+export function findVerifiedDiagnosticUser<
+  User extends { id: string; email: string | null },
+>(
+  result: { users: readonly User[] },
+  authenticatedUser: { id: string; email: string | null | undefined },
+  requestedEmail: string,
+): User | null {
+  return result.users.find(candidate =>
+    candidate.id === authenticatedUser.id &&
+    candidate.email === requestedEmail,
+  ) ?? null;
+}
+
 export type PublicAccountMember = Readonly<{
   id: string;
   email: string | null | undefined;

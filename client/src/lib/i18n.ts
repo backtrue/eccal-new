@@ -363,7 +363,7 @@ const translations: Record<Locale, TranslationData> = {
       loginRequired: '需要登入', loginRequiredDesc: '請先登入您的 Google 帳戶以繼續付款流程',
       subscriptionError: '付款初始化失敗', subscriptionErrorDesc: '無法初始化付款',
       preparingPayment: '正在準備付款...', backToPricing: '返回定價頁面',
-      user: '用戶', planFeatures: '方案功能', securePayment: '安全付款',
+      user: '用戶:', planFeatures: '方案內容:', securePayment: '安全付款',
     },
     // Navigation
     home: '首頁',

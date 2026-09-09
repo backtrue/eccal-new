@@ -2,7 +2,11 @@ import { type Request, Router } from 'express';
 import type { User } from '@shared/schema';
 import { requireAuth } from '../googleAuth';
 import { secureTokenService } from '../secureTokenService';
-import { getAuthenticatedEccalUser } from '../typecheckRepairTypes';
+import {
+  findVerifiedDiagnosticUser,
+  getAuthenticatedEccalUser,
+} from '../typecheckRepairTypes';
+import { storage } from '../storage';
 
 const router = Router();
 
@@ -29,12 +33,22 @@ router.post('/api/admin/diagnose-user', requireAuth, async (req, res) => {
       return res.status(400).json({ error: '需要提供用戶郵箱' });
     }
 
-    const user = getAuthenticatedUser(req);
-    if (!user) {
+    const authenticatedUser = getAuthenticatedUser(req);
+    if (!authenticatedUser) {
       return res.status(401).json({ error: 'Authentication required' });
     }
-    if (user.email !== email) {
+    if (authenticatedUser.email !== email) {
       return res.status(403).json({ error: '只能診斷已驗證的會員' });
+    }
+
+    const userResult = await storage.getAllUsers();
+    const user = findVerifiedDiagnosticUser(userResult, authenticatedUser, email);
+    if (!user) {
+      return res.status(404).json({
+        error: '用戶不存在',
+        email,
+        diagnosis: 'USER_NOT_FOUND',
+      });
     }
 
     console.log(`[USER-DIAGNOSIS] 開始診斷用戶: ${email}`);
@@ -137,11 +151,20 @@ router.post('/api/admin/diagnose-problem-users', requireAuth, async (req, res) =
     console.log('[BATCH-DIAGNOSIS] 開始批量診斷問題用戶');
     
     const results = [];
+    const userResult = await storage.getAllUsers();
     
     for (const email of authorizedProblemUsers) {
       try {
-        // 重用單個用戶診斷邏輯，但只使用 request-local 驗證會員
-      const user = authenticatedUser;
+      // 重用單個用戶診斷邏輯，從 canonical users 陣列查找已驗證會員。
+      const user = findVerifiedDiagnosticUser(userResult, authenticatedUser, email);
+      if (!user) {
+        results.push({
+          email,
+          status: 'USER_NOT_FOUND',
+          error: '用戶不存在',
+        });
+        continue;
+      }
       const now = new Date();
       const token = await secureTokenService.getToken(user.id, 'google');
       const tokenExpiry = token?.expiresAt ?? null;
