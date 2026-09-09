@@ -151,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return sendEmergencyBatchFixResult(
         res,
         result,
-        authenticatedUser.email,
+        authenticatedUser.email ?? null,
       );
     } catch (error: unknown) {
       console.error('緊急修復失敗:', error);
