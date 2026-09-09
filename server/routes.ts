@@ -66,7 +66,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupStripeRoutes(app);
   
   // 添加自動 token 修復端點
-  const { batchFixExpiredTokens, forceFixUserToken } = await import('./autoTokenFix');
+  const {
+    batchFixExpiredTokens,
+    forceFixUserToken,
+    sendAdminBatchFixResult,
+    sendEmergencyBatchFixResult,
+  } = await import('./autoTokenFix');
   
   // 批量修復過期 token (管理員端點)
   app.post('/api/admin/fix-expired-tokens', requireJWTAuth, async (req, res) => {
@@ -75,14 +80,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!authenticatedUser) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
-      const { batchFixExpiredTokens } = await import('./autoTokenFix');
       const result = await batchFixExpiredTokens(authenticatedUser.id);
-      res.json({
-        success: true,
-        message: 'Token 修復完成',
-        fixed: result.fixed,
-        details: result.details,
-      });
+      return sendAdminBatchFixResult(res, result);
     } catch (error: unknown) {
       console.error('Token 修復失敗:', error);
       res.status(500).json({
@@ -113,7 +112,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { forceFixUserToken } = await import('./autoTokenFix');
       const result = await forceFixUserToken(authenticatedUser.id);
       if (result.success) {
         res.json({
@@ -128,7 +126,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           newExpiry: result.newExpiry,
         });
       } else {
-        res.status(404).json(result);
+        res.status(result.reason === 'not_found' ? 404 : 500).json({
+          success: false,
+          error: result.error,
+        });
       }
     } catch (error: unknown) {
       console.error('用戶 token 修復失敗:', error);
@@ -146,19 +147,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!authenticatedUser) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
-      const { batchFixExpiredTokens } = await import('./autoTokenFix');
       const result = await batchFixExpiredTokens(authenticatedUser.id);
-      res.json({
-        success: true,
-        fixedCount: result.fixed,
-        affectedUsers:
-          result.fixed > 0 && authenticatedUser.email
-            ? [authenticatedUser.email]
-            : [],
-        message: result.fixed > 0
-          ? '已修復目前會員的 Google token 到期時間'
-          : '目前會員沒有需要修復的 Google token',
-      });
+      return sendEmergencyBatchFixResult(
+        res,
+        result,
+        authenticatedUser.email,
+      );
     } catch (error: unknown) {
       console.error('緊急修復失敗:', error);
       res.status(500).json({

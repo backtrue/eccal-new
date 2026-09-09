@@ -17,6 +17,24 @@ export interface TokenData {
   provider: 'google' | 'facebook' | 'google_analytics';
 }
 
+type TokenProvider = TokenData['provider'];
+
+export type StoredTokenRecord = Readonly<{
+  accessToken: string;
+  refreshToken: string | null;
+  expiresAt: Date | null;
+}>;
+
+export interface SecureTokenPersistence {
+  findToken(userId: string, provider: TokenProvider): Promise<StoredTokenRecord | null>;
+  saveToken(
+    userId: string,
+    provider: TokenProvider,
+    token: StoredTokenRecord,
+  ): Promise<'inserted' | 'updated'>;
+  deleteToken(userId: string, provider: TokenProvider): Promise<void>;
+}
+
 // 加密配置
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
@@ -78,12 +96,73 @@ function decrypt(encryptedText: string): string {
   }
 }
 
-class SecureTokenService {
+const databaseTokenPersistence: SecureTokenPersistence = {
+  async findToken(userId, provider) {
+    const rows = await db
+      .select()
+      .from(oauthTokens)
+      .where(and(
+        eq(oauthTokens.userId, userId),
+        eq(oauthTokens.provider, provider),
+      ))
+      .limit(1);
+    return rows[0] ?? null;
+  },
+
+  async saveToken(userId, provider, token) {
+    const existing = await db
+      .select()
+      .from(oauthTokens)
+      .where(and(
+        eq(oauthTokens.userId, userId),
+        eq(oauthTokens.provider, provider),
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(oauthTokens)
+        .set({
+          accessToken: token.accessToken,
+          refreshToken: token.refreshToken,
+          expiresAt: token.expiresAt,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(oauthTokens.userId, userId),
+          eq(oauthTokens.provider, provider),
+        ));
+      return 'updated';
+    }
+
+    await db.insert(oauthTokens).values({
+      userId,
+      provider,
+      accessToken: token.accessToken,
+      refreshToken: token.refreshToken,
+      expiresAt: token.expiresAt,
+    });
+    return 'inserted';
+  },
+
+  async deleteToken(userId, provider) {
+    await db
+      .delete(oauthTokens)
+      .where(and(
+        eq(oauthTokens.userId, userId),
+        eq(oauthTokens.provider, provider),
+      ));
+  },
+};
+
+export class SecureTokenService {
   private tokenCache: Map<string, TokenData> = new Map();
   private readonly CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
   private readonly cleanupInterval: NodeJS.Timeout;
 
-  constructor() {
+  constructor(
+    private readonly persistence: SecureTokenPersistence = databaseTokenPersistence,
+  ) {
     // 定期清理過期快取
     this.cleanupInterval = setInterval(() => {
       this.cleanupExpiredTokens();
@@ -99,6 +178,7 @@ class SecureTokenService {
     expiresAt?: Date;
   }): Promise<void> {
     const cacheKey = `${provider}_${userId}`;
+    const previousToken = this.tokenCache.get(cacheKey);
     
     // 存儲到內存快取（明文，用於快速訪問）
     this.tokenCache.set(cacheKey, {
@@ -113,45 +193,23 @@ class SecureTokenService {
       const encryptedAccessToken = encrypt(tokenData.accessToken);
       const encryptedRefreshToken = tokenData.refreshToken ? encrypt(tokenData.refreshToken) : null;
 
-      // 檢查是否已有記錄
-      const existing = await db
-        .select()
-        .from(oauthTokens)
-        .where(and(
-          eq(oauthTokens.userId, userId),
-          eq(oauthTokens.provider, provider)
-        ))
-        .limit(1);
-
-      if (existing.length > 0) {
-        // 更新現有記錄
-        await db
-          .update(oauthTokens)
-          .set({
-            accessToken: encryptedAccessToken,
-            refreshToken: encryptedRefreshToken,
-            expiresAt: tokenData.expiresAt || null,
-            updatedAt: new Date(),
-          })
-          .where(and(
-            eq(oauthTokens.userId, userId),
-            eq(oauthTokens.provider, provider)
-          ));
-        console.log(`✅ Token updated in DB (encrypted) for user ${userId} provider ${provider}`);
-      } else {
-        // 插入新記錄
-        await db.insert(oauthTokens).values({
-          userId,
-          provider,
-          accessToken: encryptedAccessToken,
-          refreshToken: encryptedRefreshToken,
-          expiresAt: tokenData.expiresAt || null,
-        });
-        console.log(`✅ Token inserted in DB (encrypted) for user ${userId} provider ${provider}`);
-      }
+      const action = await this.persistence.saveToken(userId, provider, {
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
+        expiresAt: tokenData.expiresAt || null,
+      });
+      console.log(`✅ Token ${action} in DB (encrypted) for user ${userId} provider ${provider}`);
     } catch (error) {
       console.error(`❌ Failed to persist token to DB for user ${userId} provider ${provider}:`, error);
-      // 即使數據庫保存失敗，內存快取仍然有效
+      if (provider === 'google') {
+        if (previousToken) {
+          this.tokenCache.set(cacheKey, previousToken);
+        } else {
+          this.tokenCache.delete(cacheKey);
+        }
+        throw error;
+      }
+      // 保留既有 Facebook/Google Analytics 的快取失敗語意。
     }
 
     console.log(`✅ Token securely stored for user ${userId} provider ${provider}`);
@@ -178,17 +236,9 @@ class SecureTokenService {
 
     // 2. 從數據庫恢復 token（解密）
     try {
-      const dbToken = await db
-        .select()
-        .from(oauthTokens)
-        .where(and(
-          eq(oauthTokens.userId, userId),
-          eq(oauthTokens.provider, provider)
-        ))
-        .limit(1);
+      const token = await this.persistence.findToken(userId, provider);
 
-      if (dbToken.length > 0) {
-        const token = dbToken[0];
+      if (token) {
         
         // 解密 tokens
         let decryptedAccessToken: string;
@@ -230,19 +280,21 @@ class SecureTokenService {
    */
   async deleteToken(userId: string, provider: 'google' | 'facebook' | 'google_analytics'): Promise<void> {
     const cacheKey = `${provider}_${userId}`;
+    const previousToken = this.tokenCache.get(cacheKey);
     this.tokenCache.delete(cacheKey);
 
     // 從數據庫刪除
     try {
-      await db
-        .delete(oauthTokens)
-        .where(and(
-          eq(oauthTokens.userId, userId),
-          eq(oauthTokens.provider, provider)
-        ));
+      await this.persistence.deleteToken(userId, provider);
       console.log(`🗑️ Token deleted from DB for user ${userId} provider ${provider}`);
     } catch (error) {
       console.error(`❌ Failed to delete token from DB for user ${userId} provider ${provider}:`, error);
+      if (provider === 'google') {
+        if (previousToken) {
+          this.tokenCache.set(cacheKey, previousToken);
+        }
+        throw error;
+      }
     }
 
     console.log(`🗑️ Token deleted for user ${userId} provider ${provider}`);
