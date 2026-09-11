@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { GscConnectionSection } from "@/components/GscConnectionSection";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -226,6 +227,7 @@ export default function Settings({ locale = 'zh-TW' }: SettingsProps) {
         </div>
 
         <div className="space-y-6">
+          <GscConnectionSection key={user?.id ?? "signed-out"} />
           {/* Google Analytics Section */}
           <Card>
             <CardHeader>

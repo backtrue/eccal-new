@@ -6,10 +6,12 @@ import { setupVite, serveStatic } from './vite';
 import { setupJWTGoogleAuth, jwtMiddleware } from './jwtAuth';
 import { setupGAConnection } from './gaConnection';
 import { setupMcpAuthRoutes } from './mcpAuthRoutes';
+import { setupGscRoutes } from './gscRoutes';
 
 // -------------------- 1. 基礎設定 --------------------
 const app = express();
 setupMcpAuthRoutes(app);
+setupGscRoutes(app);
 
 // -------------------- 1.05. 全域基礎中間件（必須最早執行）--------------------
 // 解析 JSON / URL-encoded body：此區塊必須在所有路由之前，解決 body 為 undefined 問題
