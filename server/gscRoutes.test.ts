@@ -44,6 +44,7 @@ type HarnessOptions = Readonly<{
   setTimer?: GscRouteDependencies["setTimer"];
   clearTimer?: GscRouteDependencies["clearTimer"];
   verifyBrowserJwt?: GscRouteDependencies["verifyBrowserJwt"];
+  reportGscDiagnostic?: GscRouteDependencies["reportGscDiagnostic"];
 }>;
 
 function connection(userId: string, status: GscConnectionState["status"] = "disconnected"):
@@ -287,6 +288,7 @@ function makeHarness(options: HarnessOptions = {}) {
     now: options.now ?? (() => Date.parse("2026-01-01T00:00:00.000Z")),
     setTimer: options.setTimer,
     clearTimer: options.clearTimer,
+    reportGscDiagnostic: options.reportGscDiagnostic,
   });
   const app = express();
   app.use(createGscRouter(dependencies));
@@ -1134,6 +1136,53 @@ test("lazy core failure affects only GSC routes and ordinary app routes still wo
     });
     assert.equal(gsc.status, 503);
     assert.doesNotMatch(await gsc.text(), /synthetic missing GSC configuration/);
+  } finally {
+    await server.close();
+  }
+});
+
+test("internal core failures emit only the fixed GSC diagnostic contract", async () => {
+  const diagnostics: Array<Record<string, unknown>> = [];
+  const { app } = makeHarness({
+    loadCore: async () => { throw new Error("synthetic secret value"); },
+    reportGscDiagnostic: (diagnostic) => {
+      diagnostics.push(diagnostic);
+    },
+  });
+  const server = await listen(app);
+  try {
+    const response = await fetch(`${server.baseUrl}/api/gsc/internal/connection-status`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${CALLER}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: "member-a",
+        deadline: {
+          startedAtMs: Date.parse("2026-01-01T00:00:00.000Z"),
+          deadlineAtMs: Date.parse("2026-01-01T00:00:00.000Z") + GSC_OPERATION_TIMEOUT_MS,
+        },
+      }),
+    });
+    assert.equal(response.status, 503);
+    assert.equal(diagnostics.length, 1);
+    assert.deepEqual(Object.keys(diagnostics[0]).sort(), [
+      "code",
+      "correlation_id",
+      "latency_ms",
+      "phase",
+      "retryable",
+      "route",
+      "status",
+      "version",
+    ]);
+    assert.equal(diagnostics[0].code, "GSC_UNAVAILABLE");
+    assert.equal(diagnostics[0].retryable, true);
+    assert.equal(diagnostics[0].phase, "load_core");
+    assert.equal(diagnostics[0].route, "/internal/connection-status");
+    assert.equal(diagnostics[0].version, "eccal-gsc-v1");
+    assert.doesNotMatch(JSON.stringify(diagnostics[0]), /synthetic secret value|member-a|caller-token/);
   } finally {
     await server.close();
   }

@@ -1,4 +1,4 @@
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import cookieParser from "cookie-parser";
 import express, {
   type Express,
@@ -111,9 +111,21 @@ export type GscRouteDependencies = Readonly<{
     userId: string,
   ) => Promise<MembershipSnapshot | null | undefined>;
   loadCore: () => Promise<GscRouteCore>;
+  reportGscDiagnostic?: (diagnostic: GscDiagnostic) => void;
   now?: () => number;
   setTimer?: (callback: () => void, delayMs: number) => unknown;
   clearTimer?: (timer: unknown) => void;
+}>;
+
+type GscDiagnostic = Readonly<{
+  code: string;
+  retryable: boolean;
+  correlation_id: string;
+  version: "eccal-gsc-v1";
+  latency_ms: number;
+  status: number;
+  phase: "request" | "member" | "load_core" | "operation";
+  route: string;
 }>;
 
 type CapturedRequest = Readonly<{
@@ -299,6 +311,33 @@ function publicError(error: unknown): GscRouteFailure {
     return new GscRouteFailure(404, "GSC_CONNECTION_REJECTED", BROWSER_MESSAGES.wrongMember);
   }
   return new GscRouteFailure(503, "GSC_UNAVAILABLE", BROWSER_MESSAGES.unavailable);
+}
+
+function reportGscDiagnostic(
+  dependencies: GscRouteDependencies,
+  req: Request,
+  error: unknown,
+  phase: GscDiagnostic["phase"],
+  correlationId: string,
+  startedAt: number,
+): void {
+  if (dependencies.reportGscDiagnostic === undefined) return;
+  const safe = publicError(error);
+  const diagnostic: GscDiagnostic = Object.freeze({
+    code: safe.code,
+    retryable: safe.status >= 500,
+    correlation_id: correlationId,
+    version: "eccal-gsc-v1",
+    latency_ms: Math.max(0, Math.round(performance.now() - startedAt)),
+    status: safe.status,
+    phase,
+    route: req.path,
+  });
+  try {
+    dependencies.reportGscDiagnostic(diagnostic);
+  } catch {
+    // Diagnostics must never alter the HTTP response boundary.
+  }
 }
 
 function internalError(res: Response, error: unknown): void {
@@ -1001,19 +1040,37 @@ export function createGscRouter(
     optionalKeys: readonly string[] = [],
   ) {
     return asyncRoute(async (req, res) => {
-      const body = internalBody(req, requiredKeys, optionalKeys);
-      const userId = requiredString(body.userId);
-      const deadline = deadlineFrom(body.deadline, now());
-      const result = await withDeadline(async () => {
-        await internalMember(dependencies, userId);
-        assertDeadline(deadline, now());
-        const core = await dependencies.loadCore();
-        assertDeadline(deadline, now());
-        const operationResult = await operation(body, core, deadline);
-        assertDeadline(deadline, now());
-        return operationResult;
-      }, deadline, now, setTimer, clearTimer);
-      res.json(result);
+      const startedAt = performance.now();
+      const correlationId = randomUUID();
+      let phase: GscDiagnostic["phase"] = "request";
+      try {
+        const body = internalBody(req, requiredKeys, optionalKeys);
+        const userId = requiredString(body.userId);
+        const deadline = deadlineFrom(body.deadline, now());
+        const result = await withDeadline(async () => {
+          phase = "member";
+          await internalMember(dependencies, userId);
+          assertDeadline(deadline, now());
+          phase = "load_core";
+          const core = await dependencies.loadCore();
+          assertDeadline(deadline, now());
+          phase = "operation";
+          const operationResult = await operation(body, core, deadline);
+          assertDeadline(deadline, now());
+          return operationResult;
+        }, deadline, now, setTimer, clearTimer);
+        res.json(result);
+      } catch (error) {
+        reportGscDiagnostic(
+          dependencies,
+          req,
+          error,
+          phase,
+          correlationId,
+          startedAt,
+        );
+        throw error;
+      }
     }, internalError);
   }
 
@@ -1222,6 +1279,11 @@ const defaultDependencies: GscRouteDependencies = Object.freeze({
     return getMcpMembershipSnapshot(userId);
   },
   loadCore: loadDefaultCore,
+  reportGscDiagnostic: (diagnostic) => {
+    process.stdout.write(
+      `GSC_INTERNAL_DIAGNOSTIC ${JSON.stringify(diagnostic)}\n`,
+    );
+  },
 });
 
 export function setupGscRoutes(
