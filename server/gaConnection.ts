@@ -122,7 +122,11 @@ export function setupGAConnection(app: Express) {
         // Update existing connection
         await db
           .update(googleAnalyticsConnections)
-          .set(connectionData)
+          .set({
+            ...connectionData,
+            // Repair legacy rows that were created without a timestamp.
+            createdAt: existingConnection[0].createdAt ?? new Date(),
+          })
           .where(eq(googleAnalyticsConnections.userId, userId));
         
         console.log(`🔄 Updated GA4 connection metadata for user ${userId}`);
@@ -156,6 +160,7 @@ export function setupGAConnection(app: Express) {
         .select({
           googleEmail: googleAnalyticsConnections.googleEmail,
           createdAt: googleAnalyticsConnections.createdAt,
+          updatedAt: googleAnalyticsConnections.updatedAt,
         })
         .from(googleAnalyticsConnections)
         .where(eq(googleAnalyticsConnections.userId, req.user.id))
@@ -172,9 +177,12 @@ export function setupGAConnection(app: Express) {
       const tokenValid = await secureTokenService.hasValidToken(req.user.id, 'google_analytics');
 
       res.json({
-        connected: true,
-        googleEmail: connection[0].googleEmail,
-        connectedAt: connection[0].createdAt,
+        connected: tokenValid,
+        googleEmail: connection[0].googleEmail || null,
+        // Legacy records may have a missing created_at value. The last
+        // metadata update is still a real connection timestamp; if neither
+        // exists, keep it null so the client can omit the field safely.
+        connectedAt: connection[0].createdAt ?? connection[0].updatedAt ?? null,
         tokenValid,
       });
     } catch (error) {

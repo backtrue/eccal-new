@@ -24,9 +24,10 @@ interface SettingsProps {
 }
 
 interface GAConnection {
-  userId: string;
-  googleEmail: string;
-  connectedAt: string;
+  connected: boolean;
+  googleEmail?: string | null;
+  connectedAt?: string | null;
+  tokenValid?: boolean;
 }
 
 interface EmailPreferenceResponse {
@@ -133,6 +134,12 @@ export default function Settings({ locale = 'zh-TW' }: SettingsProps) {
     queryKey: ['/api/analytics/ga-connection'],
     enabled: !!user,
   });
+  const isGaConnected = gaConnection?.connected === true && gaConnection.tokenValid === true;
+  const gaAccountEmail = gaConnection?.googleEmail?.trim() || null;
+  const gaConnectedAt = gaConnection?.connectedAt ? new Date(gaConnection.connectedAt) : null;
+  const gaConnectedAtLabel = gaConnectedAt && !Number.isNaN(gaConnectedAt.getTime())
+    ? gaConnectedAt.toLocaleString(locale)
+    : null;
 
   const { data: emailPreference, isLoading: isEmailPreferenceLoading } =
     useQuery<EmailPreferenceResponse | null>({
@@ -241,7 +248,7 @@ export default function Settings({ locale = 'zh-TW' }: SettingsProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {gaConnection ? (
+                {isGaConnected ? (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full bg-green-500"></div>
@@ -250,18 +257,22 @@ export default function Settings({ locale = 'zh-TW' }: SettingsProps) {
                       </span>
                     </div>
                     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
-                      <div className="text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">{t.connectedEmail}</span>
-                        <span className="ml-2 font-medium text-gray-900 dark:text-white">
-                          {gaConnection.googleEmail}
-                        </span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">{t.connectedAt}</span>
-                        <span className="ml-2 font-medium text-gray-900 dark:text-white">
-                          {new Date(gaConnection.connectedAt).toLocaleString(locale)}
-                        </span>
-                      </div>
+                      {gaAccountEmail && (
+                        <div className="text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">{t.connectedEmail}</span>
+                          <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                            {gaAccountEmail}
+                          </span>
+                        </div>
+                      )}
+                      {gaConnectedAtLabel && (
+                        <div className="text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">{t.connectedAt}</span>
+                          <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                            {gaConnectedAtLabel}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <Button
                       variant="destructive"
