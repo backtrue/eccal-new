@@ -5,10 +5,50 @@
 import type { Express } from "express";
 import { storage } from "./storage";
 import { google } from "googleapis";
+import jwt from "jsonwebtoken";
+import { randomUUID } from "node:crypto";
 import { db } from "./db";
 import { googleAnalyticsConnections } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { secureTokenService } from "./secureTokenService";
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
+const GA_OAUTH_STATE_PURPOSE = 'ga4-account-linking';
+const GA_OAUTH_STATE_TTL = '10m';
+
+function createGAOAuthState(userId: string): string {
+  return jwt.sign(
+    {
+      sub: userId,
+      purpose: GA_OAUTH_STATE_PURPOSE,
+      jti: randomUUID(),
+    },
+    JWT_SECRET,
+    { expiresIn: GA_OAUTH_STATE_TTL },
+  );
+}
+
+function getUserIdFromGAOAuthState(state: unknown): string | null {
+  if (typeof state !== 'string' || state.length === 0) {
+    return null;
+  }
+
+  try {
+    const payload = jwt.verify(state, JWT_SECRET, { algorithms: ['HS256'] });
+    if (
+      typeof payload === 'string' ||
+      payload.purpose !== GA_OAUTH_STATE_PURPOSE ||
+      typeof payload.sub !== 'string' ||
+      payload.sub.length === 0
+    ) {
+      return null;
+    }
+
+    return payload.sub;
+  } catch {
+    return null;
+  }
+}
 
 export function setupGAConnection(app: Express) {
   const getBaseUrl = () => {
@@ -32,7 +72,6 @@ export function setupGAConnection(app: Express) {
    * Requires user to be logged in
    */
   app.get('/api/auth/google-analytics', (req: any, res) => {
-    // Check if user is logged in
     if (!req.user) {
       return res.status(401).json({ 
         error: 'Not authenticated',
@@ -40,23 +79,29 @@ export function setupGAConnection(app: Express) {
       });
     }
 
-    const oauth2Client = createOAuth2Client();
-    
-    // Store user ID in session for callback
-    (req.session as any).gaLinkUserId = req.user.id;
+    try {
+      const oauth2Client = createOAuth2Client();
+      const state = createGAOAuthState(req.user.id);
+      const authUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        prompt: 'consent', // Force consent to get refresh token
+        state,
+        scope: [
+          'profile',
+          'email',
+          'https://www.googleapis.com/auth/analytics.readonly'
+        ],
+      });
 
-    const authUrl = oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      prompt: 'consent', // Force consent to get refresh token
-      scope: [
-        'profile',
-        'email',
-        'https://www.googleapis.com/auth/analytics.readonly'
-      ],
-    });
-
-    console.log(`🔗 User ${req.user.email} starting GA4 account linking`);
-    res.redirect(authUrl);
+      console.log(`🔗 User ${req.user.email} starting GA4 account linking`);
+      return res.redirect(authUrl);
+    } catch (error) {
+      console.error('GA4 OAuth start error:', error);
+      return res.status(503).json({
+        error: 'GA OAuth unavailable',
+        message: '目前無法啟動 GA4 連結，請稍後再試',
+      });
+    }
   });
 
   /**
@@ -64,11 +109,19 @@ export function setupGAConnection(app: Express) {
    */
   app.get('/api/auth/google-analytics/callback', async (req: any, res) => {
     try {
-      const code = req.query.code as string;
-      const userId = (req.session as any).gaLinkUserId;
+      const code = typeof req.query.code === 'string' ? req.query.code : '';
+      const userId = getUserIdFromGAOAuthState(req.query.state);
 
       if (!userId) {
-        return res.status(401).send('Session expired. Please try again.');
+        return res.status(401).send('OAuth state expired or invalid. Please try again.');
+      }
+
+      if (!req.user || req.user.id !== userId) {
+        return res.status(401).send('Authentication expired. Please log in and try again.');
+      }
+
+      if (!code) {
+        return res.status(400).send('Missing OAuth authorization code.');
       }
 
       const oauth2Client = createOAuth2Client();
@@ -135,9 +188,6 @@ export function setupGAConnection(app: Express) {
         await db.insert(googleAnalyticsConnections).values(connectionData);
         console.log(`➕ Created new GA4 connection for user ${userId}`);
       }
-
-      // Clear session data
-      delete (req.session as any).gaLinkUserId;
 
       // Redirect to settings page with success message
       res.redirect('/settings?ga_linked=success');
