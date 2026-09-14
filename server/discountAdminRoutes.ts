@@ -1,7 +1,7 @@
 import express from 'express';
 import { db } from './db';
 import { discountCodes, discountUsages, users } from '@shared/schema';
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { eq, and, sql, desc, inArray } from 'drizzle-orm';
 import { requireJWTAuth } from './jwtAuth';
 import { z } from 'zod';
 

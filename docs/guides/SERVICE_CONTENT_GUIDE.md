@@ -159,7 +159,7 @@ AI 驅動的 Facebook 廣告帳戶健康檢查系統，幫助廣告主快速識�
 - **Google Analytics API**：網站數據分析
 - **Facebook Marketing API**：廣告數據存取
 - **Stripe**：安全的支付處理
-- **Brevo**：郵件通知服務
+- **Resend**：經會員同意後管理郵件聯絡人與通知服務
 
 ## 🛡️ 安全與隱私
 

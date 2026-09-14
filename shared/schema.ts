@@ -60,6 +60,79 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const emailMarketingPreferences = pgTable(
+  "email_marketing_preferences",
+  {
+    userId: varchar("user_id")
+      .primaryKey()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", {
+      enum: ["pending", "subscribed", "unsubscribed"],
+    }).default("pending").notNull(),
+    consentVersion: varchar("consent_version", { length: 40 }),
+    consentedAt: timestamp("consented_at"),
+    unsubscribedAt: timestamp("unsubscribed_at"),
+    source: varchar("source", {
+      enum: ["first_login_prompt", "settings", "resend_webhook"],
+    }),
+    resendContactId: varchar("resend_contact_id"),
+    resendSyncStatus: varchar("resend_sync_status", {
+      enum: ["not_required", "pending", "synced", "failed"],
+    }).default("not_required").notNull(),
+    lastSyncError: text("last_sync_error"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    check(
+      "email_marketing_preferences_status_check",
+      sql`${table.status} IN ('pending', 'subscribed', 'unsubscribed')`,
+    ),
+    check(
+      "email_marketing_preferences_source_check",
+      sql`${table.source} IS NULL OR ${table.source} IN ('first_login_prompt', 'settings', 'resend_webhook')`,
+    ),
+    check(
+      "email_marketing_preferences_sync_status_check",
+      sql`${table.resendSyncStatus} IN ('not_required', 'pending', 'synced', 'failed')`,
+    ),
+  ],
+);
+
+export const emailMarketingConsentEvents = pgTable(
+  "email_marketing_consent_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", {
+      enum: ["subscribed", "unsubscribed"],
+    }).notNull(),
+    source: varchar("source", {
+      enum: ["first_login_prompt", "settings", "resend_webhook"],
+    }).notNull(),
+    consentVersion: varchar("consent_version", { length: 40 }).notNull(),
+    externalEventId: varchar("external_event_id"),
+    occurredAt: timestamp("occurred_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("email_marketing_consent_events_user_id_idx").on(table.userId),
+    uniqueIndex("email_marketing_consent_events_external_event_id_idx").on(
+      table.externalEventId,
+    ),
+    check(
+      "email_marketing_consent_events_status_check",
+      sql`${table.status} IN ('subscribed', 'unsubscribed')`,
+    ),
+    check(
+      "email_marketing_consent_events_source_check",
+      sql`${table.source} IN ('first_login_prompt', 'settings', 'resend_webhook')`,
+    ),
+  ],
+);
+
 export const aeoCoursePurchases = pgTable(
   "aeo_course_purchases",
   {
@@ -132,7 +205,7 @@ export const userMetrics = pgTable("user_metrics", {
   averageOrderValue: decimal("average_order_value", { precision: 10, scale: 2 }),
   conversionRate: decimal("conversion_rate", { precision: 5, scale: 4 }), // e.g., 0.0125 for 1.25%
   dataSource: varchar("data_source", { length: 50 }), // 'google_analytics', 'google_ads', etc.
-  gaResourceName: varchar("ga_resource_name", { length: 255 }), // Store GA resource name for Brevo
+  gaResourceName: varchar("ga_resource_name", { length: 255 }),
   periodStart: timestamp("period_start").notNull(),
   periodEnd: timestamp("period_end").notNull(),
   rawData: jsonb("raw_data"), // Store the original API response
@@ -531,6 +604,8 @@ export const adActionLogs = pgTable("ad_action_logs", {
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type EmailMarketingPreference = typeof emailMarketingPreferences.$inferSelect;
+export type EmailMarketingConsentEvent = typeof emailMarketingConsentEvents.$inferSelect;
 export type InsertUserMetrics = typeof userMetrics.$inferInsert;
 export type UserMetrics = typeof userMetrics.$inferSelect;
 

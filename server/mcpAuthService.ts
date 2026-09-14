@@ -13,14 +13,18 @@ type SqlExecutor = {
 };
 
 type McpDatabase = SqlExecutor & {
-  transaction<T>(callback: (transaction: SqlExecutor) => Promise<T>): Promise<T>;
+  transaction<T>(
+    callback: (transaction: SqlExecutor) => Promise<T>,
+  ): Promise<T>;
 };
 
 type AccountSnapshotSource = Readonly<{
   id: string;
+  email?: unknown;
   membership: "free" | "pro";
   membershipExpires: string | null;
   credits: number;
+  aeo_course_purchased: boolean;
 }>;
 
 export type McpMembershipSnapshot = Readonly<{
@@ -28,14 +32,18 @@ export type McpMembershipSnapshot = Readonly<{
   membership: "free" | "pro";
   membership_expires: string | null;
   credits: number;
+  aeo_course_purchased: boolean;
   checked_at: string;
 }>;
 
+export type McpAccountStatusSnapshot = McpMembershipSnapshot &
+  Readonly<{
+    account_email: string;
+  }>;
+
 export type McpAuthServiceDependencies = Readonly<{
   getDatabase: () => Promise<McpDatabase>;
-  getAccountSnapshot: (
-    userId: string,
-  ) => Promise<AccountSnapshotSource | null>;
+  getAccountSnapshot: (userId: string) => Promise<AccountSnapshotSource | null>;
   randomBytes: (length: number) => Uint8Array;
   now: () => Date;
 }>;
@@ -85,6 +93,52 @@ function generateCode(randomBytes: (length: number) => Uint8Array): string {
     throw new Error("MCP code generator returned an invalid byte length");
   }
   return Buffer.from(bytes).toString("base64url");
+}
+
+const NORMALIZED_ACCOUNT_EMAIL_PATTERN =
+  /^(?!\.)(?!.*\.\.)([a-z0-9_'+\-.]*)[a-z0-9_+-]@(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+
+export function normalizeMcpAccountEmail(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (
+    normalized.length < 3 ||
+    normalized.length > 320 ||
+    !NORMALIZED_ACCOUNT_EMAIL_PATTERN.test(normalized)
+  ) {
+    return null;
+  }
+  return normalized;
+}
+
+function projectMembershipSnapshot(
+  snapshot: AccountSnapshotSource | null,
+  userId: string,
+  checkedAt: string,
+): McpMembershipSnapshot | null {
+  if (snapshot === null || snapshot.id !== userId) {
+    return null;
+  }
+  if (
+    (snapshot.membership !== "free" && snapshot.membership !== "pro") ||
+    typeof snapshot.aeo_course_purchased !== "boolean" ||
+    (snapshot.membershipExpires !== null &&
+      (typeof snapshot.membershipExpires !== "string" ||
+        !isCanonicalTimestamp(snapshot.membershipExpires))) ||
+    !Number.isFinite(snapshot.credits)
+  ) {
+    return null;
+  }
+  return {
+    user_id: snapshot.id,
+    membership: snapshot.membership,
+    membership_expires: snapshot.membershipExpires,
+    credits: snapshot.credits,
+    aeo_course_purchased: snapshot.aeo_course_purchased,
+    checked_at: checkedAt,
+  };
 }
 
 function isCanonicalTimestamp(value: string): boolean {
@@ -147,9 +201,7 @@ function consumeCodeQuery(input: {
   `;
 }
 
-export function createMcpAuthService(
-  dependencies: McpAuthServiceDependencies,
-) {
+export function createMcpAuthService(dependencies: McpAuthServiceDependencies) {
   async function createCode(input: CreateMcpAuthCodeInput) {
     if (input.userId.length === 0) {
       throw new TypeError("MCP user ID is required");
@@ -211,28 +263,38 @@ export function createMcpAuthService(
     userId: string,
   ): Promise<McpMembershipSnapshot | null> {
     const snapshot = await dependencies.getAccountSnapshot(userId);
-    if (snapshot === null || snapshot.id !== userId) {
-      return null;
-    }
-    if (
-      (snapshot.membership !== "free" && snapshot.membership !== "pro") ||
-      (snapshot.membershipExpires !== null &&
-        (typeof snapshot.membershipExpires !== "string" ||
-          !isCanonicalTimestamp(snapshot.membershipExpires))) ||
-      !Number.isFinite(snapshot.credits)
-    ) {
+    return projectMembershipSnapshot(
+      snapshot,
+      userId,
+      dependencies.now().toISOString(),
+    );
+  }
+
+  async function getAccountStatus(
+    userId: string,
+  ): Promise<McpAccountStatusSnapshot | null> {
+    const snapshot = await dependencies.getAccountSnapshot(userId);
+    const membership = projectMembershipSnapshot(
+      snapshot,
+      userId,
+      dependencies.now().toISOString(),
+    );
+    const accountEmail = normalizeMcpAccountEmail(snapshot?.email);
+    if (membership === null || accountEmail === null) {
       return null;
     }
     return {
-      user_id: snapshot.id,
-      membership: snapshot.membership,
-      membership_expires: snapshot.membershipExpires,
-      credits: snapshot.credits,
-      checked_at: dependencies.now().toISOString(),
+      ...membership,
+      account_email: accountEmail,
     };
   }
 
-  return Object.freeze({ createCode, consumeCode, getMembership });
+  return Object.freeze({
+    createCode,
+    consumeCode,
+    getMembership,
+    getAccountStatus,
+  });
 }
 
 const defaultService = createMcpAuthService({
@@ -251,3 +313,4 @@ const defaultService = createMcpAuthService({
 export const createMcpAuthCode = defaultService.createCode;
 export const consumeMcpAuthCode = defaultService.consumeCode;
 export const getMcpMembershipSnapshot = defaultService.getMembership;
+export const getMcpAccountStatusSnapshot = defaultService.getAccountStatus;

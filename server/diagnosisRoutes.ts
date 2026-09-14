@@ -1108,11 +1108,27 @@ export function setupDiagnosisRoutes(app: Express) {
 
       // 存儲診斷報告
       const savedReport = await storage.createAdDiagnosisReport({
-        userId: user.id,
-        aiDiagnosisReport: report
-      });
+      userId: user.id,
+      campaignId: selectedAccount,
+      campaignName: metaData.accountName,
+      targetDailyTraffic: diagnosisData.targetDailyTraffic,
+      targetDailyBudget: String(diagnosisData.targetDailyBudget),
+      targetCpa: String(diagnosisData.targetCpa),
+      targetRoas: String(diagnosisData.targetRoas),
+      actualDailyTraffic: diagnosisData.actualDailyTraffic,
+      actualDailySpend: String(diagnosisData.actualDailySpend),
+      actualCtr: String(diagnosisData.actualCtr),
+      actualCpa: String(diagnosisData.actualCpa),
+      actualRoas: String(diagnosisData.actualRoas),
+      overallHealthScore: healthScore,
+      trafficAchievementRate: String(diagnosisData.trafficAchievementRate),
+      budgetUtilizationRate: String(diagnosisData.budgetUtilizationRate),
+      aiDiagnosisReport: report,
+      diagnosisStatus: 'completed',
+      topPerformingAds: metaData.topPerformingAds
+    });
 
-      res.json({
+    res.json({
         success: true,
         reportId: savedReport.id,
         healthScore: healthScore,

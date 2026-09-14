@@ -50,7 +50,9 @@ export function formatCurrency(amount: number, currency: CurrencyConfig, locale:
  * 簡化的幣值匯率（固定匯率，用於基本轉換）
  * 實際應用中應使用即時匯率 API
  */
-export const EXCHANGE_RATES = {
+export type CurrencyCode = 'TWD' | 'USD' | 'JPY';
+
+export const EXCHANGE_RATES: Record<CurrencyCode, Partial<Record<CurrencyCode, number>>> = {
   TWD: {
     USD: 0.031,  // 1 TWD = 0.031 USD
     JPY: 4.5,    // 1 TWD = 4.5 JPY
@@ -75,8 +77,11 @@ export function convertCurrency(
 ): number {
   if (fromCurrency === toCurrency) return amount;
   
-  const rate = EXCHANGE_RATES[fromCurrency as keyof typeof EXCHANGE_RATES]?.[toCurrency as keyof typeof EXCHANGE_RATES['TWD']];
-  if (!rate) {
+  const isCurrencyCode = (currency: string): currency is CurrencyCode => currency in EXCHANGE_RATES;
+  const rate = isCurrencyCode(fromCurrency) && isCurrencyCode(toCurrency)
+    ? EXCHANGE_RATES[fromCurrency][toCurrency]
+    : undefined;
+  if (rate === undefined) {
     console.warn(`No exchange rate found for ${fromCurrency} to ${toCurrency}`);
     return amount;
   }

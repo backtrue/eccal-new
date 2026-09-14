@@ -1,82 +1,100 @@
+import { and, eq, isNotNull, lt } from "drizzle-orm";
+import { oauthTokens } from "../shared/schema";
 import { db } from "./db";
-import { users } from "../shared/schema";
-import { lt, and, isNotNull, eq } from "drizzle-orm";
+import {
+  getOwnedGoogleToken,
+  type GoogleTokenService,
+} from "./autoTokenFix";
+import { secureTokenService } from "./secureTokenService";
 
-// 自動維護過期 token 的背景服務
+interface TokenMaintenanceDependencies {
+  listExpiringGoogleTokenOwners(cutoff: Date): Promise<string[]>;
+  tokenService: GoogleTokenService;
+  now(): Date;
+}
+
+const defaultDependencies: TokenMaintenanceDependencies = {
+  async listExpiringGoogleTokenOwners(cutoff: Date): Promise<string[]> {
+    const rows = await db
+      .select({ userId: oauthTokens.userId })
+      .from(oauthTokens)
+      .where(
+        and(
+          eq(oauthTokens.provider, "google"),
+          isNotNull(oauthTokens.expiresAt),
+          lt(oauthTokens.expiresAt, cutoff),
+        ),
+      );
+    return Array.from(new Set(rows.map((row) => row.userId)));
+  },
+  tokenService: secureTokenService,
+  now: () => new Date(),
+};
+
 export class TokenMaintenanceService {
   private intervalId: NodeJS.Timeout | null = null;
 
-  start() {
-    console.log('[TOKEN-MAINTENANCE] 啟動自動 token 維護服務');
-    
-    // 立即執行一次
-    this.maintainTokens();
-    
-    // 每小時執行一次
+  constructor(
+    private readonly dependencies: TokenMaintenanceDependencies = defaultDependencies,
+  ) {}
+
+  start(): void {
+    console.log("[TOKEN-MAINTENANCE] 啟動自動 token 維護服務");
+    void this.maintainTokens();
     this.intervalId = setInterval(() => {
-      this.maintainTokens();
-    }, 60 * 60 * 1000); // 1小時
+      void this.maintainTokens();
+    }, 60 * 60 * 1000);
   }
 
-  stop() {
+  stop(): void {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log('[TOKEN-MAINTENANCE] 停止自動 token 維護服務');
+      console.log("[TOKEN-MAINTENANCE] 停止自動 token 維護服務");
     }
   }
 
-  private async maintainTokens() {
+  private async maintainTokens(): Promise<number> {
     try {
-      const now = new Date();
-      const sixHoursFromNow = new Date(now.getTime() + 6 * 60 * 60 * 1000);
-      
-      // 查找即將在6小時內過期的 token
-      const expiringSoonUsers = await db
-        .select({ email: users.email, id: users.id })
-        .from(users)
-        .where(
-          and(
-            lt(users.tokenExpiresAt, sixHoursFromNow),
-            isNotNull(users.googleAccessToken)
-          )
-        );
-
-      if (expiringSoonUsers.length > 0) {
-        console.log(`[TOKEN-MAINTENANCE] 發現 ${expiringSoonUsers.length} 個即將過期的 token`);
-        
-        // 批量延長這些用戶的 token
-        const newExpiry = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        
-        for (const user of expiringSoonUsers) {
-          await db
-            .update(users)
-            .set({
-              tokenExpiresAt: newExpiry,
-              updatedAt: now
-            })
-            .where(eq(users.id, user.id));
-        }
-        
-        console.log(`[TOKEN-MAINTENANCE] 成功延長 ${expiringSoonUsers.length} 個用戶的 token 至 24 小時`);
-        
-        // 記錄受影響的用戶（只記錄前10個，避免日誌過長）
-        const emailList = expiringSoonUsers.slice(0, 10).map(u => u.email).join(', ');
-        console.log(`[TOKEN-MAINTENANCE] 受影響用戶: ${emailList}${expiringSoonUsers.length > 10 ? '...' : ''}`);
-      } else {
-        console.log('[TOKEN-MAINTENANCE] 沒有即將過期的 token');
+      const now = this.dependencies.now();
+      const cutoff = new Date(now.getTime() + 6 * 60 * 60 * 1000);
+      const ownerIds = await this.dependencies.listExpiringGoogleTokenOwners(cutoff);
+      if (ownerIds.length === 0) {
+        return 0;
       }
 
-    } catch (error) {
-      console.error('[TOKEN-MAINTENANCE] 維護 token 時發生錯誤:', error);
+      const newExpiry = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      let updated = 0;
+      for (const ownerId of ownerIds) {
+        const token = await getOwnedGoogleToken(
+          ownerId,
+          this.dependencies.tokenService,
+        );
+        if (!token) {
+          continue;
+        }
+        await this.dependencies.tokenService.storeToken(ownerId, "google", {
+          accessToken: token.accessToken,
+          refreshToken: token.refreshToken,
+          expiresAt: newExpiry,
+        });
+        updated += 1;
+      }
+
+      console.log("[TOKEN-MAINTENANCE] 已更新 Google token 到期時間，數量：", updated);
+      return updated;
+    } catch (error: unknown) {
+      console.error(
+        "[TOKEN-MAINTENANCE] 自動維護失敗:",
+        error instanceof Error ? error.message : "未知錯誤",
+      );
+      return 0;
     }
   }
 
-  // 手動觸發維護（用於測試）
-  async runMaintenance() {
-    await this.maintainTokens();
+  async runMaintenance(): Promise<number> {
+    return this.maintainTokens();
   }
 }
 
-// 創建全域實例
 export const tokenMaintenance = new TokenMaintenanceService();

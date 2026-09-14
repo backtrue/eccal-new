@@ -185,7 +185,7 @@ Preferred communication style: Simple, everyday language.
 - **tailwindcss**: Utility-first CSS framework.
 - **lucide-react**: Icon library.
 - **class-variance-authority**: Utility for component variants.
-- **Brevo (formerly Sendinblue)**: Email marketing API.
+- **Resend**: Consent-based email contact management and notifications.
 - **OpenAI GPT-4**: AI for diagnosis reports.
 - **Facebook Marketing API**: Ad account data fetching.
 - **Google Analytics API**: E-commerce metrics integration.

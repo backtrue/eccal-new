@@ -13,7 +13,16 @@ setupMcpAuthRoutes(app);
 
 // -------------------- 1.05. 全域基礎中間件（必須最早執行）--------------------
 // 解析 JSON / URL-encoded body：此區塊必須在所有路由之前，解決 body 為 undefined 問題
-app.use(express.json({ limit: '10mb' }));
+// Resend webhook 必須保留原始 body，否則無法驗證 Svix 簽章。
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, _res, buffer) => {
+    const expressRequest = req as express.Request & { rawBody?: string };
+    if (expressRequest.originalUrl === '/api/webhooks/resend') {
+      expressRequest.rawBody = buffer.toString('utf8');
+    }
+  },
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 

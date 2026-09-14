@@ -6,6 +6,13 @@ import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { PRICING_CONFIG, getCurrencyForLocale, getPricingForLocale, formatAmountForStripe, type Locale } from "./pricingConfig";
+import {
+  STRIPE_API_VERSION,
+  getPaymentIntentClientSecret,
+  resolveEccalPurchasePlan,
+  restorePaymentSession,
+  type EccalPurchasePayment,
+} from "./typecheckRepairTypes";
 
 // 延遲初始化 Stripe 以提升啟動速度
 let stripeInstance: Stripe | null = null;
@@ -16,10 +23,10 @@ function getStripeInstance(): Stripe {
       throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
     }
     
-    console.log('Initializing Stripe with secret key starting with:', process.env.STRIPE_SECRET_KEY?.substring(0, 7));
+    console.log("Initializing Stripe client");
     
     stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2023-10-16",
+      apiVersion: STRIPE_API_VERSION,
     });
   }
   return stripeInstance;
@@ -328,7 +335,7 @@ export function setupStripeRoutes(app: Express) {
 
       res.json({
         subscriptionId: subscription.id,
-        clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
+        clientSecret: getPaymentIntentClientSecret(subscription.latest_invoice),
       });
     } catch (error: any) {
       console.error("Error creating subscription:", error);
@@ -466,8 +473,10 @@ export function setupStripeRoutes(app: Express) {
         // Set user session to maintain login state
         const user = await storage.getUser(paymentIntent.metadata.userId);
         if (user && req.session) {
-          req.session.userId = user.id;
-          req.session.user = user;
+          await restorePaymentSession(
+            (sessionUser, done) => req.logIn(sessionUser, done),
+            user,
+          );
         }
 
         res.json({ 
@@ -587,35 +596,15 @@ async function triggerMetaPurchaseEvent(data: {
 }
 
 // Record purchase in eccal_purchases table for cross-platform benefits
-async function recordEccalPurchase(userId: string, paymentType: string, paymentIntent: any) {
+async function recordEccalPurchase(userId: string, paymentType: string, paymentIntent: EccalPurchasePayment) {
   try {
     const { db } = await import("./db.js");
     const { eccalPurchases } = await import("../shared/schema.js");
 
-    // Map payment types to plan types
-    let planType: string;
-    let purchaseAmount: number;
-    let isFounders = false;
-
-    switch (paymentType) {
-      case 'monthly':
-        planType = 'monthly';
-        purchaseAmount = 1280;
-        break;
-      case 'annual':
-        planType = 'annual';
-        purchaseAmount = 12800;
-        break;
-      case 'founders_membership':
-      case 'lifetime':
-        planType = 'founders';
-        purchaseAmount = 5990;
-        isFounders = true;
-        break;
-      default:
-        planType = 'monthly';
-        purchaseAmount = paymentIntent.amount / 100; // Convert from cents
-    }
+    const { planType, purchaseAmount, isFounders } = resolveEccalPurchasePlan(
+      paymentType,
+      paymentIntent.amount,
+    );
 
     // Insert purchase record
     const [purchase] = await db.insert(eccalPurchases).values({

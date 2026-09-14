@@ -60,7 +60,7 @@ export default function Dashboard({ locale }: DashboardProps) {
           <div className="text-center py-20">
             <h1 className="text-3xl font-bold mb-6">會員中心</h1>
             <p className="text-gray-600 mb-8">請先登入 Google 帳號以存取會員功能</p>
-            <GoogleLoginButton />
+            <GoogleLoginButton locale={locale} />
           </div>
         </div>
       </div>

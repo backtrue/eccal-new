@@ -19,7 +19,7 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
   const t = {
     'zh-TW': {
       title: '隱私權政策',
-      lastUpdated: '最後更新日期：2025年7月15日',
+      lastUpdated: '最後更新日期：2026年8月18日',
       welcome: '歡迎使用報數據 (Report Data) 平台！我們非常重視您的隱私權。本隱私權政策說明當您使用我們的服務時，我們如何收集、使用、儲存和保護您的資訊。',
       serviceOverview: '服務概述',
       serviceOverviewContent: '報數據是專業的電商廣告分析平台，提供以下三大核心服務：',
@@ -97,7 +97,7 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
       googleGemini: 'Google Gemini：部分 AI 功能支援',
       otherServices: '其他服務',
       stripe: 'Stripe：處理付款（僅適用於付費功能）',
-      brevo: 'Brevo：電子郵件通知服務',
+      resend: 'Resend：經會員同意後管理電子郵件聯絡人與通知服務',
       userRights: '用戶權利',
       dataAccessRights: '資料存取權',
       inquiryRight: '查詢權：查詢我們持有的您的個人資料',
@@ -139,7 +139,7 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
     },
     'en': {
       title: 'Privacy Policy',
-      lastUpdated: 'Last Updated: July 15, 2025',
+      lastUpdated: 'Last Updated: August 18, 2026',
       welcome: 'Welcome to Report Data platform! We highly value your privacy. This privacy policy explains how we collect, use, store, and protect your information when you use our services.',
       serviceOverview: 'Service Overview',
       serviceOverviewContent: 'Report Data is a professional e-commerce advertising analytics platform that provides the following three core services:',
@@ -217,7 +217,7 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
       googleGemini: 'Google Gemini: Partial AI function support',
       otherServices: 'Other Services',
       stripe: 'Stripe: Process payments (only for paid features)',
-      brevo: 'Brevo: Email notification service',
+      resend: 'Resend: Email contact management and notification service after user consent',
       userRights: 'User Rights',
       dataAccessRights: 'Data Access Rights',
       inquiryRight: 'Inquiry Right: Inquire about personal data we hold',
@@ -259,7 +259,7 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
     },
     'ja': {
       title: 'プライバシーポリシー',
-      lastUpdated: '最終更新日：2025年7月15日',
+      lastUpdated: '最終更新日：2026年8月18日',
       welcome: 'Report Dataプラットフォームをご利用いただきありがとうございます！私たちはあなたのプライバシーを非常に重視しています。このプライバシーポリシーは、あなたが私たちのサービスを使用する際に、私たちがどのように情報を収集、使用、保存、保護するかを説明しています。',
       serviceOverview: 'サービス概要',
       serviceOverviewContent: 'Report Dataは、以下の3つの核となるサービスを提供する専門的なeコマース広告分析プラットフォームです：',
@@ -337,7 +337,7 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
       googleGemini: 'Google Gemini：部分的なAI機能サポート',
       otherServices: 'その他のサービス',
       stripe: 'Stripe：支払い処理（有料機能のみ）',
-      brevo: 'Brevo：メール通知サービス',
+      resend: 'Resend：ユーザー同意後のメール連絡先管理および通知サービス',
       userRights: 'ユーザーの権利',
       dataAccessRights: 'データアクセス権',
       inquiryRight: '照会権：私たちが保有するあなたの個人データについての照会',

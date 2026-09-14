@@ -15,7 +15,10 @@ import cookieParser from "cookie-parser";
 import {
   createMcpAuthCode,
   consumeMcpAuthCode,
+  getMcpAccountStatusSnapshot,
   getMcpMembershipSnapshot,
+  normalizeMcpAccountEmail,
+  type McpAccountStatusSnapshot,
   type McpMembershipSnapshot,
 } from "./mcpAuthService";
 
@@ -57,6 +60,9 @@ export type McpAuthRouteDependencies = Readonly<{
     audience: string;
   }) => Promise<string | null>;
   getMembership: (userId: string) => Promise<McpMembershipSnapshot | null>;
+  getAccountStatus: (
+    userId: string,
+  ) => Promise<McpAccountStatusSnapshot | null>;
   reportMembershipDiagnostic?: (
     diagnostic: MembershipReceiverDiagnostic,
   ) => void;
@@ -425,7 +431,11 @@ export function createMcpAuthRouter(
     }
     try {
       const snapshot = await dependencies.getMembership(body.user_id);
-      if (snapshot === null || snapshot.user_id !== body.user_id) {
+      if (
+        snapshot === null ||
+        snapshot.user_id !== body.user_id ||
+        typeof snapshot.aeo_course_purchased !== "boolean"
+      ) {
         internalError(res, 503, "MEMBERSHIP_UNAVAILABLE", true);
         return;
       }
@@ -435,12 +445,55 @@ export function createMcpAuthRouter(
         membership: snapshot.membership,
         membership_expires: snapshot.membership_expires,
         credits: snapshot.credits,
+        aeo_course_purchased: snapshot.aeo_course_purchased,
         checked_at: snapshot.checked_at,
       });
     } catch {
       internalError(res, 503, "MEMBERSHIP_UNAVAILABLE", true);
     }
   });
+
+  router.post(
+    "/internal/account-status",
+    ...internalGuards,
+    async (req, res) => {
+      const body = parseJsonObject(req);
+      if (
+        body === null ||
+        !hasExactKeys(body, ["user_id"]) ||
+        typeof body.user_id !== "string" ||
+        body.user_id.length === 0
+      ) {
+        internalError(res, 400, "INVALID_REQUEST", false);
+        return;
+      }
+      try {
+        const snapshot = await dependencies.getAccountStatus(body.user_id);
+        if (
+          snapshot === null ||
+          snapshot.user_id !== body.user_id ||
+          normalizeMcpAccountEmail(snapshot.account_email) !==
+            snapshot.account_email ||
+          typeof snapshot.aeo_course_purchased !== "boolean"
+        ) {
+          internalError(res, 503, "MEMBERSHIP_UNAVAILABLE", true);
+          return;
+        }
+        res.status(200).json({
+          ok: true,
+          user_id: snapshot.user_id,
+          account_email: snapshot.account_email,
+          membership: snapshot.membership,
+          membership_expires: snapshot.membership_expires,
+          credits: snapshot.credits,
+          aeo_course_purchased: snapshot.aeo_course_purchased,
+          checked_at: snapshot.checked_at,
+        });
+      } catch {
+        internalError(res, 503, "MEMBERSHIP_UNAVAILABLE", true);
+      }
+    },
+  );
 
   router.use(
     (error: unknown, req: Request, res: Response, next: NextFunction) => {
@@ -468,6 +521,7 @@ const defaultDependencies: McpAuthRouteDependencies = {
   createCode: createMcpAuthCode,
   consumeCode: consumeMcpAuthCode,
   getMembership: getMcpMembershipSnapshot,
+  getAccountStatus: getMcpAccountStatusSnapshot,
   reportMembershipDiagnostic: (diagnostic) => {
     process.stdout.write(
       `MCP_MEMBERSHIP_DIAGNOSTIC ${JSON.stringify(diagnostic)}\n`,
