@@ -349,6 +349,69 @@ export type InsertGscConnection = typeof gscConnections.$inferInsert;
 export type GscOauthFlow = typeof gscOauthFlows.$inferSelect;
 export type InsertGscOauthFlow = typeof gscOauthFlows.$inferInsert;
 
+// GTM Read v1 persistence. This is intentionally separate from GSC; apply no
+// migration in this change.
+export const gtmConnections = pgTable("gtm_connections", {
+  connectionId: uuid("connection_id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  googleClientId: text("google_client_id").notNull(),
+  googleSubjectHash: text("google_subject_hash"),
+  credentialEnvelope: jsonb("credential_envelope"),
+  status: varchar("status", { length: 32, enum: ["disconnected", "active", "reauthorization_required"] }).default("disconnected").notNull(),
+  generation: integer("generation").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("gtm_connections_user_id_idx").on(table.userId),
+  uniqueIndex("gtm_connections_connection_user_idx").on(table.connectionId, table.userId),
+  uniqueIndex("gtm_connections_active_google_subject_idx").on(table.googleClientId, table.googleSubjectHash).where(sql`${table.googleSubjectHash} IS NOT NULL`),
+  check("gtm_connections_generation_check", sql`${table.generation} >= 0`),
+  check("gtm_connections_status_check", sql`${table.status} IN ('disconnected', 'active', 'reauthorization_required')`),
+  check("gtm_connections_active_material_check", sql`(${table.status} = 'active' AND ${table.googleSubjectHash} IS NOT NULL AND ${table.credentialEnvelope} IS NOT NULL) OR ${table.status} <> 'active'`),
+  check("gtm_connections_disconnected_material_check", sql`${table.status} <> 'disconnected' OR (${table.googleSubjectHash} IS NULL AND ${table.credentialEnvelope} IS NULL)`),
+]);
+
+export const gtmOauthFlows = pgTable("gtm_oauth_flows", {
+  flowId: uuid("flow_id").primaryKey().defaultRandom(),
+  connectionId: uuid("connection_id").notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  expectedGeneration: integer("expected_generation").notNull(),
+  googleClientId: text("google_client_id").notNull(),
+  redirectUri: text("redirect_uri").notNull(),
+  status: varchar("status", { length: 24, enum: ["intent_pending", "oauth_pending", "processing", "completed", "cancelled"] }).notNull(),
+  ticketHash: text("ticket_hash").notNull(),
+  stateHash: text("state_hash"),
+  sessionProofHash: text("session_proof_hash"),
+  oidcNonceHash: text("oidc_nonce_hash"),
+  encryptedPkceVerifier: jsonb("encrypted_pkce_verifier"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  foreignKey({
+    columns: [table.connectionId, table.userId],
+    foreignColumns: [gtmConnections.connectionId, gtmConnections.userId],
+    name: "gtm_oauth_flows_connection_owner_fk",
+  }).onDelete("cascade"),
+  uniqueIndex("gtm_oauth_flows_ticket_hash_idx").on(table.ticketHash),
+  uniqueIndex("gtm_oauth_flows_state_hash_idx").on(table.stateHash),
+  index("gtm_oauth_flows_owner_status_idx").on(table.userId, table.connectionId, table.expectedGeneration, table.status),
+  check("gtm_oauth_flows_generation_check", sql`${table.expectedGeneration} >= 0`),
+  check("gtm_oauth_flows_status_check", sql`${table.status} IN ('intent_pending', 'oauth_pending', 'processing', 'completed', 'cancelled')`),
+  check("gtm_oauth_flows_ticket_hash_check", sql`${table.ticketHash} ~ '^[A-Za-z0-9_-]{43}$'`),
+  check("gtm_oauth_flows_state_hash_check", sql`${table.stateHash} IS NULL OR ${table.stateHash} ~ '^[A-Za-z0-9_-]{43}$'`),
+  check("gtm_oauth_flows_session_hash_check", sql`${table.sessionProofHash} IS NULL OR ${table.sessionProofHash} ~ '^[A-Za-z0-9_-]{43}$'`),
+  check("gtm_oauth_flows_nonce_hash_check", sql`${table.oidcNonceHash} IS NULL OR ${table.oidcNonceHash} ~ '^[A-Za-z0-9_-]{43}$'`),
+  check("gtm_oauth_flows_expiry_check", sql`${table.expiresAt} > ${table.createdAt} AND ${table.expiresAt} <= ${table.createdAt} + interval '10 minutes'`),
+  check("gtm_oauth_flows_material_check", sql`(${table.status} = 'intent_pending' AND ${table.stateHash} IS NULL AND ${table.sessionProofHash} IS NULL AND ${table.oidcNonceHash} IS NULL AND ${table.encryptedPkceVerifier} IS NULL AND ${table.consumedAt} IS NULL) OR (${table.status} = 'oauth_pending' AND ${table.stateHash} IS NOT NULL AND ${table.sessionProofHash} IS NOT NULL AND ${table.oidcNonceHash} IS NOT NULL AND ${table.encryptedPkceVerifier} IS NOT NULL AND ${table.consumedAt} IS NULL) OR (${table.status} IN ('processing', 'completed') AND ${table.stateHash} IS NOT NULL AND ${table.sessionProofHash} IS NOT NULL AND ${table.oidcNonceHash} IS NOT NULL AND ${table.encryptedPkceVerifier} IS NULL AND ${table.consumedAt} IS NOT NULL) OR (${table.status} = 'cancelled' AND ${table.encryptedPkceVerifier} IS NULL AND ${table.consumedAt} IS NOT NULL)`),
+]);
+
+export type GtmConnection = typeof gtmConnections.$inferSelect;
+export type InsertGtmConnection = typeof gtmConnections.$inferInsert;
+export type GtmOauthFlow = typeof gtmOauthFlows.$inferSelect;
+export type InsertGtmOauthFlow = typeof gtmOauthFlows.$inferInsert;
+
 // Store user's e-commerce metrics
 export const userMetrics = pgTable("user_metrics", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),

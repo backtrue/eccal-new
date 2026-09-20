@@ -1,0 +1,1 @@
+- [GTM read security gates](gtm-read-security-gates.md) — stale eligibility must win on every exit, and canonical GTM names must exactly match IDs and ancestry.

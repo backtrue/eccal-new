@@ -7,11 +7,46 @@ import { setupJWTGoogleAuth, jwtMiddleware } from './jwtAuth';
 import { setupGAConnection } from './gaConnection';
 import { setupMcpAuthRoutes } from './mcpAuthRoutes';
 import { setupGscRoutes } from './gscRoutes';
+import { setupGtmRoutes, verifyGtmBrowserJwt } from './gtmRoutes';
+import { createGtmCredentialService } from './gtmCredentialService';
+import { createGtmOAuthService, createGtmUpstreamTransport } from './gtmOAuth';
+import { createGtmReadService } from './gtmReadService';
+import { createGtmRepository } from './gtmRepository';
 
 // -------------------- 1. 基礎設定 --------------------
 const app = express();
 setupMcpAuthRoutes(app);
 setupGscRoutes(app);
+setupGtmRoutes(app, {
+  getCallerToken: () => process.env.THINKWITHBLACK_GTM_SERVICE_TOKEN,
+  verifyBrowserJwt: (token) => {
+    // Keep GTM lazy and disabled when its settings are absent.
+    if (!process.env.JWT_SECRET) return null;
+    return verifyGtmBrowserJwt(token, process.env.JWT_SECRET);
+  },
+  getUser: async (id) => { const { storage } = await import("./storage"); return storage.getUser(id); },
+  getMembership: async (id) => { const { getMcpMembershipSnapshot } = await import("./mcpAuthService"); return getMcpMembershipSnapshot(id); },
+  loadCore: async () => {
+    const client = process.env.GOOGLE_GTM_CLIENT_ID, secret = process.env.GOOGLE_GTM_CLIENT_SECRET, key = process.env.GTM_CREDENTIAL_KEY;
+    if (!client || !secret || !key) throw new Error("GTM_OAUTH_CONFIGURATION");
+    const { pool } = await import("./db");
+    const repository = createGtmRepository(pool);
+    const credentialService = createGtmCredentialService({ credentialKey: Buffer.from(key, "base64url") });
+    const upstream = createGtmUpstreamTransport();
+    const oauth = createGtmOAuthService({ googleClientId: client, googleClientSecret: secret, repository, credentialService, transport: upstream });
+    const readTransport = {
+      request: async ({ url, accessToken }: { url: string; accessToken: string }) => {
+        return upstream.request({
+          url,
+          method: "GET",
+          headers: { authorization: `Bearer ${accessToken}` },
+          responseType: "json",
+        });
+      },
+    };
+    return { repository, credentialService, oauth, read: createGtmReadService({ oauth, repository, transport: readTransport }) };
+  },
+});
 
 // -------------------- 1.05. 全域基礎中間件（必須最早執行）--------------------
 // 解析 JSON / URL-encoded body：此區塊必須在所有路由之前，解決 body 為 undefined 問題

@@ -40,6 +40,8 @@ temp/
 # Database backups and sensitive data
 backups/
 *.sql
+!migrations/
+!migrations/0001_gtm_read_v1.sql
 *.csv
 database_backups/
 *.tar.gz
