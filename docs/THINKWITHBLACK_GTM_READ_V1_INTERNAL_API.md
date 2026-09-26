@@ -20,7 +20,15 @@ Values are intentionally not documented here. Missing settings return
 
 All are `POST /api/gtm/internal/...`, require
 `Authorization: Bearer <THINKWITHBLACK_GTM_SERVICE_TOKEN>`, and accept JSON.
-Every request includes:
+The two connection operations accept `{"userId":"string"}` after the trusted caller token
+and current ECCAL member are checked:
+
+- `/connection/begin`: creates a single-use intent and returns
+  `connectionUrl`, `expiresAt`, `connectionId`, and `generation`.
+- `/connection/status`: returns the current `status`, `connectionId`,
+  and `generation`.
+
+The 11 GTM read requests each include:
 
 ```json
 {
@@ -73,16 +81,21 @@ No automatic pagination is performed.
 
 ## Browser connection routes
 
+- `GET /api/gtm/browser/claim?gtm_ticket=...` (single-use MCP handoff)
 - `GET /api/gtm/browser/status`
 - `POST /api/gtm/browser/begin`
 - `POST /api/gtm/browser/start`
 - `POST /api/gtm/browser/disconnect`
 - `GET /api/gtm/oauth/callback`
 
-Browser mutations require the existing authenticated member cookie, exact
-ECCAL origin, and a GTM-specific CSRF proof. Pending and callback context is
-encrypted in short-lived HttpOnly cookies; raw tickets are not returned in
-JSON or callback URLs. Callback state is single-use and bound to the member,
+The claim route checks the signed-in member and stores the handoff in an
+encrypted HttpOnly cookie before redirecting to `/settings?gtm_connect=1`;
+the raw ticket does not remain in the settings URL. The settings page then
+continues the browser flow. Browser mutations require the existing
+authenticated member cookie, exact ECCAL origin, and a GTM-specific CSRF proof. Pending and callback context is
+encrypted in short-lived HttpOnly cookies. The trusted internal begin response
+contains a single-use handoff URL; browser JSON and OAuth callback URLs do not
+return the raw ticket. Callback state is single-use and bound to the member,
 browser session, connection, generation, and Google identity.
 
 ## Public error codes
