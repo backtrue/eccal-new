@@ -50,9 +50,9 @@ function body(value: unknown): Record<string, unknown> {
 }
 function page(value: Record<string, unknown>) {
   const token = value.nextPageToken;
-  if (token !== undefined && (typeof token !== "string" || token.length > 512)) fail("GTM_UPSTREAM_INVALID_RESPONSE");
-  return Object.freeze({ nextPageToken: token === undefined ? null : token as string,
-    complete: token === undefined, automatic: false as const });
+  if (token != null && (typeof token !== "string" || token.length > 512)) fail("GTM_UPSTREAM_INVALID_RESPONSE");
+  return Object.freeze({ nextPageToken: typeof token === "string" ? token : null,
+    complete: token == null, automatic: false as const });
 }
 const COLLECTION_KEYS: Readonly<Record<string, string | null>> = Object.freeze({
   accounts: "account", containers: "container", workspaces: "workspace",
@@ -60,23 +60,24 @@ const COLLECTION_KEYS: Readonly<Record<string, string | null>> = Object.freeze({
   variables: "variable", "variables-get": null, versions: "containerVersionHeader",
   "workspace-status": null,
 });
-function canonicalSegments(name: unknown): string[] {
+function canonicalSegments(name: unknown, allowBuiltInCollection = false): string[] {
   const raw = typeof name === "string" ? name : fail("GTM_UPSTREAM_INVALID_RESPONSE");
   const parts: string[] = raw.split("/");
-  if (parts.length % 2 !== 0 || parts.some((part, index) => index % 2 === 0 ? !part : !/^[A-Za-z0-9_-]+$/.test(part))) fail("GTM_UPSTREAM_INVALID_RESPONSE");
+  const builtInCollection = allowBuiltInCollection && parts.length % 2 === 1 && parts[parts.length - 1] === "built_in_variables";
+  if ((!builtInCollection && parts.length % 2 !== 0) || parts.some((part, index) => index % 2 === 0 ? !part : !/^[A-Za-z0-9_-]+$/.test(part))) fail("GTM_UPSTREAM_INVALID_RESPONSE");
   return parts;
 }
 function validateResourceName(value: Record<string, unknown>, kind: "account" | "container" | "workspace" | "tag" | "trigger" | "variable" | "version", scope: { accountId?: string; containerId?: string; workspaceId?: string; objectId?: string }): void {
-  const required = kind === "account" ? ["accountId", "name"] :
-    kind === "container" ? ["containerId", "name"] :
-    kind === "workspace" ? ["workspaceId", "name"] :
-    kind === "tag" ? ["tagId", "name", "type"] :
-    kind === "trigger" ? ["triggerId", "name", "type"] :
-    kind === "variable" ? ["variableId", "name", "type"] :
-    ["containerVersionId", "name"];
+  const required = kind === "account" ? ["accountId", "path"] :
+    kind === "container" ? ["containerId", "path"] :
+    kind === "workspace" ? ["workspaceId", "path"] :
+    kind === "tag" ? ["tagId", "path", "type"] :
+    kind === "trigger" ? ["triggerId", "path", "type"] :
+    kind === "variable" ? ["variableId", "path", "type"] :
+    ["containerVersionId", "path"];
   if (required.some(field => typeof value[field] !== "string" || value[field] === "")) fail("GTM_UPSTREAM_INVALID_RESPONSE");
-  const name = value.name ?? value.path;
-  const parts = canonicalSegments(name);
+  if (value.name !== undefined && typeof value.name !== "string") fail("GTM_UPSTREAM_INVALID_RESPONSE");
+  const parts = canonicalSegments(value.path);
   const expected = kind === "account" ? ["accounts", scope.accountId] :
     kind === "container" ? ["accounts", scope.accountId, "containers", scope.containerId] :
     kind === "workspace" ? ["accounts", scope.accountId, "containers", scope.containerId, "workspaces", scope.workspaceId] :
@@ -85,6 +86,41 @@ function validateResourceName(value: Record<string, unknown>, kind: "account" | 
   if (parts.length !== expected.length || expected.some((part, index) => part !== undefined && parts[index] !== part)) fail("GTM_RESOURCE_IDENTITY_MISMATCH");
   const terminalField = kind === "tag" ? "tagId" : kind === "trigger" ? "triggerId" : kind === "variable" ? "variableId" : kind === "account" ? "accountId" : kind === "container" ? "containerId" : kind === "workspace" ? "workspaceId" : "containerVersionId";
   if (typeof value[terminalField] !== "string" || value[terminalField] !== parts[parts.length - 1]) fail("GTM_RESOURCE_IDENTITY_MISMATCH");
+}
+const STATUS_ENTITY_FIELDS = ["tag", "trigger", "variable", "folder", "client", "transformation", "zone", "customTemplate", "builtInVariable", "gtagConfig"] as const;
+const STATUS_ENTITY_COLLECTIONS: Readonly<Record<(typeof STATUS_ENTITY_FIELDS)[number], string>> = Object.freeze({
+  tag: "tags", trigger: "triggers", variable: "variables", folder: "folders",
+  client: "clients", transformation: "transformations", zone: "zones",
+  customTemplate: "templates", builtInVariable: "built_in_variables", gtagConfig: "gtag_config",
+});
+const STATUS_CHANGE_STATES = new Set(["changeStatusUnspecified", "none", "added", "deleted", "updated"]);
+const STATUS_ENTITY_ID_FIELDS: Readonly<Record<(typeof STATUS_ENTITY_FIELDS)[number], string | null>> = Object.freeze({
+  tag: "tagId", trigger: "triggerId", variable: "variableId", folder: "folderId",
+  client: "clientId", transformation: "transformationId", zone: "zoneId",
+  customTemplate: "templateId", builtInVariable: null, gtagConfig: "gtagConfigId",
+});
+function validateStatusEntity(value: unknown, scope: { accountId?: string; containerId?: string; workspaceId?: string }, allowBaseVersion = false): void {
+  if (!record(value)) fail("GTM_UPSTREAM_INVALID_RESPONSE");
+  const entity = value as Record<string, unknown>;
+  if (entity.changeStatus != null && (typeof entity.changeStatus !== "string" || !STATUS_CHANGE_STATES.has(entity.changeStatus))) fail("GTM_UPSTREAM_INVALID_RESPONSE");
+  const fields = STATUS_ENTITY_FIELDS.filter(field => entity[field] !== undefined);
+  if (fields.length !== 1 || !record(entity[fields[0]])) fail("GTM_UPSTREAM_INVALID_RESPONSE");
+  const resource = entity[fields[0]] as Record<string, unknown>;
+  const builtIn = fields[0] === "builtInVariable";
+  const parts = canonicalSegments(resource.path, builtIn);
+  if (parts.length !== (builtIn ? 7 : 8)) fail("GTM_RESOURCE_IDENTITY_MISMATCH");
+  const inRequestedWorkspace = parts[4] === "workspaces" && parts[5] === scope.workspaceId;
+  const inBaseVersion = parts[4] === "versions";
+  if (parts[0] !== "accounts" || parts[1] !== scope.accountId ||
+      parts[2] !== "containers" || parts[3] !== scope.containerId ||
+      (allowBaseVersion ? !inBaseVersion : !inRequestedWorkspace)) fail("GTM_RESOURCE_IDENTITY_MISMATCH");
+  const collection = STATUS_ENTITY_COLLECTIONS[fields[0]];
+  if (parts[builtIn ? parts.length - 1 : parts.length - 2] !== collection) fail("GTM_RESOURCE_IDENTITY_MISMATCH");
+  const idField = STATUS_ENTITY_ID_FIELDS[fields[0]];
+  if (idField !== null) {
+    if (typeof resource[idField] !== "string" || resource[idField] === "") fail("GTM_UPSTREAM_INVALID_RESPONSE");
+    if (resource[idField] !== parts[parts.length - 1]) fail("GTM_RESOURCE_IDENTITY_MISMATCH");
+  }
 }
 function parseResponse(operation: string, value: unknown, scope: { accountId?: string; containerId?: string; workspaceId?: string; objectId?: string }): Record<string, unknown> {
   const result = body(value);
@@ -100,11 +136,24 @@ function parseResponse(operation: string, value: unknown, scope: { accountId?: s
   } else if (operation.endsWith("-get")) {
     validateResourceName(result, baseKind as never, scope);
   } else if (operation === "workspace-status") {
+    if (result.workspaceChange !== undefined) {
+      if (!Array.isArray(result.workspaceChange)) fail("GTM_UPSTREAM_INVALID_RESPONSE");
+      (result.workspaceChange as unknown[]).forEach(entity => validateStatusEntity(entity, scope));
+    }
     if (result.workspace !== undefined) {
       if (!record(result.workspace)) fail("GTM_UPSTREAM_INVALID_RESPONSE");
       validateResourceName(result.workspace as Record<string, unknown>, "workspace", scope);
     }
-    if (result.mergeConflict !== undefined && !Array.isArray(result.mergeConflict)) fail("GTM_UPSTREAM_INVALID_RESPONSE");
+    if (result.mergeConflict !== undefined) {
+      if (!Array.isArray(result.mergeConflict)) fail("GTM_UPSTREAM_INVALID_RESPONSE");
+      for (const conflict of result.mergeConflict as unknown[]) {
+        if (!record(conflict)) fail("GTM_UPSTREAM_INVALID_RESPONSE");
+        const item = conflict as Record<string, unknown>;
+        if (item.entityInWorkspace === undefined) fail("GTM_UPSTREAM_INVALID_RESPONSE");
+        validateStatusEntity(item.entityInWorkspace, scope);
+        if (item.entityInBaseVersion !== undefined) validateStatusEntity(item.entityInBaseVersion, scope, true);
+      }
+    }
   }
   assertIdentity(result, scope);
   return result;
@@ -123,17 +172,18 @@ const OPERATION_FIELDS: Readonly<Record<string, readonly string[]>> = Object.fre
   versions: ["userId", "connectionId", "generation", "accountId", "containerId", "pageToken"],
 });
 const GET_OPERATIONS = new Set(["tags-get", "triggers-get", "variables-get"]);
+const NON_PAGINATED_OPERATIONS = new Set(["tags-get", "triggers-get", "variables-get", "workspace-status"]);
 function assertIdentity(value: unknown, scope: Record<string, string>): void {
   if (Array.isArray(value)) { value.forEach(v => assertIdentity(v, scope)); return; }
   if (!record(value)) return;
-  for (const key of ["name", "path"]) {
-    if (typeof value[key] !== "string") continue;
-    const parts = canonicalSegments(value[key]);
-    const prefix = scope.workspaceId
-      ? ["accounts", scope.accountId, "containers", scope.containerId, "workspaces", scope.workspaceId]
-      : scope.containerId ? ["accounts", scope.accountId, "containers", scope.containerId]
+  if (typeof value.path === "string") {
+    const parts = canonicalSegments(value.path, true);
+    const prefix = scope.containerId ? ["accounts", scope.accountId, "containers", scope.containerId]
       : scope.accountId ? ["accounts", scope.accountId] : [];
     if (prefix.some((part, index) => parts[index] !== part)) fail("GTM_RESOURCE_IDENTITY_MISMATCH");
+    if (scope.workspaceId && parts[4] === "workspaces" && parts[5] !== scope.workspaceId) {
+      fail("GTM_RESOURCE_IDENTITY_MISMATCH");
+    }
   }
   for (const [key, expected] of Object.entries(scope)) {
     if (value[key] !== undefined && value[key] !== expected) fail("GTM_RESOURCE_IDENTITY_MISMATCH");
@@ -198,7 +248,7 @@ export function createGtmReadService(input: {
        queryScope: Object.freeze({ operation: baseOperation, ...(accountId ? { accountId } : {}),
         ...(containerId ? { containerId } : {}), ...(workspaceId ? { workspaceId } : {}),
        ...(i.objectId ? { objectId: id(i.objectId) } : {}) }),
-       pagination: GET_OPERATIONS.has(operation)
+       pagination: NON_PAGINATED_OPERATIONS.has(operation)
          ? (result.nextPageToken !== undefined ? fail("GTM_UPSTREAM_INVALID_RESPONSE") : { nextPageToken: null, complete: true, automatic: false as const })
          : page(result) });
       if (!await input.repository.isResultEligible({ userId, connectionId, generation: i.generation })) fail("GTM_CONNECTION_REJECTED");

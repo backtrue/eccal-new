@@ -23,7 +23,7 @@ export const GTM_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 export const GTM_REVOCATION_ENDPOINT = "https://oauth2.googleapis.com/revoke";
 export const GTM_JWKS_ENDPOINT = "https://www.googleapis.com/oauth2/v3/certs";
 export const GTM_CONNECTION_URL =
-  "https://eccal.thinkwithblack.com/settings";
+  "https://eccal.thinkwithblack.com/api/gtm/browser/claim";
 export const GTM_READONLY_SCOPE =
   "https://www.googleapis.com/auth/tagmanager.readonly";
 export const GTM_OPERATION_TIMEOUT_MS = 45_000;

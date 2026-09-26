@@ -6,6 +6,7 @@ import { createGtmOAuthService, type GtmOAuthError } from "./gtmOAuth";
 import { createGtmReadService, GtmReadError, type GtmReadInput } from "./gtmReadService";
 import { createGtmRepository, type GtmRepository } from "./gtmRepository";
 
+export const GTM_BROWSER_CLAIM_PATH = "/api/gtm/browser/claim";
 export const GTM_BROWSER_STATUS_PATH = "/api/gtm/browser/status";
 export const GTM_BROWSER_BEGIN_PATH = "/api/gtm/browser/begin";
 export const GTM_BROWSER_START_PATH = "/api/gtm/browser/start";
@@ -61,7 +62,7 @@ function error(res: Response, value: unknown) {
   const status = code === "GTM_INVALID_INPUT" ? 400
     : code === "GTM_CSRF_REJECTED" ? 403
     : code === "GTM_CALLER_REJECTED" ? 401
-    : code === "GTM_OAUTH_CONFIGURATION" ? 503
+    : code === "GTM_OAUTH_CONFIGURATION" || code === "GTM_UNAVAILABLE" ? 503
     : code === "GTM_CONNECTION_REJECTED" || code === "GTM_OAUTH_REAUTHORIZATION_REQUIRED" ? 409
     : code === "GTM_UPSTREAM_TIMEOUT" || code === "GTM_OPERATION_TIMEOUT" ? 504
     : code === "GTM_RESOURCE_NOT_FOUND" ? 404 : 502;
@@ -97,6 +98,11 @@ export function createGtmRouter(d: GtmRouteDependencies) {
   router.use((req, res, next) => { res.setHeader("Cache-Control", "no-store"); next(); });
   router.use((req, res, next) => {
     // Remove OAuth query/cookie headers before any downstream logger can observe them.
+    if (req.path === GTM_BROWSER_CLAIM_PATH) {
+      (req as any).gtmClaimQuery = new URL(req.originalUrl, ORIGIN).searchParams;
+      req.url = GTM_BROWSER_CLAIM_PATH;
+      req.originalUrl = GTM_BROWSER_CLAIM_PATH;
+    }
     if (req.path === GTM_CALLBACK_PATH) {
       (req as any).gtmCallbackQuery = new URL(req.originalUrl, ORIGIN).searchParams;
       req.url = GTM_CALLBACK_PATH;
@@ -108,6 +114,40 @@ export function createGtmRouter(d: GtmRouteDependencies) {
       res.setHeader("X-Content-Type-Options", "nosniff");
     }
     next();
+  });
+  router.get(GTM_BROWSER_CLAIM_PATH, async (req, res) => {
+    callbackHeaders(res);
+    try {
+      const query = (req as any).gtmClaimQuery as URLSearchParams | undefined;
+      (req as any).gtmClaimQuery = undefined;
+      if (!query) throw new GtmRouteError("GTM_INVALID_INPUT");
+      const tickets = query.getAll("gtm_ticket");
+      if (query.size !== 1 || tickets.length !== 1 ||
+          !/^[A-Za-z0-9_-]{43}$/.test(tickets[0] ?? "")) {
+        throw new GtmRouteError("GTM_INVALID_INPUT");
+      }
+      const userId = await member(d, req);
+      const core = await d.loadCore();
+      const connection = await core.repository.ensureConnection({
+        userId,
+        googleClientId: process.env.GOOGLE_GTM_CLIENT_ID ?? "",
+      });
+      const handoff = core.credentialService.encryptBrowserHandoff(
+        userId,
+        JSON.stringify({
+          ticket: tickets[0],
+          connectionId: connection.connectionId,
+          generation: connection.generation,
+        }),
+      );
+      res.cookie(PENDING_COOKIE, envelopeCookie(handoff), {
+        ...COOKIE_OPTIONS,
+        path: "/api/gtm/browser",
+      });
+      res.redirect(303, "/settings?gtm_connect=1");
+    } catch (caught) {
+      error(res, caught);
+    }
   });
   router.get(GTM_BROWSER_STATUS_PATH, async (req, res) => {
     try { const userId = await member(d, req); const core = await d.loadCore(); const c = await core.repository.ensureConnection({ userId, googleClientId: process.env.GOOGLE_GTM_CLIENT_ID ?? "" }); res.json({ status: c.status, connectionId: c.connectionId, generation: c.generation, csrfProof: core.credentialService.hashOpaqueProof("browser_session", `gtm-csrf:${req.cookies.auth_token}`) }); } catch (e) { error(res, e); }
@@ -197,6 +237,45 @@ export function createGtmRouter(d: GtmRouteDependencies) {
   };
   router.use(GTM_INTERNAL_PREFIX, (req, res, next) => {
     if (!bearer(req, d.getCallerToken())) { error(res, new Error("GTM_CALLER_REJECTED")); return; } next();
+  });
+  const internalMember = async (value: unknown): Promise<string> => {
+    if (typeof value !== "string" || value.length === 0) {
+      throw new GtmRouteError("GTM_INVALID_INPUT");
+    }
+    if ((await d.getUser(value))?.id !== value ||
+        (await d.getMembership(value))?.user_id !== value) {
+      throw new GtmRouteError("GTM_CALLER_REJECTED");
+    }
+    return value;
+  };
+  router.post(`${GTM_INTERNAL_PREFIX}/connection/begin`, async (req, res) => {
+    try {
+      const userId = await internalMember(req.body?.userId);
+      if (Object.keys(req.body).length !== 1) throw new GtmRouteError("GTM_INVALID_INPUT");
+      const result = await (await d.loadCore()).oauth.beginConnection({ userId });
+      res.json({
+        connectionUrl: result.connectionUrl,
+        expiresAt: result.expiresAt,
+        connectionId: result.connection.connectionId,
+        generation: result.connection.generation,
+      });
+    } catch (caught) { error(res, caught); }
+  });
+  router.post(`${GTM_INTERNAL_PREFIX}/connection/status`, async (req, res) => {
+    try {
+      const userId = await internalMember(req.body?.userId);
+      if (Object.keys(req.body).length !== 1) throw new GtmRouteError("GTM_INVALID_INPUT");
+      const core = await d.loadCore();
+      const result = await core.repository.ensureConnection({
+        userId,
+        googleClientId: process.env.GOOGLE_GTM_CLIENT_ID ?? "",
+      });
+      res.json({
+        status: result.status,
+        connectionId: result.connectionId,
+        generation: result.generation,
+      });
+    } catch (caught) { error(res, caught); }
   });
   for (const [path, method] of Object.entries(operations)) router.post(`${GTM_INTERNAL_PREFIX}/${path}`, async (req, res) => {
     try { const input = req.body as GtmReadInput; const r = await (await d.loadCore()).read[method](input as never); res.json(r); } catch (e) { error(res, e); }
