@@ -19,7 +19,7 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
   const t = {
     'zh-TW': {
       title: '隱私權政策',
-      lastUpdated: '最後更新日期：2026年8月18日',
+      lastUpdated: '最後更新日期：2026年10月7日',
       welcome: '歡迎使用報數據 (Report Data) 平台！我們非常重視您的隱私權。本隱私權政策說明當您使用我們的服務時，我們如何收集、使用、儲存和保護您的資訊。',
       serviceOverview: '服務概述',
       serviceOverviewContent: '報數據是專業的電商廣告分析平台，提供以下三大核心服務：',
@@ -31,6 +31,14 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
       googleAuthContent: '當您選擇 Google 登入時，我們會收集：',
       basicData: '基本資料：姓名、電子郵件地址、個人資料照片',
       gaPermissions: 'Google Analytics 權限：analytics.readonly 唯讀權限',
+      gscData: 'Google Search Console 資料',
+      gscDataContent: '當您在「設定」中連接 Google Search Console，並使用 ThinkWithBlack MCP 的 GSC 工具時，報數據會依您的要求讀取您已授權的 Search Console 資料。',
+      gscPermissions: '權限：https://www.googleapis.com/auth/webmasters.readonly（唯讀），以及 openid、email（識別並顯示已連接的 Google 帳號）。',
+      gscDataTypes: '資料類型：您可存取的 Search Console 網站資源、搜尋成效報表、網址檢查結果及 Sitemap 資訊。',
+      gscPurpose: '用途：提供您要求的 GSC 資料查詢；我們不會以這些資料投放廣告或設定廣告目標。',
+      gscStorage: '儲存：Google 重新整理權杖及帳號電子郵件、授權範圍存於加密憑證中；Google 帳號識別碼以雜湊值另行保存。',
+      gscRetention: '保留：連線有效期間保留連線憑證；您在設定中解除連線時，我們會清除加密憑證及帳號識別雜湊值。查詢結果只在處理請求時傳遞，不會存入報數據的資料庫。',
+      gscSharing: '分享：查詢結果由 Google API 傳至報數據，再回傳給 ThinkWithBlack MCP 及您連接的 MCP 用戶端；該用戶端可能依其自身條款與隱私政策處理資料。',
       purpose: '用途：用於身份驗證和 GA4 數據整合',
       facebookData: 'Facebook 廣告數據',
       facebookDataContent: '當您使用 Facebook 廣告健檢時，我們會收集：',
@@ -139,7 +147,7 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
     },
     'en': {
       title: 'Privacy Policy',
-      lastUpdated: 'Last Updated: August 18, 2026',
+      lastUpdated: 'Last Updated: October 7, 2026',
       welcome: 'Welcome to Report Data platform! We highly value your privacy. This privacy policy explains how we collect, use, store, and protect your information when you use our services.',
       serviceOverview: 'Service Overview',
       serviceOverviewContent: 'Report Data is a professional e-commerce advertising analytics platform that provides the following three core services:',
@@ -151,6 +159,14 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
       googleAuthContent: 'When you choose Google login, we collect:',
       basicData: 'Basic Data: Name, email address, profile photo',
       gaPermissions: 'Google Analytics Permissions: analytics.readonly permission',
+      gscData: 'Google Search Console Data',
+      gscDataContent: 'When you connect Google Search Console in Settings and use ThinkWithBlack MCP GSC tools, Report Data accesses the Search Console data you authorized in response to your requests.',
+      gscPermissions: 'Permissions: https://www.googleapis.com/auth/webmasters.readonly (read-only), plus openid and email to identify and display the connected Google Account.',
+      gscDataTypes: 'Data: Search Console properties you can access, search performance reports, URL Inspection results, and sitemap information.',
+      gscPurpose: 'Purpose: To provide the GSC queries you request. We do not use this data to serve or target advertising.',
+      gscStorage: 'Storage: The Google refresh token, account email, and granted scopes are stored in an encrypted credential; a hashed Google Account identifier is stored separately.',
+      gscRetention: 'Retention: Connection credentials are retained while the connection is active. When you disconnect in Settings, we clear the encrypted credential and hashed account identifier. Query results are transmitted while processing your request and are not stored in the Report Data database.',
+      gscSharing: 'Sharing: Query results pass from the Google API through Report Data and are returned to ThinkWithBlack MCP and your connected MCP client. That client may process the data under its own terms and privacy policy.',
       purpose: 'Purpose: Used for authentication and GA4 data integration',
       facebookData: 'Facebook Advertising Data',
       facebookDataContent: 'When you use Facebook Ads Health Check, we collect:',
@@ -259,7 +275,7 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
     },
     'ja': {
       title: 'プライバシーポリシー',
-      lastUpdated: '最終更新日：2026年8月18日',
+      lastUpdated: '最終更新日：2026年10月7日',
       welcome: 'Report Dataプラットフォームをご利用いただきありがとうございます！私たちはあなたのプライバシーを非常に重視しています。このプライバシーポリシーは、あなたが私たちのサービスを使用する際に、私たちがどのように情報を収集、使用、保存、保護するかを説明しています。',
       serviceOverview: 'サービス概要',
       serviceOverviewContent: 'Report Dataは、以下の3つの核となるサービスを提供する専門的なeコマース広告分析プラットフォームです：',
@@ -271,6 +287,14 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
       googleAuthContent: 'Googleログインを選択すると、以下を収集します：',
       basicData: '基本データ：名前、メールアドレス、プロフィール写真',
       gaPermissions: 'Google Analytics権限：analytics.readonly読み取り専用権限',
+      gscData: 'Google Search Consoleデータ',
+      gscDataContent: '設定でGoogle Search Consoleを接続し、ThinkWithBlack MCPのGSCツールを使用すると、お客様のリクエストに応じて、許可されたSearch ConsoleデータをReport Dataが取得します。',
+      gscPermissions: '権限：https://www.googleapis.com/auth/webmasters.readonly（読み取り専用）、および接続されたGoogleアカウントの識別・表示に使用するopenid、email。',
+      gscDataTypes: 'データ：お客様がアクセスできるSearch Consoleプロパティ、検索パフォーマンスレポート、URL検査結果、サイトマップ情報。',
+      gscPurpose: '目的：お客様がリクエストしたGSCデータの照会を提供します。このデータを広告配信や広告ターゲティングには使用しません。',
+      gscStorage: '保存：Googleの更新トークン、アカウントのメールアドレス、許可されたスコープは暗号化された認証情報に保存し、Googleアカウント識別子はハッシュ化して別途保存します。',
+      gscRetention: '保存期間：接続が有効な間、接続情報を保持します。設定から接続を解除すると、暗号化された認証情報とハッシュ化されたアカウント識別子を消去します。検索結果はリクエスト処理中に転送され、Report Dataのデータベースには保存しません。',
+      gscSharing: '共有：検索結果はGoogle APIからReport Dataを経由し、ThinkWithBlack MCPおよびお客様が接続したMCPクライアントに返されます。クライアントによるデータ処理には、そのクライアントの利用規約とプライバシーポリシーが適用されます。',
       purpose: '用途：認証とGA4データ統合に使用',
       facebookData: 'Facebook広告データ',
       facebookDataContent: 'Facebook広告健康診断を使用する際、以下を収集します：',
@@ -423,6 +447,21 @@ function PrivacyPolicyContent({ locale }: { locale: any }) {
               <li>{content.basicData}</li>
               <li>{content.gaPermissions}</li>
               <li>{content.purpose}</li>
+            </ul>
+
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mt-6 mb-3">
+              {content.gscData}
+            </h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              {content.gscDataContent}
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
+              <li>{content.gscPermissions}</li>
+              <li>{content.gscDataTypes}</li>
+              <li>{content.gscPurpose}</li>
+              <li>{content.gscStorage}</li>
+              <li>{content.gscRetention}</li>
+              <li>{content.gscSharing}</li>
             </ul>
 
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mt-6 mb-3">

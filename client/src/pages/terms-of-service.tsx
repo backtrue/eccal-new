@@ -19,7 +19,7 @@ function TermsOfServiceContent({ locale }: { locale: any }) {
   const t = {
     'zh-TW': {
       title: '服務條款',
-      lastUpdated: '生效日：2025年7月15日',
+      lastUpdated: '修訂日期：2026年10月7日',
       welcome: '歡迎使用報數據！',
       welcomeDesc: '當您開始使用報數據服務，即表示您信賴我們對您資訊的處理方式。我們深知這份責任重大，因此會盡力為您提供優質的電商廣告分析服務。',
       
@@ -60,6 +60,8 @@ function TermsOfServiceContent({ locale }: { locale: any }) {
       fbHealthCheck: 'Facebook 廣告健檢系統（AI 驅動的廣告帳戶健康檢查）',
       budgetCalculator: '廣告預算計算機（整合 Google Analytics 數據的預算規劃工具）',
       campaignPlanner: '活動預算規劃師（專業的五階段活動預算分配系統）',
+      searchConsoleConnector: 'Google Search Console 連線（透過 ThinkWithBlack MCP，以唯讀方式提供網站資源、搜尋成效、網址檢查及 Sitemap 查詢）',
+      searchConsoleTerms: '連接 Google Search Console 時，您須使用自己的 Google 帳戶完成授權，並確保您有權存取所選網站資源。GSC 功能只讀取資料，不會修改您的 Search Console 設定。查詢結果會傳回 ThinkWithBlack MCP 及您連接的 MCP 用戶端；用戶端如何處理資料，依其條款與隱私政策辦理。',
       membershipSystem: '會員積分系統（點數管理和會員升級服務）',
       
       serviceIntegration: '我們的服務能夠互相搭配運作，方便您從一項活動接續執行下一項活動。舉例來說，您可以在廣告預算計算機中計算預算，然後在活動預算規劃師中制定詳細的執行計劃。',
@@ -184,7 +186,7 @@ function TermsOfServiceContent({ locale }: { locale: any }) {
     },
     'en': {
       title: 'Terms of Service',
-      lastUpdated: 'Effective Date: July 15, 2025',
+      lastUpdated: 'Last Updated: October 7, 2026',
       welcome: 'Welcome to Report Data!',
       welcomeDesc: 'When you start using Report Data services, you are trusting us with your information. We understand this is a big responsibility and work hard to provide you with quality e-commerce advertising analytics services.',
       
@@ -225,6 +227,8 @@ function TermsOfServiceContent({ locale }: { locale: any }) {
       fbHealthCheck: 'Facebook Ads Health Check System (AI-driven advertising account health check)',
       budgetCalculator: 'Ad Budget Calculator (budget planning tool integrated with Google Analytics data)',
       campaignPlanner: 'Campaign Budget Planner (professional five-stage campaign budget allocation system)',
+      searchConsoleConnector: 'Google Search Console connection (read-only access through ThinkWithBlack MCP to site properties, search performance, URL Inspection, and sitemap information)',
+      searchConsoleTerms: 'To connect Google Search Console, you must authorize your own Google Account and have permission to access the selected properties. GSC features read data only and do not modify your Search Console settings. Query results are returned to ThinkWithBlack MCP and your connected MCP client; the client processes the data under its own terms and privacy policy.',
       membershipSystem: 'Membership Points System (points management and membership upgrade services)',
       
       serviceIntegration: 'Our services are designed to work together, making it easier for you to move from one activity to the next. For example, you can calculate your budget in the Ad Budget Calculator and then create a detailed execution plan in the Campaign Budget Planner.',
@@ -349,7 +353,7 @@ function TermsOfServiceContent({ locale }: { locale: any }) {
     },
     'ja': {
       title: 'サービス利用規約',
-      lastUpdated: '施行日：2025年7月15日',
+      lastUpdated: '改訂日：2026年10月7日',
       welcome: 'Report Dataへようこそ！',
       welcomeDesc: 'Report Dataサービスのご利用を開始いただく際、お客様は私たちにお客様の情報を信頼してお預けいただいています。これは大きな責任であると認識し、質の高いeコマース広告分析サービスの提供に努めています。',
       
@@ -390,6 +394,8 @@ function TermsOfServiceContent({ locale }: { locale: any }) {
       fbHealthCheck: 'Facebook広告健康診断システム（AI駆動の広告アカウント健康チェック）',
       budgetCalculator: '広告予算計算機（Google Analyticsデータと統合された予算計画ツール）',
       campaignPlanner: 'キャンペーン予算プランナー（プロフェッショナルな5段階キャンペーン予算配分システム）',
+      searchConsoleConnector: 'Google Search Console接続（ThinkWithBlack MCPを通じて、サイトプロパティ、検索パフォーマンス、URL検査、サイトマップ情報を読み取り専用で提供）',
+      searchConsoleTerms: 'Google Search Consoleを接続するには、ご自身のGoogleアカウントで認証し、選択したプロパティにアクセスする権限を有している必要があります。GSC機能はデータの読み取りのみを行い、Search Consoleの設定は変更しません。検索結果はThinkWithBlack MCPおよびお客様が接続したMCPクライアントに返され、クライアントによる処理にはその利用規約とプライバシーポリシーが適用されます。',
       membershipSystem: 'メンバーシップポイントシステム（ポイント管理とメンバーシップアップグレードサービス）',
       
       serviceIntegration: '私たちのサービスは連携して動作するように設計されており、1つの活動から次の活動への移行をより簡単にします。例えば、広告予算計算機で予算を計算し、その後キャンペーン予算プランナーで詳細な実行計画を作成できます。',
@@ -631,9 +637,13 @@ function TermsOfServiceContent({ locale }: { locale: any }) {
                 <li>{currentText.budgetCalculator}</li>
                 <li>{currentText.campaignPlanner}</li>
                 <li>{currentText.membershipSystem}</li>
+                <li>{currentText.searchConsoleConnector}</li>
               </ul>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
                 {currentText.serviceIntegration}
+              </p>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                {currentText.searchConsoleTerms}
               </p>
               
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
