@@ -1,0 +1,24 @@
+{
+  "name": "thinkwithblack-dashboard-data",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-16",
+  "account_id": "1011e1b1e32fe7670560f6949c99ff9e",
+  "workers_dev": true,
+  "analytics": {
+    "binding": "ANALYTICS_SQL"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "327f1bb231b34ef7b8d1816b6314759f"
+    },
+    {
+      "binding": "ORIGINAL_QUESTIONS",
+      "id": "959e0dc7d901492d939929d0bcd348e5"
+    },
+    {
+      "binding": "DASHBOARD_KV",
+      "id": "b0edf0536d0642deb2315aa6447ad118"
+    }
+  ]
+}

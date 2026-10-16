@@ -1,0 +1,1 @@
+{"name":"thinkwithblack-dashboard-data","private":true,"type":"module","scripts":{"deploy":"wrangler deploy","check":"wrangler deploy --dry-run"},"devDependencies":{"wrangler":"4.151.1"}}

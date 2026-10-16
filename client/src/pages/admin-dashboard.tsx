@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Users, TrendingUp, CreditCard, Settings, Monitor, FileText, Download, Bell, Activity, BarChart3, AlertTriangle, Star, MessageSquare, Calendar, Clock, UserCheck, TrendingDown } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useUserActivity, type UserActivityData } from "@/hooks/useAdminStats";
 // Removed Footer import as we'll use a simple admin footer instead
@@ -98,6 +99,7 @@ interface NPSStats {
 }
 
 export default function AdminDashboard() {
+  const {user:currentAdmin}=useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -505,6 +507,7 @@ export default function AdminDashboard() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">管理後台</h1>
           <p className="text-gray-600 mt-2">報數據系統管理控制台</p>
+          {currentAdmin?.email?.trim().toLowerCase()==='backtrue@gmail.com'&&<Button asChild className="mt-4"><a href="/bdmin/thinkwithblack/">ThinkWithBlack 營運總覽</a></Button>}
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">

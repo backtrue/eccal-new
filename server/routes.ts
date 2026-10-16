@@ -23,6 +23,16 @@ import fs from "fs";
 import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const {setupDashboardRoutes}=await import('./thinkwithblackDashboardRoutes');
+  const {createDashboardRepository}=await import('./thinkwithblackDashboardService');
+  const {pool}=await import('./db');
+  setupDashboardRoutes(app,{
+    getSecret:()=>process.env.JWT_SECRET,
+    getUser:(id)=>storage.getUser(id),
+    getMembers:async(ids)=>{const result=await pool.query('SELECT id,email,membership_level AS "membershipLevel" FROM users WHERE id = ANY($1::varchar[])',[ids]);return result.rows;},
+    repository:createDashboardRepository((text,values)=>pool.query(text,values)),
+    sourceUrl:'https://thinkwithblack-dashboard-data.backtrue.workers.dev',
+  });
   // Setup Fabe Integration routes (high priority API)
   const fabeIntegrationRoutes = await import('./fabeIntegrationRoutes');
   const fabeReverseIntegrationRoutes = await import('./fabeReverseIntegrationRoutes');
