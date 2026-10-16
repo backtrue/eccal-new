@@ -1,6 +1,7 @@
 interface KV {list(input:{prefix:string;cursor?:string;limit?:number}):Promise<{keys:{name:string}[];list_complete:boolean;cursor?:string}>;get(key:string,type:'json'):Promise<any>;put(key:string,value:string):Promise<void>}
 interface Env {GITHUB_TOKEN:string;OAUTH_KV:KV;ORIGINAL_QUESTIONS:KV;DASHBOARD_KV:KV;ANALYTICS_SQL:{query(input:{query:string;params?:Record<string,string>}):Promise<{data:any[]}>}}
 const ownerEmail='backtrue@gmail.com';
+const githubRepository='backtrue/thinkwithblack-skill';
 const platformNames:Record<string,string>={'https://chatgpt.com/oauth/client.json':'ChatGPT','https://claude.ai/oauth/mcp-oauth-client-metadata':'Claude','https://chatgpt.com/oauth/codex/client.json':'Codex'};
 const sha=async(value:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))).map(b=>b.toString(16).padStart(2,'0')).join('');
 const day=(v:string)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(v));
@@ -33,8 +34,11 @@ async function collect(env:Env,userId:string,fetcher:typeof fetch){
   });
   const usage=batches.flat().map(r=>({...r,events:Number(r.events),no_match:Number(r.no_match),sampled_rows:null,max_sample_interval:null,first_seen:instant(r.first_seen),last_seen:instant(r.last_seen),platform:clientMap.get(r.client_hash)??'未辨識平台'}));
   if(!env.GITHUB_TOKEN)throw new Failure(503,'GITHUB_AUTH_UNAVAILABLE');
-  const githubResponse=await fetcher('https://api.github.com/repos/backtrue/thinkwithblack-skills',{headers:{authorization:`Bearer ${env.GITHUB_TOKEN}`,accept:'application/vnd.github+json','user-agent':'ThinkWithBlack-Dashboard'},redirect:'manual',signal:AbortSignal.timeout(10000)});
-  if(!githubResponse.ok)throw new Failure(502,'GITHUB_UNAVAILABLE');const repo:any=await githubResponse.json();if(repo.full_name!=='backtrue/thinkwithblack-skills'||!Number.isFinite(repo.stargazers_count))throw new Failure(502,'GITHUB_INVALID');
+  async function githubRequest(path=''){const r=await fetcher(`https://api.github.com/repos/${githubRepository}${path}`,{headers:{authorization:`Bearer ${env.GITHUB_TOKEN}`,accept:'application/vnd.github+json','user-agent':'ThinkWithBlack-Dashboard'},redirect:'manual',signal:AbortSignal.timeout(10000)});if(!r.ok)throw new Failure(502,'GITHUB_UNAVAILABLE');return r.json() as Promise<any>;}
+  const repo=await githubRequest();if(repo.full_name!==githubRepository||!Number.isFinite(repo.stargazers_count)||!Number.isFinite(repo.forks_count))throw new Failure(502,'GITHUB_INVALID');
+  const sameRepository=prior?.github?.[0]?.repository===githubRepository;
+  let traffic=sameRepository?prior.traffic??[]:[];
+  if(!sameRepository){const [views,clones]=await Promise.all([githubRequest('/traffic/views'),githubRequest('/traffic/clones')]);if(!Array.isArray(views.views)||!Array.isArray(clones.clones))throw new Failure(502,'GITHUB_TRAFFIC_INVALID');traffic=[...views.views.map((r:any)=>({repository:githubRepository,date:r.timestamp.slice(0,10),metric:'瀏覽',count:r.count,uniques:r.uniques})),...clones.clones.map((r:any)=>({repository:githubRepository,date:r.timestamp.slice(0,10),metric:'Clone',count:r.count,uniques:r.uniques}))];}
   const github=[{observed_at:generatedAt,date:day(generatedAt),repository:repo.full_name,stars:repo.stargazers_count,forks:repo.forks_count,url:repo.html_url}];
   const source=(name:string,detail:string,extra:any={})=>({name,executedAt:generatedAt,classification:'observed',evidenceFlow:[{title:'來源讀取',detail}],...extra});
   const provenance={
@@ -42,12 +46,12 @@ async function collect(env:Env,userId:string,fetcher:typeof fetch){
     members:source('ECCAL 會員對照','由 ECCAL 後端依 member_id 讀取目前 Email 與會員方案'),
     questions:source('使用者完整原始問題','分頁讀取問題 KV，逐筆重新核對 SHA-256',{coverage:'收錄功能啟用後成功保存的紀錄'}),
     usage:source('Skill 搜尋與讀取用量','Cloudflare Analytics SQL binding，89 天分段查詢；COUNT 與 SUM 由 API 自動套用取樣權重',{sql:sqls.join('\n\n'),coverage:`${intervals[0][0]} 至 ${generatedAt}；自動加權估計用量，會員為實際觀測識別`,links:[{label:'Cloudflare Analytics SQL 取樣定義',url:'https://developers.cloudflare.com/analytics/sql-api/datasets/#workers-analytics-engine-datasets'}]}),
-    github:source('GitHub Skills 套件','GitHub 私人 repository API 經後端憑證即時讀取星數與 Fork'),
-    traffic:prior?.provenance?.traffic??prior?.provenance?.github??source('GitHub traffic','尚無成功讀取快照'),
+    github:source('GitHub 免費 Skills 套件',`GitHub repository API 即時讀取 ${githubRepository} 星數與 Fork`,{repository:githubRepository,links:[{label:'免費 Skills repository',url:repo.html_url}]}),
+    traffic:sameRepository?(prior.provenance?.traffic??prior.provenance?.github):source('GitHub 免費 Skills traffic',`讀取 ${githubRepository} traffic/views 與 traffic/clones`,{repository:githubRepository,coverage:'GitHub 最近 14 天，UTC 日界線',links:[{label:'免費 Skills repository',url:repo.html_url}]}),
   };
-  const daily={date:day(generatedAt),captured_at:generatedAt,stars:repo.stargazers_count,grant_members:users.length,grant_records:grants.length,question_records:questions.length};
-  const history=[...(prior?.history??[]).filter((r:any)=>r.date!==daily.date),daily].sort((a:any,b:any)=>a.date.localeCompare(b.date));
-  return {generatedAt,owner:{email:ownerEmail,user_hash:ownerHash,verified_at:generatedAt},grants,users,questions,usage,github,traffic:prior?.traffic??[],history,skillNames:prior?.skillNames??{},provenance};
+  const daily={repository:githubRepository,date:day(generatedAt),captured_at:generatedAt,stars:repo.stargazers_count,grant_members:users.length,grant_records:grants.length,question_records:questions.length};
+  const history=[...(sameRepository?prior.history??[]:[]).filter((r:any)=>r.date!==daily.date&&(!r.repository||r.repository===githubRepository)),daily].sort((a:any,b:any)=>a.date.localeCompare(b.date));
+  return {generatedAt,owner:{email:ownerEmail,user_hash:ownerHash,verified_at:generatedAt},grants,users,questions,usage,github,traffic,history,skillNames:prior?.skillNames??{},provenance};
 }
 export async function handle(request:Request,env:Env,fetcher:typeof fetch=fetch){
   try{
