@@ -57,4 +57,4 @@ export async function handle(request:Request,env:Env,fetcher:typeof fetch=fetch)
     const data=await collect(env,userId,fetcher);await env.DASHBOARD_KV.put('snapshot',JSON.stringify(data));return response(data);
   }catch(error){return response({error:error instanceof Failure?error.code:'SOURCE_UNAVAILABLE'},error instanceof Failure?error.status:502);}
 }
-export default {fetch:handle};
+export default {fetch(request:Request,env:Env){return handle(request,env);}};
