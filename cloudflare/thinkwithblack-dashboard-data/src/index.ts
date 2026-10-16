@@ -1,5 +1,5 @@
 interface KV {list(input:{prefix:string;cursor?:string;limit?:number}):Promise<{keys:{name:string}[];list_complete:boolean;cursor?:string}>;get(key:string,type:'json'):Promise<any>;put(key:string,value:string):Promise<void>}
-interface Env {OAUTH_KV:KV;ORIGINAL_QUESTIONS:KV;DASHBOARD_KV:KV;ANALYTICS_SQL:{query(input:{query:string;params?:Record<string,string>}):Promise<{data:any[]}>}}
+interface Env {GITHUB_TOKEN:string;OAUTH_KV:KV;ORIGINAL_QUESTIONS:KV;DASHBOARD_KV:KV;ANALYTICS_SQL:{query(input:{query:string;params?:Record<string,string>}):Promise<{data:any[]}>}}
 const ownerEmail='backtrue@gmail.com';
 const platformNames:Record<string,string>={'https://chatgpt.com/oauth/client.json':'ChatGPT','https://claude.ai/oauth/mcp-oauth-client-metadata':'Claude','https://chatgpt.com/oauth/codex/client.json':'Codex'};
 const sha=async(value:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))).map(b=>b.toString(16).padStart(2,'0')).join('');
@@ -10,7 +10,7 @@ async function mapLimit<T,R>(rows:T[],fn:(row:T)=>Promise<R>){const out:R[]=new 
 async function list(kv:KV,prefix:string){let cursor:string|undefined;const keys:{name:string}[]=[];do{const r=await kv.list({prefix,cursor,limit:1000});keys.push(...r.keys);cursor=r.list_complete?undefined:r.cursor;if(!r.list_complete&&!cursor)throw new Failure(502,'SOURCE_PAGINATION');}while(cursor);return keys;}
 async function identity(request:Request,fetcher:typeof fetch){
   const authorization=request.headers.get('authorization');if(!authorization?.startsWith('Bearer ')||authorization.length>8200)throw new Failure(401,'LOGIN_REQUIRED');
-  let r:Response;try{r=await fetcher('https://eccal.thinkwithblack.com/api/auth/check',{headers:{authorization,accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(10000)});}catch{throw new Failure(503,'IDENTITY_UNAVAILABLE');}
+  let r:Response;try{r=await fetcher('https://eccal.thinkwithblack.com/api/auth/check',{headers:{authorization,accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(10000)});}catch{throw new Failure(503,'IDENTITY_UNAVAILABLE');}
   if(r.status===401||r.status===403)throw new Failure(401,'LOGIN_REQUIRED');if(!r.ok)throw new Failure(503,'IDENTITY_UNAVAILABLE');
   const body:any=await r.json();if(body.isAuthenticated!==true||typeof body.user?.id!=='string'||typeof body.user?.email!=='string')throw new Failure(401,'LOGIN_REQUIRED');
   if(body.user.email.trim().toLowerCase()!==ownerEmail)throw new Failure(403,'OWNER_REQUIRED');return body.user.id as string;
@@ -32,7 +32,8 @@ async function collect(env:Env,userId:string,fetcher:typeof fetch){
     sqls.push(query);const result=await env.ANALYTICS_SQL.query({query,params:{start,end}});if(!Array.isArray(result.data)||result.data.length>=10000)throw new Failure(502,'USAGE_TRUNCATED');return result.data;
   });
   const usage=batches.flat().map(r=>({...r,events:Number(r.events),no_match:Number(r.no_match),sampled_rows:null,max_sample_interval:null,first_seen:instant(r.first_seen),last_seen:instant(r.last_seen),platform:clientMap.get(r.client_hash)??'未辨識平台'}));
-  const githubResponse=await fetcher('https://api.github.com/repos/backtrue/thinkwithblack-skills',{headers:{accept:'application/vnd.github+json','user-agent':'ThinkWithBlack-Dashboard'},redirect:'error',signal:AbortSignal.timeout(10000)});
+  if(!env.GITHUB_TOKEN)throw new Failure(503,'GITHUB_AUTH_UNAVAILABLE');
+  const githubResponse=await fetcher('https://api.github.com/repos/backtrue/thinkwithblack-skills',{headers:{authorization:`Bearer ${env.GITHUB_TOKEN}`,accept:'application/vnd.github+json','user-agent':'ThinkWithBlack-Dashboard'},redirect:'manual',signal:AbortSignal.timeout(10000)});
   if(!githubResponse.ok)throw new Failure(502,'GITHUB_UNAVAILABLE');const repo:any=await githubResponse.json();if(repo.full_name!=='backtrue/thinkwithblack-skills'||!Number.isFinite(repo.stargazers_count))throw new Failure(502,'GITHUB_INVALID');
   const github=[{observed_at:generatedAt,date:day(generatedAt),repository:repo.full_name,stars:repo.stargazers_count,forks:repo.forks_count,url:repo.html_url}];
   const source=(name:string,detail:string,extra:any={})=>({name,executedAt:generatedAt,classification:'observed',evidenceFlow:[{title:'來源讀取',detail}],...extra});
@@ -41,7 +42,7 @@ async function collect(env:Env,userId:string,fetcher:typeof fetch){
     members:source('ECCAL 會員對照','由 ECCAL 後端依 member_id 讀取目前 Email 與會員方案'),
     questions:source('使用者完整原始問題','分頁讀取問題 KV，逐筆重新核對 SHA-256',{coverage:'收錄功能啟用後成功保存的紀錄'}),
     usage:source('Skill 搜尋與讀取用量','Cloudflare Analytics SQL binding，89 天分段查詢；COUNT 與 SUM 由 API 自動套用取樣權重',{sql:sqls.join('\n\n'),coverage:`${intervals[0][0]} 至 ${generatedAt}；自動加權估計用量，會員為實際觀測識別`,links:[{label:'Cloudflare Analytics SQL 取樣定義',url:'https://developers.cloudflare.com/analytics/sql-api/datasets/#workers-analytics-engine-datasets'}]}),
-    github:source('GitHub Skills 套件','GitHub 公開 repository API 即時讀取星數與 Fork'),
+    github:source('GitHub Skills 套件','GitHub 私人 repository API 經後端憑證即時讀取星數與 Fork'),
     traffic:prior?.provenance?.traffic??prior?.provenance?.github??source('GitHub traffic','尚無成功讀取快照'),
   };
   const daily={date:day(generatedAt),captured_at:generatedAt,stars:repo.stargazers_count,grant_members:users.length,grant_records:grants.length,question_records:questions.length};
