@@ -29,6 +29,12 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+export const thinkwithblackDashboardSnapshots = pgTable("thinkwithblack_dashboard_snapshots", {
+  hash: varchar("hash", { length: 64 }).primaryKey(),
+  body: text("body").notNull(),
+  capturedAt: timestamp("captured_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // User storage table for Google OAuth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()), // Auto-generate UUID
