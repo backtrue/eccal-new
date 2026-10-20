@@ -1,19 +1,23 @@
-import React,{useMemo,useState} from 'react';
+import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {useDataApp,Filters,DateRangePicker,Dropdown,Switch,Button,Dialog,DataComponent,DataTable,MetricCard,EvidenceChart,SortableRegion,SortableItem,SectionHeader} from '../../data-app-public.jsx';
-import {defaultScope,derive,dateRange,shiftDay,taiwanDay} from './metrics.mjs';
+import {derive,dateRange,shiftDay,taiwanDay} from './metrics.mjs';
+import {rememberScope,restoredScope,startAutoRefresh} from './auto-refresh.mjs';
 import './dashboard.css';
 const n=v=>new Intl.NumberFormat('zh-TW',{maximumFractionDigits:0}).format(v);
 const time=v=>v?new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',dateStyle:'medium',timeStyle:'short',hour12:false}).format(new Date(v)):'—';
 const plans={all:'全部方案',free:'免費',pro:'Pro',founders:'創始會員',unknown:'待對照'};
 const Empty=({title='目前範圍沒有紀錄',children})=><div className="twb-empty"><strong>{title}</strong>{children&&<span>{children}</span>}</div>;
 export function DashboardContent(){
-  const {snapshot}=useDataApp(),[scope,setScope]=useState(()=>defaultScope(snapshot)),[detail,setDetail]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const {snapshot,componentActions}=useDataApp(),[scope,setScope]=useState(()=>restoredScope(snapshot,window.sessionStorage)),[detail,setDetail]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const current=useRef();current.current={scope,blocked:busy||!!detail||componentActions?.editMode};
+  const reload=()=>{rememberScope(snapshot,current.current.scope,window.sessionStorage);window.location.reload();};
+  useEffect(()=>startAutoRefresh({snapshot,canRefresh:()=>!current.current.blocked,onUpdated:reload,onError:setError}),[snapshot]);
   const d=useMemo(()=>derive(snapshot,scope),[snapshot,scope]),rows=id=>snapshot.queries[id]?.rows??[],github=rows('github')[0];
   const platforms=['全部平台',...new Set([...rows('usage'),...rows('grants')].map(r=>r.platform))];
   const choices=dateRange(shiftDay(taiwanDay(snapshot.generatedAt),-88),taiwanDay(snapshot.generatedAt)),set=(k,v)=>setScope(s=>({...s,[k]:v}));
   const scopeFilters=[{field:'date',label:'用量日期',value:scope.range,queryIds:['usage','questions']},{field:'platform',label:'平台',value:scope.platform==='all'?'全部':scope.platform},{field:'plan',label:'會員方案',value:plans[scope.plan]},{field:'internal',label:'內部帳號',value:scope.includeOwner?'包含 backtrue@gmail.com':'排除 backtrue@gmail.com'}];
   const evidence={scopeFilters,sourceRowsByQuery:{usage:d.usage,grants:d.grants,members:d.members}};
-  async function refresh(){setBusy(true);setError('');try{const r=await fetch(`${snapshot.dashboard.apiBase??'/api'}/refresh`,{method:'POST',headers:{'content-type':'application/json','x-dashboard-request':'refresh'},body:'{}'});const j=await r.json();if(!r.ok)throw new Error(j.error??'資料更新失敗');window.location.reload();}catch(e){setError(e.message);setBusy(false);}}
+  async function refresh(){setBusy(true);setError('');try{const r=await fetch(`${snapshot.dashboard.apiBase??'/api'}/refresh`,{method:'POST',headers:{'content-type':'application/json','x-dashboard-request':'refresh'},body:'{}'});const j=await r.json();if(!r.ok)throw new Error(j.error??'資料更新失敗');reload();}catch(e){setError(e.message);setBusy(false);}}
   async function logout(){if(snapshot.dashboard.apiBase){window.location.assign('/api/auth/logout');return;}try{const r=await fetch('/auth/logout',{method:'POST',headers:{'x-dashboard-request':'logout'}});if(!r.ok)throw new Error('登出未完成');window.location.assign('/login');}catch(e){setError(e.message);}}
   const metrics=[
     {id:'twb-stars',title:'Skills 套件星數',value:n(github?.stars??0),queryId:'github',displayRows:rows('github'),sourceRows:rows('github'),description:'GitHub repository 當下星數，獨立於會員用量篩選',note:github?.repository},

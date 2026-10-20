@@ -112,18 +112,54 @@ function derive(snapshot,scope) {
   return {usage,reads,searches,questions,grants,liveGrants,members:raw('members').filter(m=>hashes.has(m.user_hash)),accountRows,trend,growth,newMembers,platforms,skillRows,gapRows,total,exclusion,previousUsage,previousTotal,comparisonRows,previousRange:`${previousStart}..${previousEnd}`,observedStart,comparable};
 }
 
+const refreshInterval=24*60*60*1000;
+const scopeKey=id=>`twb-dashboard-refresh:${id}`;
+function restoredScope(snapshot,storage){
+  const initial=defaultScope(snapshot);
+  try{
+    const saved=storage.getItem(scopeKey(snapshot.id));storage.removeItem(scopeKey(snapshot.id));
+    if(!saved)return initial;
+    const {scope,defaultRange}=JSON.parse(saved);
+    if(typeof scope?.range!=='string'||!/^\d{4}-\d{2}-\d{2}\.\.\d{4}-\d{2}-\d{2}$/.test(scope.range)||typeof scope.platform!=='string'||typeof scope.plan!=='string'||typeof scope.includeOwner!=='boolean')return initial;
+    return {...scope,range:scope.range===defaultRange?initial.range:scope.range};
+  }catch{return initial;}
+}
+function rememberScope(snapshot,scope,storage){
+  try{storage.setItem(scopeKey(snapshot.id),JSON.stringify({scope,defaultRange:defaultScope(snapshot).range}));}catch{}
+}
+function startAutoRefresh({snapshot,canRefresh,onUpdated,onError,fetcher=fetch,documentTarget=document,windowTarget=window,now=Date.now,setTimer=setInterval,clearTimer=clearInterval}){
+  let stopped=false,pending=false,nextAttempt=Date.parse(snapshot.generatedAt)+refreshInterval;
+  const abort=new AbortController();
+  async function check(){
+    if(stopped||pending||documentTarget.visibilityState!=='visible'||!canRefresh()||now()<nextAttempt)return;
+    pending=true;nextAttempt=now()+refreshInterval;
+    try{
+      const r=await fetcher(`${snapshot.dashboard.apiBase??'/api'}/snapshot`,{cache:'no-store',signal:abort.signal});
+      const data=await r.json();if(!r.ok)throw new Error(data.error??'資料更新失敗');
+      if(!Number.isFinite(Date.parse(data.generatedAt)))throw new Error('資料更新時間無效');
+      if(!stopped&&canRefresh()&&data.generatedAt!==snapshot.generatedAt)onUpdated();
+    }catch(e){if(!stopped)onError(e.message);}finally{pending=false;}
+  }
+  const timer=setTimer(check,30000);
+  documentTarget.addEventListener('visibilitychange',check);windowTarget.addEventListener('focus',check);check();
+  return ()=>{stopped=true;abort.abort();clearTimer(timer);documentTarget.removeEventListener('visibilitychange',check);windowTarget.removeEventListener('focus',check);};
+}
+
 const n=v=>new Intl.NumberFormat('zh-TW',{maximumFractionDigits:0}).format(v);
 const time=v=>v?new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',dateStyle:'medium',timeStyle:'short',hour12:false}).format(new Date(v)):'—';
 const plans={all:'全部方案',free:'免費',pro:'Pro',founders:'創始會員',unknown:'待對照'};
 const Empty=({title='目前範圍沒有紀錄',children})=>jsxRuntime.jsxs('div', { className: "twb-empty", children: [jsxRuntime.jsx('strong', { children: title}), children&&jsxRuntime.jsx('span', { children: children})]});
 function DashboardContent(){
-  const {snapshot}=dataApp.useDataApp(),[scope,setScope]=react.useState(()=>defaultScope(snapshot)),[detail,setDetail]=react.useState(null),[busy,setBusy]=react.useState(false),[error,setError]=react.useState('');
+  const {snapshot,componentActions}=dataApp.useDataApp(),[scope,setScope]=react.useState(()=>restoredScope(snapshot,window.sessionStorage)),[detail,setDetail]=react.useState(null),[busy,setBusy]=react.useState(false),[error,setError]=react.useState('');
+  const current=react.useRef();current.current={scope,blocked:busy||!!detail||componentActions?.editMode};
+  const reload=()=>{rememberScope(snapshot,current.current.scope,window.sessionStorage);window.location.reload();};
+  react.useEffect(()=>startAutoRefresh({snapshot,canRefresh:()=>!current.current.blocked,onUpdated:reload,onError:setError}),[snapshot]);
   const d=react.useMemo(()=>derive(snapshot,scope),[snapshot,scope]),rows=id=>snapshot.queries[id]?.rows??[],github=rows('github')[0];
   const platforms=['全部平台',...new Set([...rows('usage'),...rows('grants')].map(r=>r.platform))];
   const choices=dateRange(shiftDay(taiwanDay(snapshot.generatedAt),-88),taiwanDay(snapshot.generatedAt)),set=(k,v)=>setScope(s=>({...s,[k]:v}));
   const scopeFilters=[{field:'date',label:'用量日期',value:scope.range,queryIds:['usage','questions']},{field:'platform',label:'平台',value:scope.platform==='all'?'全部':scope.platform},{field:'plan',label:'會員方案',value:plans[scope.plan]},{field:'internal',label:'內部帳號',value:scope.includeOwner?'包含 backtrue@gmail.com':'排除 backtrue@gmail.com'}];
   const evidence={scopeFilters,sourceRowsByQuery:{usage:d.usage,grants:d.grants,members:d.members}};
-  async function refresh(){setBusy(true);setError('');try{const r=await fetch(`${snapshot.dashboard.apiBase??'/api'}/refresh`,{method:'POST',headers:{'content-type':'application/json','x-dashboard-request':'refresh'},body:'{}'});const j=await r.json();if(!r.ok)throw new Error(j.error??'資料更新失敗');window.location.reload();}catch(e){setError(e.message);setBusy(false);}}
+  async function refresh(){setBusy(true);setError('');try{const r=await fetch(`${snapshot.dashboard.apiBase??'/api'}/refresh`,{method:'POST',headers:{'content-type':'application/json','x-dashboard-request':'refresh'},body:'{}'});const j=await r.json();if(!r.ok)throw new Error(j.error??'資料更新失敗');reload();}catch(e){setError(e.message);setBusy(false);}}
   async function logout(){if(snapshot.dashboard.apiBase){window.location.assign('/api/auth/logout');return;}try{const r=await fetch('/auth/logout',{method:'POST',headers:{'x-dashboard-request':'logout'}});if(!r.ok)throw new Error('登出未完成');window.location.assign('/login');}catch(e){setError(e.message);}}
   const metrics=[
     {id:'twb-stars',title:'Skills 套件星數',value:n(github?.stars??0),queryId:'github',displayRows:rows('github'),sourceRows:rows('github'),description:'GitHub repository 當下星數，獨立於會員用量篩選',note:github?.repository},

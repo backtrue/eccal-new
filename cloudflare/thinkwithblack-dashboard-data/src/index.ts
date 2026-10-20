@@ -37,8 +37,8 @@ async function collect(env:Env,userId:string,fetcher:typeof fetch){
   async function githubRequest(path=''){const r=await fetcher(`https://api.github.com/repos/${githubRepository}${path}`,{headers:{authorization:`Bearer ${env.GITHUB_TOKEN}`,accept:'application/vnd.github+json','user-agent':'ThinkWithBlack-Dashboard'},redirect:'manual',signal:AbortSignal.timeout(10000)});if(!r.ok)throw new Failure(502,'GITHUB_UNAVAILABLE');return r.json() as Promise<any>;}
   const repo=await githubRequest();if(repo.full_name!==githubRepository||!Number.isFinite(repo.stargazers_count)||!Number.isFinite(repo.forks_count))throw new Failure(502,'GITHUB_INVALID');
   const sameRepository=prior?.github?.[0]?.repository===githubRepository;
-  let traffic=sameRepository?prior.traffic??[]:[];
-  if(!sameRepository){const [views,clones]=await Promise.all([githubRequest('/traffic/views'),githubRequest('/traffic/clones')]);if(!Array.isArray(views.views)||!Array.isArray(clones.clones))throw new Failure(502,'GITHUB_TRAFFIC_INVALID');traffic=[...views.views.map((r:any)=>({repository:githubRepository,date:r.timestamp.slice(0,10),metric:'瀏覽',count:r.count,uniques:r.uniques})),...clones.clones.map((r:any)=>({repository:githubRepository,date:r.timestamp.slice(0,10),metric:'Clone',count:r.count,uniques:r.uniques}))];}
+  const [views,clones]=await Promise.all([githubRequest('/traffic/views'),githubRequest('/traffic/clones')]);if(!Array.isArray(views.views)||!Array.isArray(clones.clones))throw new Failure(502,'GITHUB_TRAFFIC_INVALID');
+  const traffic=[...views.views.map((r:any)=>({repository:githubRepository,date:r.timestamp.slice(0,10),metric:'瀏覽',count:r.count,uniques:r.uniques})),...clones.clones.map((r:any)=>({repository:githubRepository,date:r.timestamp.slice(0,10),metric:'Clone',count:r.count,uniques:r.uniques}))];
   const github=[{observed_at:generatedAt,date:day(generatedAt),repository:repo.full_name,stars:repo.stargazers_count,forks:repo.forks_count,url:repo.html_url}];
   const source=(name:string,detail:string,extra:any={})=>({name,executedAt:generatedAt,classification:'observed',evidenceFlow:[{title:'來源讀取',detail}],...extra});
   const provenance={
@@ -47,7 +47,7 @@ async function collect(env:Env,userId:string,fetcher:typeof fetch){
     questions:source('使用者完整原始問題','分頁讀取問題 KV，逐筆重新核對 SHA-256',{coverage:'收錄功能啟用後成功保存的紀錄'}),
     usage:source('Skill 搜尋與讀取用量','Cloudflare Analytics SQL binding，89 天分段查詢；COUNT 與 SUM 由 API 自動套用取樣權重',{sql:sqls.join('\n\n'),coverage:`${intervals[0][0]} 至 ${generatedAt}；自動加權估計用量，會員為實際觀測識別`,links:[{label:'Cloudflare Analytics SQL 取樣定義',url:'https://developers.cloudflare.com/analytics/sql-api/datasets/#workers-analytics-engine-datasets'}]}),
     github:source('GitHub 免費 Skills 套件',`GitHub repository API 即時讀取 ${githubRepository} 星數與 Fork`,{repository:githubRepository,links:[{label:'免費 Skills repository',url:repo.html_url}]}),
-    traffic:sameRepository?(prior.provenance?.traffic??prior.provenance?.github):source('GitHub 免費 Skills traffic',`讀取 ${githubRepository} traffic/views 與 traffic/clones`,{repository:githubRepository,coverage:'GitHub 最近 14 天，UTC 日界線',links:[{label:'免費 Skills repository',url:repo.html_url}]}),
+    traffic:source('GitHub 免費 Skills traffic',`讀取 ${githubRepository} traffic/views 與 traffic/clones`,{repository:githubRepository,coverage:'GitHub 最近 14 天，UTC 日界線',links:[{label:'免費 Skills repository',url:repo.html_url}]}),
   };
   const daily={repository:githubRepository,date:day(generatedAt),captured_at:generatedAt,stars:repo.stargazers_count,grant_members:users.length,grant_records:grants.length,question_records:questions.length};
   const history=[...(sameRepository?prior.history??[]:[]).filter((r:any)=>r.date!==daily.date&&(!r.repository||r.repository===githubRepository)),daily].sort((a:any,b:any)=>a.date.localeCompare(b.date));

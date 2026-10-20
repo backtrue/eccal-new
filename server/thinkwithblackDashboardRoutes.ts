@@ -6,11 +6,12 @@ import {assembleSnapshot,dashboardPrefix,dashboardApi,digest,type DashboardRepos
 const origin='https://eccal.thinkwithblack.com';
 const owner='backtrue@gmail.com';
 type Member={id:string;email:string|null;membershipLevel?:string};
-export type DashboardDependencies={getSecret:()=>string|undefined;getUser:(id:string)=>Promise<Member|undefined|null>;getMembers:(ids:string[])=>Promise<Member[]>;repository:DashboardRepository;sourceUrl:string;fetcher?:typeof fetch;templatePath?:string};
+export type DashboardDependencies={getSecret:()=>string|undefined;getUser:(id:string)=>Promise<Member|undefined|null>;getMembers:(ids:string[])=>Promise<Member[]>;repository:DashboardRepository;sourceUrl:string;fetcher?:typeof fetch;templatePath?:string;now?:()=>number};
 const loginHtml=`<!doctype html><html lang="zh-Hant-TW"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>登入 ThinkWithBlack 營運總覽</title><style>body{font-family:system-ui;background:#f6f7f9;display:grid;place-items:center;min-height:100vh;margin:0}main{background:white;padding:36px;border-radius:20px;border:1px solid #e4e7ed;margin:20px}h1{font-size:24px}p{color:#626978;line-height:1.8}a{display:block;background:#285fc4;color:white;padding:13px;text-align:center;text-decoration:none;border-radius:10px}</style><main><h1>ThinkWithBlack 營運總覽</h1><p>使用報數據的 Google 登入<br>僅限 backtrue@gmail.com 查看</p><a href="/api/auth/google?returnTo=%2Fbdmin%2Fthinkwithblack%2F">使用 Google 登入</a></main></html>`;
 class Rejected extends Error {constructor(readonly status:number,readonly code:string){super(code)}}
 export function createDashboardRouter(d:DashboardDependencies){
-  const router=express.Router();const fetcher=d.fetcher??fetch;
+  const router=express.Router();const fetcher=d.fetcher??fetch;const now=d.now??Date.now;
+  const maxAge=24*60*60*1000;let updating:Promise<{hash:string;body:string}>|null=null;
   async function member(req:Request){
     const secret=d.getSecret();if(!secret||secret==='your-super-secret-jwt-key-change-this-in-production')throw new Rejected(503,'LOGIN_UNAVAILABLE');
     const token=req.cookies?.auth_token;if(typeof token!=='string'||token.length>8192)throw new Rejected(401,'LOGIN_REQUIRED');
@@ -27,7 +28,15 @@ export function createDashboardRouter(d:DashboardDependencies){
     return JSON.parse(Buffer.concat(parts).toString('utf8'));
   }
   async function capture(token:string,userId:string,supplied?:any){const raw=supplied??await cloud('/snapshot',token);if(raw.owner?.user_hash!==digest(userId))throw new Rejected(502,'SOURCE_IDENTITY_MISMATCH');const members=await d.getMembers(raw.users.map((u:any)=>String(u.member_id)));return d.repository.put(JSON.stringify(assembleSnapshot(raw,members,new Date().toISOString())));}
-  async function latest(token:string,userId:string){return await d.repository.latest()??await capture(token,userId);}
+  async function refresh(token:string,userId:string){
+    if(!updating)updating=(async()=>capture(token,userId,await cloud('/refresh',token,'POST')))().finally(()=>{updating=null;});
+    return updating;
+  }
+  async function latest(token:string,userId:string){
+    const record=await d.repository.latest();
+    if(record){const generatedAt=Date.parse(JSON.parse(record.body).generatedAt);if(Number.isFinite(generatedAt)&&now()-generatedAt<maxAge&&generatedAt<=now())return record;}
+    return refresh(token,userId);
+  }
   const paths=[dashboardPrefix,dashboardPrefix+'/*',dashboardApi,dashboardApi+'/*'];
   router.use(paths,async(req,res)=>{
     res.set({'Cache-Control':'no-store','Vary':'Cookie','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'SAMEORIGIN'});
@@ -37,7 +46,7 @@ export function createDashboardRouter(d:DashboardDependencies){
       if(pathname===dashboardApi+'/refresh'){
         if(req.method!=='POST')throw new Rejected(405,'METHOD_REJECTED');
         if(req.get('origin')!==origin||req.get('x-dashboard-request')!=='refresh'||!req.is('application/json'))throw new Rejected(403,'REQUEST_REJECTED');
-        const raw=await cloud('/refresh',token,'POST');const record=await capture(token,user.id,raw);res.json({status:'updated',generatedAt:JSON.parse(record.body).generatedAt});return;
+        const record=await refresh(token,user.id);res.json({status:'updated',generatedAt:JSON.parse(record.body).generatedAt});return;
       }
       if(req.method!=='GET'&&req.method!=='HEAD')throw new Rejected(405,'METHOD_REJECTED');
       if(pathname===dashboardApi+'/snapshot'){const record=await latest(token,user.id);res.type('application/json').send(req.method==='HEAD'?'':record.body);return;}
