@@ -1697,3 +1697,39 @@ export const insertOAuthTokenSchema = createInsertSchema(oauthTokens).omit({
 });
 
 export type InsertOAuthTokenType = z.infer<typeof insertOAuthTokenSchema>;
+
+export const voiceQuotas = pgTable('voice_quotas', {
+  userId: varchar('user_id').primaryKey().references(() => users.id),
+  grantedSeconds: integer('granted_seconds').notNull().default(300),
+  billedSeconds: integer('billed_seconds').notNull().default(0),
+}, t => [
+  check('voice_quotas_granted_seconds_check', sql`${t.grantedSeconds} = 300`),
+  check('voice_quotas_billed_seconds_check', sql`${t.billedSeconds} BETWEEN 0 AND 300`),
+]);
+export const voiceReservations = pgTable('voice_reservations', {
+  id: uuid('id').primaryKey(), userId: varchar('user_id').notNull().references(() => voiceQuotas.userId),
+  operationId: varchar('operation_id', { length: 100 }).notNull(),
+  reservedSeconds: integer('reserved_seconds').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+  deadline: timestamp('deadline', { withTimezone: true }).notNull(),
+  settledAt: timestamp('settled_at', { withTimezone: true }),
+  billedSeconds: integer('billed_seconds'), remainingSeconds: integer('remaining_seconds'),
+  eventsDigest: varchar('events_digest', { length: 64 }),
+}, t => [
+  uniqueIndex('voice_reservations_operation_key').on(t.userId, t.operationId),
+  uniqueIndex('voice_one_active_reservation_idx').on(t.userId).where(sql`${t.settledAt} IS NULL`),
+  check('voice_reservations_reserved_seconds_check', sql`${t.reservedSeconds} BETWEEN 1 AND 300`),
+  check('voice_reservations_deadline_check', sql`${t.deadline} = ${t.createdAt} + ${t.reservedSeconds} * interval '1 second'`),
+  check('voice_reservations_settlement_check', sql`(${t.settledAt} IS NULL AND ${t.billedSeconds} IS NULL AND ${t.remainingSeconds} IS NULL AND ${t.eventsDigest} IS NULL) OR (${t.settledAt} IS NOT NULL AND ${t.billedSeconds} IS NOT NULL AND ${t.billedSeconds} BETWEEN 0 AND ${t.reservedSeconds} AND ${t.remainingSeconds} IS NOT NULL AND ${t.remainingSeconds} BETWEEN 0 AND 300 AND ${t.eventsDigest} IS NOT NULL AND ${t.eventsDigest} ~ '^[a-f0-9]{64}$')`),
+]);
+
+export const voiceLoginCodes = pgTable('voice_login_codes', {
+  codeHash: varchar('code_hash', { length: 64 }).primaryKey(), stateHash: varchar('state_hash', { length: 64 }).notNull(),
+  userId: varchar('user_id').notNull().references(() => users.id), audience: text('audience').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(), sessionExpiresAt: timestamp('session_expires_at', { withTimezone: true }).notNull(),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+}, t => [index('voice_login_codes_expiry_idx').on(t.expiresAt), check('voice_login_codes_code_hash_check', sql`${t.codeHash} ~ '^[a-f0-9]{64}$'`), check('voice_login_codes_state_hash_check', sql`${t.stateHash} ~ '^[a-f0-9]{64}$'`), check('voice_login_codes_check', sql`${t.expiresAt} <= ${t.sessionExpiresAt}`)]);
+export const voiceSessions = pgTable('voice_sessions', {
+  tokenHash: varchar('token_hash', { length: 64 }).primaryKey(), userId: varchar('user_id').notNull().references(() => users.id),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [index('voice_sessions_expiry_idx').on(t.expiresAt), check('voice_sessions_token_hash_check', sql`${t.tokenHash} ~ '^[a-f0-9]{64}$'`)]);

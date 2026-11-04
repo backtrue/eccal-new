@@ -14,7 +14,11 @@
     "security:scan:mcp": "secretlint server/accountSnapshotService.ts server/accountSnapshotService.test.ts server/aeoCoursePurchases.test.ts server/mcpAuthRoutes.ts server/mcpAuthService.ts server/mcpAuthRoutes.test.ts server/mcpAuthService.test.ts scripts/verify-mcp-scope.mjs server/index.ts shared/schema.ts package.json package-lock.json && git diff --no-ext-diff --unified=0 51e49cd3bfba970ceb22e96875875020df5ad870 -- | secretlint --stdinFileName=mcp.diff",
     "db:push": "drizzle-kit push",
     "dev:adcheck": "npx wrangler dev --config cloudflare/adcheck-worker/wrangler.jsonc",
-    "deploy:adcheck": "npx wrangler deploy --config cloudflare/adcheck-worker/wrangler.jsonc"
+    "deploy:adcheck": "npx wrangler deploy --config cloudflare/adcheck-worker/wrangler.jsonc",
+    "test:voice": "node --import tsx --test server/voiceQuota.test.ts",
+    "test:voice-contract": "node --import tsx --test server/voiceQuotaContract.test.ts",
+    "test:voice-login": "node --import tsx --test server/voiceLogin.test.ts",
+    "test:voice-mcp": "node --import tsx --test server/voiceMcpContract.test.ts"
   },
   "dependencies": {
     "@google/genai": "^1.8.0",

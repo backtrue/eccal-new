@@ -6,6 +6,8 @@ import { setupVite, serveStatic } from './vite';
 import { setupJWTGoogleAuth, jwtMiddleware } from './jwtAuth';
 import { setupGAConnection } from './gaConnection';
 import { setupMcpAuthRoutes } from './mcpAuthRoutes';
+import { setupVoiceQuotaRoutes } from './voiceQuotaRoutes';
+import { setupVoiceLoginRoutes } from './voiceLoginRoutes';
 import { setupGscRoutes } from './gscRoutes';
 import { setupGtmRoutes, verifyGtmBrowserJwt } from './gtmRoutes';
 import { createGtmCredentialService } from './gtmCredentialService';
@@ -16,6 +18,8 @@ import { createGtmRepository } from './gtmRepository';
 // -------------------- 1. 基礎設定 --------------------
 const app = express();
 setupMcpAuthRoutes(app);
+setupVoiceLoginRoutes(app);
+setupVoiceQuotaRoutes(app);
 setupGscRoutes(app);
 setupGtmRoutes(app, {
   getCallerToken: () => process.env.THINKWITHBLACK_GTM_SERVICE_TOKEN,

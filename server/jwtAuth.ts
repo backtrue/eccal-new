@@ -3,6 +3,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import passport from 'passport';
 import type { Express, Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
+import { beginVoiceGoogleState, consumeVoiceGoogleState, completeVoiceLoginContext } from './voiceLoginState';
 
 // JWT 設定
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
@@ -380,9 +381,12 @@ export function setupJWTGoogleAuth(app: Express) {
     console.log('[GOOGLE-OAUTH] Saving returnTo in request:', returnTo);
     
     // 將 returnTo 作為 state 參數傳遞
-    const state = Buffer.from(JSON.stringify({ returnTo })).toString('base64');
+    let state: string;
+    try { state = returnTo === '/api/voice/login' ? beginVoiceGoogleState(res, process.env.THINKWITHBLACK_VOICE_SERVICE_TOKEN, process.env.NODE_ENV === 'production') : Buffer.from(JSON.stringify({ returnTo })).toString('base64'); }
+    catch { return res.status(503).json({ error: 'VOICE_LOGIN_NOT_CONFIGURED' }); }
     
     passport.authenticate('google', {
+      ...(returnTo === '/api/voice/login' ? { scope: ['profile', 'email'] } : {}),
       accessType: 'offline',
       prompt: 'consent',
       state: state
@@ -391,6 +395,18 @@ export function setupJWTGoogleAuth(app: Express) {
 
   // Google OAuth 回調 - 生成 JWT
   app.get('/api/auth/google/callback', (req, res, next) => {
+    if (typeof req.query.state === 'string' && req.query.state.startsWith('voice-google1.')) {
+      if (!consumeVoiceGoogleState(req, res, req.query.state, process.env.THINKWITHBLACK_VOICE_SERVICE_TOKEN, process.env.NODE_ENV === 'production')) return res.status(400).json({ error: 'LOGIN_STATE_INVALID' });
+      return passport.authenticate('google', (err: unknown, user: JWTUser | undefined) => {
+        if (err || !user?.id) return res.status(401).json({ error: 'LOGIN_FAILED' });
+        const token = jwtUtils.generateToken(user);
+        try { completeVoiceLoginContext(req, res, token, process.env.THINKWITHBLACK_VOICE_SERVICE_TOKEN, process.env.NODE_ENV === 'production'); }
+        catch { return res.status(400).json({ error: 'LOGIN_STATE_INVALID' }); }
+        res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 7 * 86400000, path: '/' });
+        res.setHeader('Cache-Control', 'no-store'); res.setHeader('Referrer-Policy', 'no-referrer');
+        res.redirect(302, '/api/voice/login');
+      })(req, res, next);
+    }
     console.log('Google OAuth callback with JWT');
     
     passport.authenticate('google', (err: any, user: any, info: any) => {

@@ -42,6 +42,8 @@ backups/
 *.sql
 !migrations/
 !migrations/0001_gtm_read_v1.sql
+!migrations/0004_voice_quotas.sql
+!migrations/0005_voice_login.sql
 *.csv
 database_backups/
 *.tar.gz
