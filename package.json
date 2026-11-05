@@ -16,6 +16,7 @@
     "dev:adcheck": "npx wrangler dev --config cloudflare/adcheck-worker/wrangler.jsonc",
     "deploy:adcheck": "npx wrangler deploy --config cloudflare/adcheck-worker/wrangler.jsonc",
     "test:voice": "node --import tsx --test server/voiceQuota.test.ts",
+    "test:voice-email": "node --import tsx --test server/voiceEmail.test.ts",
     "test:voice-contract": "node --import tsx --test server/voiceQuotaContract.test.ts",
     "test:voice-login": "node --import tsx --test server/voiceLogin.test.ts",
     "test:voice-mcp": "node --import tsx --test server/voiceMcpContract.test.ts"

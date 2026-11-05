@@ -7,6 +7,7 @@ import { setupJWTGoogleAuth, jwtMiddleware } from './jwtAuth';
 import { setupGAConnection } from './gaConnection';
 import { setupMcpAuthRoutes } from './mcpAuthRoutes';
 import { setupVoiceQuotaRoutes } from './voiceQuotaRoutes';
+import { setupVoiceEmailRoutes } from './voiceEmailRoutes';
 import { setupVoiceLoginRoutes } from './voiceLoginRoutes';
 import { setupGscRoutes } from './gscRoutes';
 import { setupGtmRoutes, verifyGtmBrowserJwt } from './gtmRoutes';
@@ -19,6 +20,7 @@ import { createGtmRepository } from './gtmRepository';
 const app = express();
 setupMcpAuthRoutes(app);
 setupVoiceLoginRoutes(app);
+setupVoiceEmailRoutes(app);
 setupVoiceQuotaRoutes(app);
 setupGscRoutes(app);
 setupGtmRoutes(app, {
