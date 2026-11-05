@@ -46,16 +46,17 @@ test('realtime-black live adapter與通話引擎經HTTP對上ECCAL真PostgreSQL�
   let now = Date.now(); const data = new Map<string, unknown>();
   const deps = {
     eccal: { authenticate: quota.authenticate.bind(quota), balance: quota.balance.bind(quota), reserve: quota.reserve.bind(quota), settle: quota.settle.bind(quota),
-      mcpGrant: async (memberId: string) => ({ memberId, accessToken: 'fixture-only-grant', expiresAt: now + 60000, readOnlyTools: ['read_method'] }) },
+      mcpGrant: async () => { throw new Error('PERSONAL_MCP_OAUTH_MUST_NOT_BE_USED'); } },
     store: { get: async (key: string) => structuredClone(data.get(key)), put: async (key: string, value: unknown) => { data.set(key, structuredClone(value)); }, delete: async (key: string) => { data.delete(key); }, list: async (prefix: string) => new Map(Array.from(data).filter(([key]) => key.startsWith(prefix)).map(([key, value]) => [key, structuredClone(value)])), alarm: async () => {} },
     realtime: { create: async () => ({ callId: 'rtc_fixture', sdp: 'v=0\r\nfixture' }), hangup: async () => {} },
-    mcp: { list: async () => [{ name: 'read_method', description: 'fixture method', parameters: {} }], call: async () => { now += 30000; return { method: 'fixture-only' }; } },
+    mcp: { list: async () => [{ name: 'thinkwithblack_entry_catalog', description: 'fixture method', parameters: {} }], call: async () => { now += 30000; return { method: 'fixture-only' }; } },
     documents: { generate: async () => { throw new Error('unused'); } }, now: () => now, id: () => randomUUID(),
   };
   const engine = new MemberEngine(deps);
   const first = await engine.start(identity, randomUUID(), 'v=0\r\nfixture'); await engine.activate('fixture-a', first.id);
   await engine.ingest('fixture-a', first.id, { type: 'input_audio_buffer.speech_started' });
-  now += 30000; await engine.tool('fixture-a', first.id, 'tool-1', 'read_method', '{}'); now += 60000;
+  now += 30000; const tool = await engine.tool('fixture-a', first.id, 'tool-1', 'thinkwithblack_entry_catalog', '{}'); now += 60000;
+  assert.equal(JSON.parse(tool.output).ok, true);
   await engine.end('fixture-a', first.id);
   assert.equal(await quota.balance('fixture-a'), 210);
   assert.deepEqual((await engine.get('fixture-a', first.id)).settlement, { billedSeconds: 90, remainingSeconds: 210 });
