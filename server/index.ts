@@ -8,6 +8,7 @@ import { setupGAConnection } from './gaConnection';
 import { setupMcpAuthRoutes } from './mcpAuthRoutes';
 import { setupVoiceQuotaRoutes } from './voiceQuotaRoutes';
 import { setupVoiceEmailRoutes } from './voiceEmailRoutes';
+import { setupVoiceLineRoutes } from './voiceLineRoutes';
 import { setupVoiceLoginRoutes } from './voiceLoginRoutes';
 import { setupGscRoutes } from './gscRoutes';
 import { setupGtmRoutes, verifyGtmBrowserJwt } from './gtmRoutes';
@@ -21,6 +22,7 @@ const app = express();
 setupMcpAuthRoutes(app);
 setupVoiceLoginRoutes(app);
 setupVoiceEmailRoutes(app);
+setupVoiceLineRoutes(app);
 setupVoiceQuotaRoutes(app);
 setupGscRoutes(app);
 setupGtmRoutes(app, {
